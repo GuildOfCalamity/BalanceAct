@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BalanceAct (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "BalanceAct (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,0 +1,688 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="BalanceAct.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behave="using:BalanceAct.Behaviors"
+    xmlns:ctrl="using:BalanceAct.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:helper="using:BalanceAct.Support"
+    xmlns:interact="using:Microsoft.Xaml.Interactivity"
+    xmlns:interactcore="using:Microsoft.Xaml.Interactions.Core"
+    xmlns:interactmedia="using:Microsoft.Xaml.Interactions.Media"
+    xmlns:local="using:BalanceAct"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:BalanceAct.Models"
+    x:Name="ThisPage"
+    Loaded="{x:Bind ViewModel.MainPageLoaded, Mode=OneWay}"
+    Unloaded="{x:Bind ViewModel.MainPageUnloaded, Mode=OneWay}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <local:TrueToVisibleConverter x:Key="TrueToVisibleConverter" />
+        <local:NotEmptyStringToVisibleConverter x:Key="NotEmptyStringToVisibleConverter" />
+    </Page.Resources>
+
+    <Grid
+        x:Name="root"
+        Padding="20"
+        ColumnSpacing="10"
+        RowSpacing="10">
+
+        <!--#region [Defines]-->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <!--#endregion-->
+
+        <!--#region [Animation]-->
+        <Grid.Resources>
+            <Storyboard x:Name="OpacityStoryboard">
+                <DoubleAnimation
+                    AutoReverse="False"
+                    Storyboard.TargetName="root"
+                    Storyboard.TargetProperty="Opacity"
+                    From="0"
+                    To="1"
+                    Duration="0:0:1.4" />
+            </Storyboard>
+        </Grid.Resources>
+        <interact:Interaction.Behaviors>
+            <behave:OpacityAnimationBehavior
+                EaseMode="QuadEaseOut"
+                Seconds="1.0"
+                From="0.0"
+                To="1.0" />
+            <behave:SlideAnimationBehavior
+                Direction="Left"
+                EaseMode="QuadEaseOut"
+                Seconds="0.7" />
+        </interact:Interaction.Behaviors>
+        <!--#endregion-->
+
+        <!--#region [Using Traditional Converters]-->
+        <!--
+        <ToggleSwitch
+            x:Name="VisibilityToggleSwitch"
+            Grid.Row="0"
+            Grid.Column="0"
+            Header="TrueToVisibleConverter"
+            OffContent="Collapsed"
+            OnContent="Visible" />
+        <TextBlock
+            Grid.Row="0"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            FontSize="40"
+            Text="🧰"
+            Visibility="{x:Bind VisibilityToggleSwitch.IsOn, Mode=OneWay, Converter={StaticResource NotEmptyStringToVisibleConverter}}" />
+
+        <TextBox
+            x:Name="VisibilityTextBox"
+            Grid.Row="1"
+            Grid.Column="0"
+            Header="NotEmptyStringToVisibleConverter" />
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            FontSize="40"
+            Text="🧰"
+            Visibility="{x:Bind VisibilityTextBox.Text, Mode=OneWay, Converter={StaticResource TrueToVisibleConverter }}" />
+        -->
+        <!--#endregion-->
+
+        <!--#region [Using Static Function Converters]-->
+        <!--
+        <ToggleSwitch
+            x:Name="VisibilityToggleSwitch"
+            Grid.Row="0"
+            Grid.Column="0"
+            OffContent="Collapsed"
+            OnContent="Visible">
+            <ToggleSwitch.Header>
+                <Grid>
+                    <TextBlock FontSize="16" Text="TrueToVisible Function" />
+                </Grid>
+            </ToggleSwitch.Header>
+        </ToggleSwitch>
+        <TextBlock
+            Grid.Row="0"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            FontSize="40"
+            Text="🧰"
+            Visibility="{x:Bind local:Functions.TrueToVisible(VisibilityToggleSwitch.IsOn), Mode=OneWay}" />
+
+        <TextBox
+            x:Name="VisibilityTextBox"
+            Grid.Row="1"
+            Grid.Column="0">
+            <TextBox.Header>
+                <Grid>
+                    <TextBlock FontSize="16" Text="NotEmptyStringToVisible Function" />
+                </Grid>
+            </TextBox.Header>
+            <interact:Interaction.Behaviors>
+                <interactcore:EventTriggerBehavior EventName="KeyDown">
+                    <interactcore:ChangePropertyAction
+                        PropertyName="Fill"
+                        TargetObject="{Binding ElementName=BehaviorRectangle}"
+                        Value="{StaticResource BC1}" />
+                </interactcore:EventTriggerBehavior>
+                <interactcore:EventTriggerBehavior EventName="KeyUp">
+                    <interactcore:ChangePropertyAction
+                        PropertyName="Fill"
+                        TargetObject="{Binding ElementName=BehaviorRectangle}"
+                        Value="{StaticResource BC2}" />
+                </interactcore:EventTriggerBehavior>
+                <interactcore:EventTriggerBehavior EventName="GotFocus">
+                    <interactcore:ChangePropertyAction
+                        PropertyName="Fill"
+                        TargetObject="{Binding ElementName=BehaviorRectangle}"
+                        Value="{StaticResource BC3}" />
+                </interactcore:EventTriggerBehavior>
+                <interactcore:EventTriggerBehavior EventName="LostFocus">
+                    <interactcore:ChangePropertyAction
+                        PropertyName="Fill"
+                        TargetObject="{Binding ElementName=BehaviorRectangle}"
+                        Value="{StaticResource BC4}" />
+                </interactcore:EventTriggerBehavior>
+            </interact:Interaction.Behaviors>
+        </TextBox>
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            FontSize="40"
+            Text="🧰"
+            Visibility="{x:Bind local:Functions.NotEmptyStringToVisible(VisibilityTextBox.Text), Mode=OneWay}" />
+
+        <StackPanel
+            Grid.Row="2"
+            Grid.Column="0"
+            Orientation="Vertical">
+            <TextBlock FontSize="16" Text="TrueToVisible Function">
+                <interact:Interaction.Behaviors>
+                    <behave:ColorAnimationBehavior
+                        EaseMode="QuadEaseOut"
+                        Interpolation="Rgb"
+                        Seconds="4.0"
+                        From="#FF31ABF1"
+                        To="#FF48FF10" />
+                </interact:Interaction.Behaviors>
+            </TextBlock>
+            <ToggleSwitch
+                x:Name="AndOrToggleSwitch"
+                OffContent="AnyTrueToVisible"
+                OnContent="AllTrueToVisible" />
+            <StackPanel Orientation="Vertical">
+                <CheckBox x:Name="VisibilityCheckBoxA" Content="A">
+                    <interact:Interaction.Behaviors>
+                        <interactcore:DataTriggerBehavior Binding="{Binding IsChecked, ElementName=VisibilityCheckBoxA}" Value="True">
+                            <interactcore:GoToStateAction StateName="Disabled" TargetObject="{Binding ElementName=btn}" />
+                        </interactcore:DataTriggerBehavior>
+                    </interact:Interaction.Behaviors>
+                </CheckBox>
+                <CheckBox x:Name="VisibilityCheckBoxB" Content="B" />
+                <CheckBox x:Name="VisibilityCheckBoxC" Content="C" />
+            </StackPanel>
+        </StackPanel>
+        <TextBlock
+            Grid.Row="2"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            FontSize="40"
+            Text="🧰"
+            Visibility="{x:Bind local:Functions.TrueToVisible(AndOrToggleSwitch.IsOn, VisibilityCheckBoxA.IsChecked, VisibilityCheckBoxB.IsChecked, VisibilityCheckBoxC.IsChecked), Mode=OneWay}" />
+        -->
+        <!--#endregion-->
+
+        <!--#region [Expense Entry Content]-->
+        <Grid
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Grid.Column="0"
+            VerticalAlignment="Stretch"
+            BorderBrush="{ThemeResource GradientBorderBrush}"
+            BorderThickness="3"
+            CornerRadius="5"
+            RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel
+                Grid.Row="0"
+                Padding="10"
+                Orientation="Vertical"
+                Spacing="10">
+                <StackPanel.Resources>
+                    <Style TargetType="TextBox">
+                        <Setter Property="MinWidth" Value="150" />
+                        <Setter Property="CornerRadius" Value="5" />
+                        <Setter Property="MaxWidth" Value="250" />
+                        <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                    </Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                        <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                    </Style>
+                    <!--  This seems to break the underlying styler.  -->
+                    <!--<Style TargetType="CalendarDatePicker">
+                        <Setter Property="CornerRadius" Value="5" />
+                        <Setter Property="MinWidth" Value="250" />
+                        <Setter Property="MaxWidth" Value="250" />
+                    </Style>-->
+                </StackPanel.Resources>
+
+                <!--  Category  -->
+                <ComboBox
+                    MinWidth="250"
+                    MaxWidth="250"
+                    HorizontalAlignment="Left"
+                    ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                    SelectedIndex="{x:Bind ViewModel.CategorySelectedIndex, Mode=OneWay}"
+                    SelectionChanged="{x:Bind ViewModel.CategorySelectionChanged, Mode=OneWay}"
+                    ToolTipService.ToolTip="Select note sorting method">
+                    <ComboBox.Header>
+                        <TextBlock
+                            Margin="2,0,0,-5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource GradientHeaderBrush}"
+                            Text="Category" />
+                    </ComboBox.Header>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!--
+                <DatePicker
+                    x:Name="chosenDate"
+                    Margin="1"
+                    Header="Pick a date" />
+                -->
+                <CalendarDatePicker
+                    x:Name="chosenDate"
+                    MinWidth="250"
+                    MaxWidth="250"
+                    Margin="1"
+                    CornerRadius="5"
+                    Date="{x:Bind ViewModel.SelectedDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Foreground="White"
+                    PlaceholderText="Pick a date">
+                    <CalendarDatePicker.Header>
+                        <TextBlock
+                            Margin="2,0,0,-5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource GradientHeaderBrush}"
+                            Text="Date" />
+                    </CalendarDatePicker.Header>
+                </CalendarDatePicker>
+
+                <TextBox PlaceholderText="Acme store purchase" Text="{x:Bind ViewModel.SelectedDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.Header>
+                        <TextBlock
+                            Margin="2,0,0,-5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource GradientHeaderBrush}"
+                            Text="Description" />
+                    </TextBox.Header>
+                </TextBox>
+
+                <TextBox PlaceholderText="$123.45" Text="{x:Bind ViewModel.SelectedAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.Header>
+                        <TextBlock
+                            Margin="2,0,0,-5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource GradientHeaderBrush}"
+                            Text="Dollar amount" />
+                    </TextBox.Header>
+                </TextBox>
+
+                <TextBox PlaceholderText="Order confirmation #, Invoice identifier, etc." Text="{x:Bind ViewModel.SelectedCodes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.Header>
+                        <TextBlock
+                            Margin="2,0,0,-5"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource GradientHeaderBrush}"
+                            Text="Code/Memo" />
+                    </TextBox.Header>
+                </TextBox>
+
+            </StackPanel>
+
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="40" />
+                    <RowDefinition Height="40" />
+                </Grid.RowDefinitions>
+
+                <Button
+                    Grid.Row="0"
+                    MinWidth="200"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Command="{x:Bind ViewModel.AddItemCommand}"
+                    Content="Add Expense"
+                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                    <interact:Interaction.Behaviors>
+                        <behave:ColorGradientBehavior From="#FF4800FF" To="#FF10FFFF" />
+                    </interact:Interaction.Behaviors>
+                </Button>
+
+                <Button
+                    Grid.Row="1"
+                    MinWidth="200"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Command="{x:Bind ViewModel.UpdateItemCommand}"
+                    Content="Update Expense"
+                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                    <interact:Interaction.Behaviors>
+                        <behave:ColorGradientBehavior From="#FF4800FF" To="#FF10FFFF" />
+                    </interact:Interaction.Behaviors>
+                </Button>
+
+                <ProgressRing
+                    Grid.Row="0"
+                    Width="22"
+                    Height="22"
+                    Margin="40,0,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource SecondaryBrush}"
+                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
+
+                <ProgressRing
+                    Grid.Row="1"
+                    Width="22"
+                    Height="22"
+                    Margin="40,0,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource SecondaryBrush}"
+                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
+            </Grid>
+
+            <Image
+                Grid.Row="99"
+                Width="90"
+                Height="90"
+                Margin="10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Source="ms-appx:///Assets/StoreLogo.png">
+                <interact:Interaction.Behaviors>
+                    <behave:OpacityAnimationBehavior
+                        EaseMode="Linear"
+                        Seconds="2.0"
+                        From="0.0"
+                        To="0.5" />
+                    <behave:SpringAnimationBehavior
+                        Damping="0.2"
+                        Final="1.15"
+                        Seconds="0.04" />
+                </interact:Interaction.Behaviors>
+            </Image>
+
+        </Grid>
+        <!--#endregion-->
+
+        <!--#region [Expense Listing Content]-->
+        <ListView
+            x:Name="ItemListView"
+            Grid.Row="0"
+            Grid.RowSpan="1"
+            Grid.Column="1"
+            VerticalAlignment="Stretch"
+            helper:AttachedCommand.ScrollTarget="{x:Bind ViewModel.ScrollToItem, Mode=OneWay}"
+            IsHitTestVisible="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}"
+            ItemsSource="{x:Bind ViewModel.ExpenseItems, Mode=OneWay}"
+            Loaded="ItemListView_Loaded"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.HorizontalScrollMode="Enabled"
+            ScrollViewer.VerticalScrollBarVisibility="Visible"
+            ScrollViewer.VerticalScrollMode="Enabled"
+            SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
+            SelectionChanged="ItemListView_SelectionChanged"
+            SelectionMode="Single">
+            <ListView.Transitions>
+                <TransitionCollection>
+                    <AddDeleteThemeTransition />
+                </TransitionCollection>
+            </ListView.Transitions>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="model:ExpenseItem">
+                    <Border
+                        Padding="0"
+                        BorderBrush="{ThemeResource BorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        CornerRadius="5">
+                        <Grid x:Name="gridItem">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="10*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="4*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Normal" />
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                                    <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
+                                    <Setter Property="FontSize" Value="{StaticResource FontSizeMedium}" />
+                                </Style>
+                            </Grid.Resources>
+                            <TextBlock
+                                Grid.Column="0"
+                                Margin="1,0,1,0"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind Category, Mode=OneWay}" />
+                            <TextBlock Grid.Column="1" Margin="1,0,1,0">
+                                <Run Text="{x:Bind Description, Mode=OneWay}" />
+                                <Run Foreground="{ThemeResource CodesBrush}" Text="–" />
+                                <Run
+                                    FontSize="{ThemeResource FontSizeSmall}"
+                                    Foreground="{ThemeResource CodesBrush}"
+                                    Text="{x:Bind Codes, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock
+                                Grid.Column="2"
+                                Margin="1,0,1,0"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind Amount, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Column="3"
+                                Margin="1,0,1,0"
+                                FontSize="{ThemeResource FontSizeSmall}"
+                                Text="{x:Bind Date, Mode=OneWay, Converter={StaticResource StringToFormat}, ConverterParameter='{}{0:ddd, dd MMM yyyy}'}" />
+                        </Grid>
+
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <!--#endregion-->
+
+        <!--#region [Tally Content]-->
+        <Grid
+            Grid.Row="1"
+            Grid.Column="1"
+            Padding="8,3,8,3"
+            HorizontalAlignment="Stretch"
+            BorderBrush="{ThemeResource GradientBorderBrush}"
+            BorderThickness="2"
+            CornerRadius="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="HorizontalAlignment" Value="Left" />
+                    <Setter Property="FontFamily" Value="{ThemeResource PrimaryFont}" />
+                    <Setter Property="FontSize" Value="{ThemeResource FontSizeMedium}" />
+                    <Setter Property="Foreground" Value="{ThemeResource GradientHeaderBrush}" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                    <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                </Style>
+            </Grid.Resources>
+            <TextBlock Grid.Column="0">
+                <Run Foreground="{ThemeResource GradientHeaderBrush}" Text="Current month:" />
+                <Run Foreground="{ThemeResource SecondaryBrush}" Text="{x:Bind ViewModel.CurrentMonthTotal, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock Grid.Column="1">
+                <Run Foreground="{ThemeResource GradientHeaderBrush}" Text="Change from last month:" />
+                <Run Foreground="{ThemeResource SecondaryBrush}" Text="{x:Bind ViewModel.PreviousMonthChange, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock Grid.Column="2" HorizontalAlignment="Right">
+                <Run Foreground="{ThemeResource GradientHeaderBrush}" Text="YTD:" />
+                <Run Foreground="{ThemeResource SecondaryBrush}" Text="{x:Bind ViewModel.YearToDateTotal, Mode=OneWay}" />
+            </TextBlock>
+            <AppBarButton
+                Grid.Column="3"
+                HorizontalAlignment="Right"
+                CornerRadius="4"
+                Label="Stats"
+                ToolTipService.ToolTip="Additional Statistics">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="{StaticResource AreaChart}" />
+                </AppBarButton.Icon>
+                <AppBarButton.Flyout>
+                    <Flyout Placement="Full">
+                        <Grid
+                            Padding="20,10,20,10"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            AllowFocusOnInteraction="True"
+                            BorderThickness="0"
+                            ColumnSpacing="20"
+                            CornerRadius="5"
+                            RowSpacing="20">
+                            <Grid.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                    <Setter Property="FontFamily" Value="{ThemeResource PrimaryFont}" />
+                                    <Setter Property="FontSize" Value="{ThemeResource FontSizeMedium}" />
+                                    <Setter Property="Foreground" Value="{ThemeResource GradientHeaderBrush}" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                    <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <Border
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Padding="5"
+                                HorizontalAlignment="Stretch"
+                                BorderBrush="{ThemeResource GradientBorderBrush}"
+                                BorderThickness="2"
+                                CornerRadius="5">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="{ThemeResource FontSizeLarge}"
+                                    Foreground="{ThemeResource GradientHeaderBrush}"
+                                    Text="Additional Statistics" />
+                            </Border>
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Most frequent category:" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.FrequentCategory, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Average expense:" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.AverageExpense, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Average per month:" />
+                            <TextBlock
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.AveragePerMonth, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Current month total:" />
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.CurrentMonthTotal, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="5"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Change from last month:" />
+                            <TextBlock
+                                Grid.Row="5"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.PreviousMonthChange, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Year to date:" />
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.YearToDateTotal, Mode=OneWay}" />
+                        </Grid>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+
+        </Grid>
+        <!--#endregion-->
+
+        <!--#region [Status Content]-->
+        <StackPanel
+            Grid.Row="2"
+            Grid.ColumnSpan="2"
+            Margin="0"
+            VerticalAlignment="Bottom">
+            <!--  Wrap this in a StackPanel/Grid to support AnimateUIElementOffset  -->
+            <ctrl:AutoCloseInfoBar
+                x:Name="infoBar"
+                AutoCloseInterval="6000"
+                IsOpen="{x:Bind ViewModel.Show, Mode=OneWay}"
+                Message="{x:Bind ViewModel.Status, Mode=OneWay}"
+                Seconds="2.0"
+                Severity="Informational"
+                SlideUp="True" />
+        </StackPanel>
+        <!--#endregion-->
+
+    </Grid>
+
+</Page>
