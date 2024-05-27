@@ -534,7 +534,7 @@
                     Grid.Row="0"
                     Width="22"
                     Height="22"
-                    Margin="40,0,0,0"
+                    Margin="50,0,0,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
@@ -544,7 +544,7 @@
                     Grid.Row="1"
                     Width="22"
                     Height="22"
-                    Margin="40,0,0,0"
+                    Margin="50,0,0,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
@@ -733,10 +733,10 @@
                                     <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
                                 </Style>
                                 <Style TargetType="Image">
-                                    <Setter Property="Width" Value="18" />
-                                    <Setter Property="Height" Value="18" />
+                                    <Setter Property="Width" Value="20" />
+                                    <Setter Property="Height" Value="20" />
                                     <Setter Property="HorizontalAlignment" Value="Left" />
-                                    <Setter Property="Source" Value="ms-appx:///Assets/Info.png" />
+                                    <Setter Property="Source" Value="ms-appx:///Assets/InfoBubble.png" />
                                 </Style>
                             </Grid.Resources>
                             <Grid.RowDefinitions>
@@ -771,6 +771,7 @@
                                     Foreground="{ThemeResource GradientHeaderBrush}"
                                     Text="Additional Statistics" />
                             </Border>
+
                             <TextBlock
                                 Grid.Row="1"
                                 Grid.Column="0"
@@ -803,7 +804,7 @@
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
-                                Text="Average expense:" />
+                                Text="Median/Average expense:" />
                             <TextBlock
                                 Grid.Row="2"
                                 Grid.Column="1"
@@ -818,8 +819,12 @@
                                             BorderThickness="0"
                                             CornerRadius="5"
                                             Orientation="Vertical">
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the average" />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the median" />
                                             <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="single expense amount is." />
+                                            <TextBlock
+                                                FontSize="{ThemeResource FontSizeNormal}"
+                                                FontStyle="Italic"
+                                                Text="This value excludes outlier spending." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
@@ -846,7 +851,7 @@
                                             CornerRadius="5"
                                             Orientation="Vertical">
                                             <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the" />
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="average expense by month." />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="average spending is per month." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
@@ -926,12 +931,13 @@
                                             BorderThickness="0"
                                             CornerRadius="5"
                                             Orientation="Vertical">
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the entire" />
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="year's spedning will amount to." />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the year's" />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="current spending has amounted to." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
                             </Image>
+
                             <TextBlock
                                 Grid.Row="7"
                                 Grid.Column="0"

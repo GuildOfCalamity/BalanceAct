@@ -23,6 +23,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
 using Newtonsoft.Json.Linq;
+using Windows.Foundation.Collections;
 
 namespace BalanceAct.ViewModels;
 
@@ -457,7 +458,8 @@ public class MainViewModel : ObservableRecipient
         double pmTotal = 0;
         double ytdTotal = 0;
         double changeRate = 0;
-        List<string> cats = new List<string>();
+        List<string> cats = new();
+        List<double> amnts = new();
 
         // For recurring calculations.
         var msboy = MonthsSinceBeginningOfYear();
@@ -467,35 +469,40 @@ public class MainViewModel : ObservableRecipient
             // Only update totals if we have a valid amount.
             if (double.TryParse(item.Amount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
             {
+                amnts.Add(val);
+
                 if (item.Recurring)
                 {
                     // Year To Date ($)
                     ytdTotal += val * msboy;
+
+                    // Current Month ($)
+                    if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
+                        cmTotal += val;
+                    else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 60))
+                        pmTotal += val;
                 }
                 else
                 {
                     // Year To Date ($)
                     ytdTotal += val;
-                }
 
-                // Current Month ($)
-                if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
-                {
-                    cmTotal += val;
-                }
-                else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 60))
-                {
-                    pmTotal += val;
+                    // Current Month ($)
+                    if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
+                        cmTotal += val;
+                    else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 60))
+                        pmTotal += val;
                 }
 
                 cats.Add(item.Category);
             }
             else
             {
-                _ = App.ShowDialogBox($"Warning", $"ExpenseItem amount could not be parsed ⇒ \"{item.Amount}\"", "OK", "", null, null, _dialogImgUri);
-                App.DebugLog($"⚠️ ");
+                _ = App.ShowDialogBox($"Warning", $"{nameof(ExpenseItem)} amount could not be parsed ⇒ \"{item.Amount}\"", "OK", "", null, null, _dialogImgUri);
             }
         }
+
+        var meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count / 2);
 
         List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
         var months = CountUniqueMonths(ExpenseItems.ToList());
@@ -503,7 +510,11 @@ public class MainViewModel : ObservableRecipient
         try
         {   // Previous Month (%)
             changeRate = CalculatePercentageChange(pmTotal, cmTotal);
-            AverageExpense = (ytdTotal / CurrentCount).ToString("C2", _formatter);
+            
+            //AverageExpense = (ytdTotal / CurrentCount).ToString("C2", _formatter);
+            AverageExpense = meanResult.ToString("C2", _formatter);
+            
+            // TODO: Add median calculation.
             AveragePerMonth = (ytdTotal / months).ToString("C2", _formatter);
         }
         catch (DivideByZeroException ex)
@@ -557,7 +568,7 @@ public class MainViewModel : ObservableRecipient
     /// considering both the year and the month of each DateTime property.
     /// </summary>
     /// <param name="elements"><see cref="List{T}"/></param>
-    public static int CountUniqueMonths(List<ExpenseItem> elements)
+    public int CountUniqueMonths(List<ExpenseItem> elements)
     {
         var uniqueMonths = elements
             .Select(e => new { e.Date!.Value.Year, e.Date!.Value.Month })
@@ -570,12 +581,67 @@ public class MainViewModel : ObservableRecipient
     /// <summary>
     /// monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month
     /// </summary>
-    public static int MonthsSinceBeginningOfYear()
+    public int MonthsSinceBeginningOfYear()
     {
         DateTime now = DateTime.Now;
         DateTime beginningOfYear = new DateTime(now.Year, 1, 1);
         int monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month;
         return monthsPassed;
+    }
+
+    /// <summary>
+    /// A more accurate averaging method by removing the outliers.
+    /// </summary>
+    public double CalculateMedianAdjustable(List<double> values, int middleSample)
+    {
+        if (values == null || values.Count == 0 || middleSample <= 0)
+            return 0d;
+
+        values.Sort();
+
+        int count = values.Count;
+        if (middleSample > count)
+            middleSample = count;
+
+        // Calculate the starting index of the middle elements
+        int startIndex = (count - middleSample) / 2;
+
+        // Get the middle elements
+        var middleElements = values.Skip(startIndex).Take(middleSample);
+
+        // Calculate the average of the middle elements
+        double middleAverage = middleElements.Average();
+
+        return middleAverage;
+    }
+
+    /// <summary>
+    /// A more accurate averaging method by removing the outliers.
+    /// </summary>
+    public double CalculateMedian(List<double> values)
+    {
+        if (values == null || values.Count == 0)
+            return 0d;
+
+        values.Sort();
+
+        // Find the middle index
+        int count = values.Count;
+        double medianAverage;
+
+        if (count % 2 == 0)
+        {   // Even number of elements: average the two middle elements
+            int mid1 = count / 2 - 1;
+            int mid2 = count / 2;
+            medianAverage = (values[mid1] + values[mid2]) / 2.0;
+        }
+        else
+        {   // Odd number of elements: take the middle element
+            int mid = count / 2;
+            medianAverage = values[mid];
+        }
+
+        return medianAverage;
     }
     #endregion
 
