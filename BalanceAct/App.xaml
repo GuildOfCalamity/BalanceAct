@@ -48,14 +48,14 @@
             <Color x:Key="LinearBorder2">#4F4E91C4</Color>
             <Color x:Key="LinearBorder3">#4F3F769E</Color>
             <Color x:Key="LinearBorder4">#4F1E384C</Color>
-            <Color x:Key="LinearBorder5">#FFE0E0F0</Color>
-            <Color x:Key="LinearBorder6">#FFA0A0B0</Color>
-            <Color x:Key="LinearBorder7">#FF707080</Color>
-            <Color x:Key="LinearBorder8">#FF505060</Color>
-            <Color x:Key="AlphaShadow1">#FF242424</Color>
-            <Color x:Key="AlphaShadow2">#FF161616</Color>
-            <Color x:Key="AlphaShadow3">#FF090909</Color>
-            <Color x:Key="AlphaShadow4">#FF000000</Color>
+            <Color x:Key="LinearBorder5">#9F66BCFF</Color>
+            <Color x:Key="LinearBorder6">#9F4E91C4</Color>
+            <Color x:Key="LinearBorder7">#9F3F769E</Color>
+            <Color x:Key="LinearBorder8">#9F1E384C</Color>
+            <Color x:Key="AlphaShadow1">#F0242424</Color>
+            <Color x:Key="AlphaShadow2">#F0161616</Color>
+            <Color x:Key="AlphaShadow3">#F0090909</Color>
+            <Color x:Key="AlphaShadow4">#F0000000</Color>
             <Color x:Key="GC1">#40192E3D</Color>
             <Color x:Key="GC2">#40335F7F</Color>
             <Color x:Key="GC3">#404E91C4</Color>
@@ -73,7 +73,7 @@
             <Brush x:Key="SecondaryBackgroundBrush">#aa1a1b1b</Brush>
             <Brush x:Key="InfoBarBrush">#cc1a1b1b</Brush>
             <Brush x:Key="HeaderBrush">#a0f0f0f0</Brush>
-            <Brush x:Key="BorderBrush">#2E486C</Brush>
+            <Brush x:Key="BorderBrush">#243854</Brush>
             <Brush x:Key="PrimaryBrush">#96d9ff</Brush>
             <Brush x:Key="SecondaryBrush">#469cdf</Brush>
             <Brush x:Key="SecondaryBorderBrush">#AA469cdf</Brush>
@@ -115,9 +115,99 @@
             <media:AcrylicBrush
                 x:Key="RevealBorderBrush"
                 FallbackColor="#317ad7"
-                TintColor="SpringGreen"
+                TintColor="#317ad7"
                 TintLuminosityOpacity="0.1"
                 TintOpacity="0.1" />
+
+            <!--#region [Button Styler]-->
+            <Style x:Key="EnhancedButtonStyle" TargetType="Button">
+                <Setter Property="Foreground" Value="{ThemeResource PrimaryBrush}" />
+                <Setter Property="Background" Value="{ThemeResource BorderBrush}" />
+                <Setter Property="BackgroundSizing" Value="OuterBorderEdge" />
+                <Setter Property="MinWidth" Value="100" />
+                <Setter Property="BorderBrush" Value="{ThemeResource AccentButtonBorderBrush}" />
+                <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter
+                                x:Name="ContentPresenter"
+                                Padding="{TemplateBinding Padding}"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                AutomationProperties.AccessibilityView="Raw"
+                                Background="{TemplateBinding Background}"
+                                BackgroundSizing="{TemplateBinding BackgroundSizing}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                ContentTransitions="{TemplateBinding ContentTransitions}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Foreground="{TemplateBinding Foreground}">
+                                <ContentPresenter.BackgroundTransition>
+                                    <BrushTransition Duration="0:0:0.29" />
+                                </ContentPresenter.BackgroundTransition>
+                                <!-- [we can force a specific transition here]
+                                <ContentPresenter.ContentTransitions>
+                                    <TransitionCollection>
+                                        <EntranceThemeTransition/>
+                                    </TransitionCollection>
+                                </ContentPresenter.ContentTransitions>
+                                -->
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <!--  MouseOver State  -->
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBackgroundPointerOver}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBorderBrushPointerOver}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <!--  Pressed State  -->
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBackgroundPressed}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBorderBrushPressed}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <!--  Disabled State  -->
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBackgroundDisabled}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonBorderBrushDisabled}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Foreground">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource AccentButtonForegroundDisabled}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </ContentPresenter>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <!--#endregion-->
 
             <!--<Style x:Key="CustomCalendarDatePickerStyle" TargetType="CalendarDatePicker">
                 <Setter Property="Template">

@@ -19,8 +19,8 @@ namespace BalanceAct;
 public partial class App : Application
 {
     #region [Props]
-    int m_width = 1200;
-    int m_height = 700;
+    int m_width = 1280;
+    int m_height = 710;
     private Window? m_window;
     static UISettings m_UISettings = new UISettings();
     public new static App Current => (App)Application.Current; // Gets the current app instance (for Dependency Injection).

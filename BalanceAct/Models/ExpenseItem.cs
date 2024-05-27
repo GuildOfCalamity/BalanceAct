@@ -14,6 +14,11 @@ public class ExpenseItem : ICloneable
     public int Id { get; set; }
 
     /// <summary>
+    /// Is the expense recurring?
+    /// </summary>
+    public bool Recurring { get; set; }
+
+    /// <summary>
     /// The category of the expense.
     /// </summary>
     public string? Category { get; set; }

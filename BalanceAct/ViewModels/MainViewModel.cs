@@ -24,7 +24,6 @@ using CommunityToolkit.Mvvm.Input;
 using Windows.Storage;
 using Newtonsoft.Json.Linq;
 
-
 namespace BalanceAct.ViewModels;
 
 public class MainViewModel : ObservableRecipient
@@ -56,6 +55,7 @@ public class MainViewModel : ObservableRecipient
             if (value != null)
             {
                 SelectedId = value.Id;
+                SelectedRecurring = value.Recurring;
                 SelectedDescription = value.Description;
                 SelectedAmount = value.Amount;
                 SelectedCategory = value.Category;
@@ -112,6 +112,13 @@ public class MainViewModel : ObservableRecipient
             // Cycle the prop to trigger the AutoCloseInfoBar.
             Show = false; Show = true;
         }
+    }
+
+    bool _selectedRecurring = false;
+    public bool SelectedRecurring
+    {
+        get => _selectedRecurring;
+        set => SetProperty(ref _selectedRecurring, value);
     }
 
     int _selectedId = 0;
@@ -209,6 +216,13 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _yearToDateTotal, value);
     }
 
+    string? _projectedYearTotal = "$0.00";
+    public string? ProjectedYearTotal
+    {
+        get => _projectedYearTotal;
+        set => SetProperty(ref _projectedYearTotal, value);
+    }
+
     string? _frequentCategory = "N/A";
     public string? FrequentCategory
     {
@@ -261,6 +275,7 @@ public class MainViewModel : ObservableRecipient
 
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
+    public ICommand RecurringItemCommand { get; }
 
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
     DataService? dataService = (DataService?)App.Current.Services.GetService<IDataService>();
@@ -277,13 +292,14 @@ public class MainViewModel : ObservableRecipient
         else
             Status = "⚠️ No config!";
 
+        #region [Add Action]
         AddItemCommand = new RelayCommand<object>(async (obj) =>
         {
             try
             {
                 IsBusy = true;
 
-                await Task.Delay(950); // for spinners
+                await Task.Delay(750); // for spinners
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
@@ -312,6 +328,7 @@ public class MainViewModel : ObservableRecipient
                 {
                     ExpenseItems.Add(new ExpenseItem
                     {
+                        Recurring = SelectedRecurring,
                         Id = CurrentCount + 1,
                         Category = $"{SelectedCategory}",
                         Description = $"{SelectedDescription}",
@@ -338,14 +355,16 @@ public class MainViewModel : ObservableRecipient
                 IsBusy = false;
             }
         });
+        #endregion
 
+        #region [Update Action]
         UpdateItemCommand = new RelayCommand<object>(async (obj) =>
         {
             try
             {
                 IsBusy = true;
 
-                await Task.Delay(950); // for spinners
+                await Task.Delay(750); // for spinners
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
@@ -365,6 +384,7 @@ public class MainViewModel : ObservableRecipient
                         {
                             found = true;
                             Debug.WriteLine($"[INFO] Updating {nameof(ExpenseItem)} #{item.Id}");
+                            item.Recurring = SelectedRecurring;
                             item.Description = SelectedDescription;
                             item.Amount = SelectedAmount.StartsWith("$") ? $"{SelectedAmount}" : $"${SelectedAmount}";
                             item.Category = SelectedCategory;
@@ -395,14 +415,40 @@ public class MainViewModel : ObservableRecipient
                 IsBusy = false;
             }
         });
+        #endregion
+
+        #region [This is not used anymore]
+        RecurringItemCommand = new RelayCommand<object>(async (obj) =>
+        {
+            try
+            {
+                IsBusy = true;
+                Status = "⚠️ This feature is coming soon!";
+                
+                await Task.Delay(750); // for spinners
+
+                if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
+                {
+                    Status = $"⚠️ Category, Date, Description & Amount must contain some value!";
+                    //_ = App.ShowDialogBox($"Warning", $"{Environment.NewLine}Category, Description & Amount must contain some value.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
+                    return;
+                }
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        });
 
         if (string.IsNullOrEmpty(SelectedCategory))
         {
             SelectedCategory = Categories[0];
             Debug.WriteLine($"[INFO] SelectedCategory defaulted ⇒ {SelectedCategory}");
         }
+        #endregion
     }
 
+    #region [Statistical Methods]
     public void UpdateSummaryTotals()
     {
         if (ExpenseItems.Count == 0) { return; }
@@ -413,13 +459,24 @@ public class MainViewModel : ObservableRecipient
         double changeRate = 0;
         List<string> cats = new List<string>();
 
+        // For recurring calculations.
+        var msboy = MonthsSinceBeginningOfYear();
+
         foreach (var item in ExpenseItems)
         {
             // Only update totals if we have a valid amount.
             if (double.TryParse(item.Amount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
             {
-                // Year To Date ($)
-                ytdTotal += val;
+                if (item.Recurring)
+                {
+                    // Year To Date ($)
+                    ytdTotal += val * msboy;
+                }
+                else
+                {
+                    // Year To Date ($)
+                    ytdTotal += val;
+                }
 
                 // Current Month ($)
                 if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
@@ -433,13 +490,16 @@ public class MainViewModel : ObservableRecipient
 
                 cats.Add(item.Category);
             }
+            else
+            {
+                _ = App.ShowDialogBox($"Warning", $"ExpenseItem amount could not be parsed ⇒ \"{item.Amount}\"", "OK", "", null, null, _dialogImgUri);
+                App.DebugLog($"⚠️ ");
+            }
         }
-        
-        var grouped = CountAndSortCategories(cats);
+
+        List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
         var months = CountUniqueMonths(ExpenseItems.ToList());
 
-        Debug.WriteLine($"[INFO] Previous: {pmTotal}");
-        Debug.WriteLine($"[INFO] Current: {cmTotal}");
         try
         {   // Previous Month (%)
             changeRate = CalculatePercentageChange(pmTotal, cmTotal);
@@ -451,14 +511,15 @@ public class MainViewModel : ObservableRecipient
             Status = $"{ex.Message}";
         }
 
-
+        // Update observable properties.
+        ProjectedYearTotal = (cmTotal * 12d).ToString("C2", _formatter);
+        CurrentMonthTotal = cmTotal.ToString("C2", _formatter);
+        YearToDateTotal = ytdTotal.ToString("C2", _formatter);
         // NOTE: A percent sign (%) in a format string causes a number to be multiplied by 100 before it is formatted.
         // The localized percent symbol is inserted in the number at the location where the % appears in the format string.
         // This is why you'll see the (newValue/100) before it is assigned.
         // https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#percent-format-specifier-p
         // https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-numeric-format-strings#the--custom-specifier-3
-        CurrentMonthTotal = cmTotal.ToString("C2", _formatter);
-        YearToDateTotal = ytdTotal.ToString("C2", _formatter);
         PreviousMonthChange = (changeRate / 100).ToString("P1", _formatter);
         if (grouped.Count > 0)
             FrequentCategory = grouped[0].Key;
@@ -474,18 +535,31 @@ public class MainViewModel : ObservableRecipient
 
     public List<KeyValuePair<string, int>> CountAndSortCategories(List<string> categories)
     {
-        var categoryCounts = categories
-            .GroupBy(category => category)
-            .Select(group => new KeyValuePair<string, int>(group.Key, group.Count()))
-            .OrderByDescending(pair => pair.Value)
-            .ToList();
+        try
+        {
+            var categoryCounts = categories
+                .GroupBy(category => category)
+                .Select(group => new KeyValuePair<string, int>(group.Key, group.Count()))
+                .OrderByDescending(pair => pair.Value)
+                .ToList();
 
-        return categoryCounts;
+            return categoryCounts;
+        }
+        catch (Exception ex)
+        {
+            _ = App.ShowDialogBox($"Warning", $"CalculatePercentageChange ⇒ \"{ex.Message}\"", "OK", "", null, null, _dialogImgUri);
+            return new List<KeyValuePair<string, int>>();
+        }
     }
 
-    public static int CountUniqueMonths(List<ExpenseItem> dataElements)
+    /// <summary>
+    /// This LINQ query effectively counts the number of unique months in your data set by 
+    /// considering both the year and the month of each DateTime property.
+    /// </summary>
+    /// <param name="elements"><see cref="List{T}"/></param>
+    public static int CountUniqueMonths(List<ExpenseItem> elements)
     {
-        var uniqueMonths = dataElements
+        var uniqueMonths = elements
             .Select(e => new { e.Date!.Value.Year, e.Date!.Value.Month })
             .Distinct()
             .Count();
@@ -494,17 +568,29 @@ public class MainViewModel : ObservableRecipient
     }
 
     /// <summary>
-    /// Creates a new <see cref="List{T}"/> object with example data.
+    /// monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month
     /// </summary>
-    /// <returns><see cref="List{T}"/></returns>
+    public static int MonthsSinceBeginningOfYear()
+    {
+        DateTime now = DateTime.Now;
+        DateTime beginningOfYear = new DateTime(now.Year, 1, 1);
+        int monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month;
+        return monthsPassed;
+    }
+    #endregion
+
+    /// <summary>
+    /// Creates a new <see cref="ObservableCollection{T}"/> with example data.
+    /// </summary>
+    /// <returns><see cref="ObservableCollection{T}"/></returns>
     ObservableCollection<ExpenseItem> GenerateDefaultItems()
     {
         return new ObservableCollection<ExpenseItem>
         {
-            new ExpenseItem { Id = 1, Description = $"Here is a sample expense item.", Date = DateTime.Now.AddDays(-2),  Amount = "$54.62", Category = "Grocery" },
-            new ExpenseItem { Id = 2, Description = $"Here is a sample expense item.", Date = DateTime.Now.AddDays(-10), Amount = "$321.78", Category = "Insurance" },
-            new ExpenseItem { Id = 3, Description = $"Here is a sample expense item.", Date = DateTime.Now.AddDays(-20), Amount = "$99.34", Category = "Fuel" },
-            new ExpenseItem { Id = 4, Description = $"Here is a sample expense item.", Date = DateTime.Now.AddDays(-30), Amount = "$12.00", Category = "Entertainment" },
+            new ExpenseItem { Id = 1, Description = $"💰 A sample food expense item", Date = DateTime.Now.AddDays(-2),  Amount = "$54.62", Category = "Grocery", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 2, Description = $"💰 A sample insurance expense item", Date = DateTime.Now.AddDays(-10), Amount = "$321.78", Category = "Insurance", Recurring = true, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 3, Description = $"💰 A sample gas expense item", Date = DateTime.Now.AddDays(-20), Amount = "$99.34", Category = "Fuel", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 4, Description = $"💰 A sample entertainment expense item", Date = DateTime.Now.AddDays(-30), Amount = "$12.00", Category = "Entertainment", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
         };
     }
 
@@ -516,7 +602,7 @@ public class MainViewModel : ObservableRecipient
     }
 
     /// <summary>
-    /// <see cref="ComboBox"/> event for sorting.
+    /// <see cref="ComboBox"/> event for category.
     /// </summary>
     public void CategorySelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -532,7 +618,7 @@ public class MainViewModel : ObservableRecipient
             }
             catch (Exception ex)
             {
-                _ = App.ShowMessageBox("Exception", $"CategorySelectionChanged: {ex.Message}", "OK", string.Empty, null, null);
+                _ = App.ShowDialogBox($"Exception", $"CategorySelectionChanged: {ex.Message}", "OK", "", null, null, _dialogImgUri);
             }
         }
     }
@@ -717,7 +803,7 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 
-    #region [SyncContext]
+    #region [Thread-safe SyncContext Test]
     Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext? _context;
     void TestDispatcherQueueSynchronizationContext(FrameworkElement fe)
     {
