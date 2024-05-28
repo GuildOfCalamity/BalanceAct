@@ -18,11 +18,6 @@
     Unloaded="{x:Bind ViewModel.MainPageUnloaded, Mode=OneWay}"
     mc:Ignorable="d">
 
-    <Page.Resources>
-        <local:TrueToVisibleConverter x:Key="TrueToVisibleConverter" />
-        <local:NotEmptyStringToVisibleConverter x:Key="NotEmptyStringToVisibleConverter" />
-    </Page.Resources>
-
     <Grid
         x:Name="root"
         Padding="20"
@@ -64,144 +59,6 @@
                 EaseMode="QuadEaseOut"
                 Seconds="0.7" />
         </interact:Interaction.Behaviors>
-        <!--#endregion-->
-
-        <!--#region [Using Traditional Converters]-->
-        <!--
-        <ToggleSwitch
-            x:Name="VisibilityToggleSwitch"
-            Grid.Row="0"
-            Grid.Column="0"
-            Header="TrueToVisibleConverter"
-            OffContent="Collapsed"
-            OnContent="Visible" />
-        <TextBlock
-            Grid.Row="0"
-            Grid.Column="1"
-            VerticalAlignment="Bottom"
-            FontSize="40"
-            Text="🧰"
-            Visibility="{x:Bind VisibilityToggleSwitch.IsOn, Mode=OneWay, Converter={StaticResource NotEmptyStringToVisibleConverter}}" />
-
-        <TextBox
-            x:Name="VisibilityTextBox"
-            Grid.Row="1"
-            Grid.Column="0"
-            Header="NotEmptyStringToVisibleConverter" />
-        <TextBlock
-            Grid.Row="1"
-            Grid.Column="1"
-            VerticalAlignment="Bottom"
-            FontSize="40"
-            Text="🧰"
-            Visibility="{x:Bind VisibilityTextBox.Text, Mode=OneWay, Converter={StaticResource TrueToVisibleConverter }}" />
-        -->
-        <!--#endregion-->
-
-        <!--#region [Using Static Function Converters]-->
-        <!--
-        <ToggleSwitch
-            x:Name="VisibilityToggleSwitch"
-            Grid.Row="0"
-            Grid.Column="0"
-            OffContent="Collapsed"
-            OnContent="Visible">
-            <ToggleSwitch.Header>
-                <Grid>
-                    <TextBlock FontSize="16" Text="TrueToVisible Function" />
-                </Grid>
-            </ToggleSwitch.Header>
-        </ToggleSwitch>
-        <TextBlock
-            Grid.Row="0"
-            Grid.Column="1"
-            VerticalAlignment="Bottom"
-            FontSize="40"
-            Text="🧰"
-            Visibility="{x:Bind local:Functions.TrueToVisible(VisibilityToggleSwitch.IsOn), Mode=OneWay}" />
-
-        <TextBox
-            x:Name="VisibilityTextBox"
-            Grid.Row="1"
-            Grid.Column="0">
-            <TextBox.Header>
-                <Grid>
-                    <TextBlock FontSize="16" Text="NotEmptyStringToVisible Function" />
-                </Grid>
-            </TextBox.Header>
-            <interact:Interaction.Behaviors>
-                <interactcore:EventTriggerBehavior EventName="KeyDown">
-                    <interactcore:ChangePropertyAction
-                        PropertyName="Fill"
-                        TargetObject="{Binding ElementName=BehaviorRectangle}"
-                        Value="{StaticResource BC1}" />
-                </interactcore:EventTriggerBehavior>
-                <interactcore:EventTriggerBehavior EventName="KeyUp">
-                    <interactcore:ChangePropertyAction
-                        PropertyName="Fill"
-                        TargetObject="{Binding ElementName=BehaviorRectangle}"
-                        Value="{StaticResource BC2}" />
-                </interactcore:EventTriggerBehavior>
-                <interactcore:EventTriggerBehavior EventName="GotFocus">
-                    <interactcore:ChangePropertyAction
-                        PropertyName="Fill"
-                        TargetObject="{Binding ElementName=BehaviorRectangle}"
-                        Value="{StaticResource BC3}" />
-                </interactcore:EventTriggerBehavior>
-                <interactcore:EventTriggerBehavior EventName="LostFocus">
-                    <interactcore:ChangePropertyAction
-                        PropertyName="Fill"
-                        TargetObject="{Binding ElementName=BehaviorRectangle}"
-                        Value="{StaticResource BC4}" />
-                </interactcore:EventTriggerBehavior>
-            </interact:Interaction.Behaviors>
-        </TextBox>
-        <TextBlock
-            Grid.Row="1"
-            Grid.Column="1"
-            VerticalAlignment="Bottom"
-            FontSize="40"
-            Text="🧰"
-            Visibility="{x:Bind local:Functions.NotEmptyStringToVisible(VisibilityTextBox.Text), Mode=OneWay}" />
-
-        <StackPanel
-            Grid.Row="2"
-            Grid.Column="0"
-            Orientation="Vertical">
-            <TextBlock FontSize="16" Text="TrueToVisible Function">
-                <interact:Interaction.Behaviors>
-                    <behave:ColorAnimationBehavior
-                        EaseMode="QuadEaseOut"
-                        Interpolation="Rgb"
-                        Seconds="4.0"
-                        From="#FF31ABF1"
-                        To="#FF48FF10" />
-                </interact:Interaction.Behaviors>
-            </TextBlock>
-            <ToggleSwitch
-                x:Name="AndOrToggleSwitch"
-                OffContent="AnyTrueToVisible"
-                OnContent="AllTrueToVisible" />
-            <StackPanel Orientation="Vertical">
-                <CheckBox x:Name="VisibilityCheckBoxA" Content="A">
-                    <interact:Interaction.Behaviors>
-                        <interactcore:DataTriggerBehavior Binding="{Binding IsChecked, ElementName=VisibilityCheckBoxA}" Value="True">
-                            <interactcore:GoToStateAction StateName="Disabled" TargetObject="{Binding ElementName=btn}" />
-                        </interactcore:DataTriggerBehavior>
-                    </interact:Interaction.Behaviors>
-                </CheckBox>
-                <CheckBox x:Name="VisibilityCheckBoxB" Content="B" />
-                <CheckBox x:Name="VisibilityCheckBoxC" Content="C" />
-            </StackPanel>
-        </StackPanel>
-        <TextBlock
-            Grid.Row="2"
-            Grid.Column="1"
-            VerticalAlignment="Bottom"
-            FontSize="40"
-            Text="🧰"
-            Visibility="{x:Bind local:Functions.TrueToVisible(AndOrToggleSwitch.IsOn, VisibilityCheckBoxA.IsChecked, VisibilityCheckBoxB.IsChecked, VisibilityCheckBoxC.IsChecked), Mode=OneWay}" />
-        -->
         <!--#endregion-->
 
         <!--#region [Expense Entry Content]-->
@@ -369,167 +226,6 @@
                     </interact:Interaction.Behaviors>
                 </Button>
 
-                <!--#region [old Flyout method for recurring setups]-->
-                <!--<Button
-                    Grid.Row="2"
-                    MinWidth="180"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Content="Configure Recurring"
-                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
-                    <interact:Interaction.Behaviors>
-                        <behave:ColorGradientBehavior From="#FF4800FF" To="#FF10FFFF" />
-                    </interact:Interaction.Behaviors>
-                    <Button.Flyout>
-                        <Flyout AreOpenCloseAnimationsEnabled="True" Placement="TopEdgeAlignedRight">
-                            <Grid
-                                Padding="20,10,20,10"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch"
-                                AllowFocusOnInteraction="True"
-                                BorderThickness="0"
-                                ColumnSpacing="20"
-                                CornerRadius="5"
-                                RowSpacing="20">
-                                <Grid.Resources>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                        <Setter Property="HorizontalAlignment" Value="Left" />
-                                        <Setter Property="FontFamily" Value="{ThemeResource PrimaryFont}" />
-                                        <Setter Property="FontSize" Value="{ThemeResource FontSizeMedium}" />
-                                        <Setter Property="Foreground" Value="{ThemeResource GradientHeaderBrush}" />
-                                        <Setter Property="VerticalAlignment" Value="Center" />
-                                        <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
-                                    </Style>
-                                </Grid.Resources>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="120" />
-                                </Grid.RowDefinitions>
-                                <Border
-                                    Grid.Row="0"
-                                    Padding="5"
-                                    HorizontalAlignment="Stretch"
-                                    BorderBrush="{ThemeResource GradientBorderBrush}"
-                                    BorderThickness="2"
-                                    CornerRadius="5">
-                                    <TextBlock
-                                        HorizontalAlignment="Center"
-                                        FontSize="{ThemeResource FontSizeLarge}"
-                                        Foreground="{ThemeResource GradientHeaderBrush}"
-                                        Text="Setup Recurring Expense" />
-                                </Border>
-                -->
-                <!--  Category  -->
-                <!--
-                                <ComboBox
-                                    Grid.Row="1"
-                                    MinWidth="250"
-                                    MaxWidth="250"
-                                    HorizontalAlignment="Left"
-                                    ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                                    SelectedIndex="{x:Bind ViewModel.RecurringCategorySelectedIndex, Mode=OneWay}"
-                                    SelectionChanged="{x:Bind ViewModel.RecurringCategorySelectionChanged, Mode=OneWay}">
-                                    <ComboBox.Header>
-                                        <TextBlock
-                                            Margin="2,0,0,-5"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="{ThemeResource GradientHeaderBrush}"
-                                            Text="Category" />
-                                    </ComboBox.Header>
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Spacing="3">
-                                                <TextBlock Text="{Binding}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                -->
-                <!--  Date  -->
-                <!--
-                                <CalendarDatePicker
-                                    Grid.Row="2"
-                                    MinWidth="250"
-                                    MaxWidth="250"
-                                    Margin="1"
-                                    CornerRadius="5"
-                                    Date="{x:Bind ViewModel.RecurringSelectedDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Foreground="White"
-                                    PlaceholderText="Pick a date">
-                                    <CalendarDatePicker.Header>
-                                        <TextBlock
-                                            Margin="2,0,0,-5"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="{ThemeResource GradientHeaderBrush}"
-                                            Text="Date" />
-                                    </CalendarDatePicker.Header>
-                                </CalendarDatePicker>
-                                <TextBox
-                                    Grid.Row="3"
-                                    PlaceholderText="$123.45"
-                                    Text="{x:Bind ViewModel.RecurringSelectedAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                    <TextBox.Header>
-                                        <TextBlock
-                                            Margin="2,0,0,-5"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="{ThemeResource GradientHeaderBrush}"
-                                            Text="Enter the amount" />
-                                    </TextBox.Header>
-                                </TextBox>
-                                <TextBox
-                                    Grid.Row="4"
-                                    PlaceholderText="Cellular phone"
-                                    Text="{x:Bind ViewModel.RecurringSelectedDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                    <TextBox.Header>
-                                        <TextBlock
-                                            Margin="2,0,0,-5"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Foreground="{ThemeResource GradientHeaderBrush}"
-                                            Text="Description" />
-                                    </TextBox.Header>
-                                </TextBox>
-                                <Button
-                                    Grid.Row="99"
-                                    MinWidth="180"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Bottom"
-                                    Command="{x:Bind ViewModel.RecurringItemCommand}"
-                                    Content="Save Recurring Expense"
-                                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}"
-                                    Style="{ThemeResource EnhancedButtonStyle}">
-                -->
-                <!--<interact:Interaction.Behaviors>
-                                        <behave:SpringAnimationBehavior
-                                            Damping="0.2"
-                                            Final="1.05"
-                                            Seconds="0.04" />
-                                    </interact:Interaction.Behaviors>-->
-                <!--
-                                </Button>
-                            </Grid>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
-                <ProgressRing
-                    Grid.Row="2"
-                    Width="22"
-                    Height="22"
-                    Margin="40,0,0,0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Foreground="{ThemeResource SecondaryBrush}"
-                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />-->
-                <!--#endregion-->
-
                 <ProgressRing
                     Grid.Row="0"
                     Width="22"
@@ -641,6 +337,7 @@
                             <TextBlock
                                 Grid.Column="2"
                                 Margin="1,0,1,0"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind Amount, Mode=OneWay}" />
                             <TextBlock
@@ -674,7 +371,8 @@
             BorderThickness="2"
             CornerRadius="5">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="3*" />
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="1*" />
@@ -702,8 +400,140 @@
                 <Run Foreground="{ThemeResource GradientHeaderBrush}" Text="YTD:" />
                 <Run Foreground="{ThemeResource SecondaryBrush}" Text="{x:Bind ViewModel.YearToDateTotal, Mode=OneWay}" />
             </TextBlock>
+
             <AppBarButton
                 Grid.Column="3"
+                HorizontalAlignment="Right"
+                CornerRadius="4"
+                Label="Import"
+                ToolTipService.ToolTip="Import a CSV file">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="{StaticResource Download}" />
+                </AppBarButton.Icon>
+                <AppBarButton.Flyout>
+                    <Flyout AreOpenCloseAnimationsEnabled="True" Placement="TopEdgeAlignedRight">
+                        <Grid
+                            Padding="20,10,20,10"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            AllowFocusOnInteraction="True"
+                            BorderThickness="0"
+                            ColumnSpacing="4"
+                            CornerRadius="5"
+                            RowSpacing="6">
+                            <Grid.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                    <Setter Property="FontFamily" Value="{ThemeResource PrimaryFont}" />
+                                    <Setter Property="FontSize" Value="{ThemeResource FontSizeMedium}" />
+                                    <Setter Property="Foreground" Value="{ThemeResource GradientHeaderBrush}" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                    <Setter Property="FontFamily" Value="{StaticResource PrimaryFont}" />
+                                </Style>
+                                <Style TargetType="Image">
+                                    <Setter Property="Width" Value="25" />
+                                    <Setter Property="Height" Value="25" />
+                                    <Setter Property="HorizontalAlignment" Value="Left" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                    <Setter Property="Source" Value="ms-appx:///Assets/InfoBubble.png" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="25" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <!--  Bottom Graphic  -->
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ctrl:CompositionShadow
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                Margin="4,0,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                BlurRadius="1"
+                                OffsetX="3"
+                                OffsetY="3"
+                                Color="#000000">
+                                <TextBlock
+                                    FontSize="{ThemeResource FontSizeLarge}"
+                                    Foreground="{ThemeResource GradientTitleBrush}"
+                                    Text="CSV File Data Import" />
+                            </ctrl:CompositionShadow>
+
+                            <ctrl:SeparatorLine
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                VerticalAlignment="Top" />
+
+                            <TextBox
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                MinWidth="300"
+                                FontFamily="{ThemeResource SecondaryFont}"
+                                PlaceholderText="C:\Downloads\CardReport.csv"
+                                Text="{x:Bind ViewModel.ImportPathCSV, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.Header>
+                                    <TextBlock
+                                        Margin="2,0,0,-5"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource GradientHeaderBrush}"
+                                        Text="Enter file path and click import" />
+                                </TextBox.Header>
+                            </TextBox>
+
+                            <Button
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Command="{x:Bind ViewModel.ImportItemCommand}"
+                                Content="Import"
+                                IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}"
+                                Style="{ThemeResource EnhancedButtonStyle}" />
+
+                            <Image Grid.Row="3" Grid.Column="1">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
+                                        <StackPanel
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            CornerRadius="5"
+                                            Orientation="Vertical"
+                                            Spacing="4">
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="The CSV fields must be in this order:" />
+                                            <TextBlock
+                                                FontFamily="{ThemeResource SecondaryFont}"
+                                                FontSize="{ThemeResource FontSizeSmall}"
+                                                Text="DATE, DESCRIPTION, CATEGORY, AMOUNT, MEMO" />
+                                            <TextBlock
+                                                FontSize="{ThemeResource FontSizeSmall}"
+                                                FontStyle="Italic"
+                                                Text="Any additional fields after memo will be ignored." />
+                                        </StackPanel>
+                                    </ToolTip>
+                                </ToolTipService.ToolTip>
+                            </Image>
+
+                        </Grid>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+
+            <AppBarButton
+                Grid.Column="4"
                 HorizontalAlignment="Right"
                 CornerRadius="4"
                 Label="Stats"
@@ -750,43 +580,54 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <!--  Bottom Graphic  -->
+                                <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="1*" />
                             </Grid.ColumnDefinitions>
-                            <Border
+
+                            <ctrl:CompositionShadow
                                 Grid.Row="0"
                                 Grid.Column="0"
                                 Grid.ColumnSpan="3"
-                                Padding="5"
-                                HorizontalAlignment="Stretch"
-                                BorderBrush="{ThemeResource GradientBorderBrush}"
-                                BorderThickness="2"
-                                CornerRadius="5">
+                                Margin="8,10,0,-15"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                BlurRadius="1"
+                                OffsetX="3"
+                                OffsetY="3"
+                                Color="#000000">
                                 <TextBlock
-                                    HorizontalAlignment="Center"
                                     FontSize="{ThemeResource FontSizeLarge}"
-                                    Foreground="{ThemeResource GradientHeaderBrush}"
+                                    Foreground="{ThemeResource GradientTitleBrush}"
                                     Text="Additional Statistics" />
-                            </Border>
+                            </ctrl:CompositionShadow>
+
+                            <ctrl:SeparatorLine
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                VerticalAlignment="Top" />
 
                             <TextBlock
-                                Grid.Row="1"
+                                Grid.Row="2"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Most frequent category:" />
                             <TextBlock
-                                Grid.Row="1"
+                                Grid.Row="2"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.FrequentCategory, Mode=OneWay}" />
-                            <Image Grid.Row="1" Grid.Column="2">
+                            <Image Grid.Row="2" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -800,20 +641,21 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="2"
+                                Grid.Row="3"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Median/Average expense:" />
                             <TextBlock
-                                Grid.Row="2"
+                                Grid.Row="3"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.AverageExpense, Mode=OneWay}" />
-                            <Image Grid.Row="2" Grid.Column="2">
+                            <Image Grid.Row="3" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -831,20 +673,21 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="3"
+                                Grid.Row="4"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Average per month:" />
                             <TextBlock
-                                Grid.Row="3"
+                                Grid.Row="4"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.AveragePerMonth, Mode=OneWay}" />
-                            <Image Grid.Row="3" Grid.Column="2">
+                            <Image Grid.Row="4" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -858,47 +701,49 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="4"
+                                Grid.Row="5"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Current month total:" />
                             <TextBlock
-                                Grid.Row="4"
+                                Grid.Row="5"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.CurrentMonthTotal, Mode=OneWay}" />
-                            <Image Grid.Row="4" Grid.Column="2">
+                            <Image Grid.Row="5" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
                                             CornerRadius="5"
                                             Orientation="Vertical">
                                             <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the" />
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="current month's spedning is." />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="current month's spending is." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
                             </Image>
 
                             <TextBlock
-                                Grid.Row="5"
+                                Grid.Row="6"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
-                                Text="Change from last month:" />
+                                Text="Change vs last month:" />
                             <TextBlock
-                                Grid.Row="5"
+                                Grid.Row="6"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.PreviousMonthChange, Mode=OneWay}" />
-                            <Image Grid.Row="5" Grid.Column="2">
+                            <Image Grid.Row="6" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -912,20 +757,21 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="6"
+                                Grid.Row="7"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Year to date:" />
                             <TextBlock
-                                Grid.Row="6"
+                                Grid.Row="7"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.YearToDateTotal, Mode=OneWay}" />
-                            <Image Grid.Row="6" Grid.Column="2">
+                            <Image Grid.Row="7" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -939,20 +785,21 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="7"
+                                Grid.Row="8"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Projected year total:" />
                             <TextBlock
-                                Grid.Row="7"
+                                Grid.Row="8"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.ProjectedYearTotal, Mode=OneWay}" />
-                            <Image Grid.Row="7" Grid.Column="2">
+                            <Image Grid.Row="8" Grid.Column="2">
                                 <ToolTipService.ToolTip>
-                                    <ToolTip Background="{ThemeResource GradientHeaderBrush}">
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -964,6 +811,16 @@
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
                             </Image>
+
+                            <Image
+                                Grid.Row="10"
+                                Grid.ColumnSpan="3"
+                                Width="40"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Opacity="0.5"
+                                Source="ms-appx:///Assets/Chart.png" />
                         </Grid>
                     </Flyout>
                 </AppBarButton.Flyout>

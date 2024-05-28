@@ -22,8 +22,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
-using Newtonsoft.Json.Linq;
-using Windows.Foundation.Collections;
+
 
 namespace BalanceAct.ViewModels;
 
@@ -33,6 +32,7 @@ public class MainViewModel : ObservableRecipient
     bool _loaded = false;
     System.Globalization.NumberFormatInfo _formatter;
     static Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
+    static Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     static DispatcherTimer? _timer;
     public event EventHandler<bool>? ItemsLoadedEvent;
 
@@ -63,7 +63,7 @@ public class MainViewModel : ObservableRecipient
                 SelectedCodes = value.Codes;
                 SelectedDate = value.Date;
                 // Auto-select the appropriate ComboBox item.
-                for (int i = 0; i < Categories.Count - 1; i++)
+                for (int i = 0; i < Categories.Count; i++)
                 {
                     if (!string.IsNullOrEmpty(value.Category) && Categories[i].Contains(value.Category))
                     {
@@ -195,6 +195,14 @@ public class MainViewModel : ObservableRecipient
         }
     }
 
+    string? _importPathCSV = "";
+    public string? ImportPathCSV
+    {
+        get => _importPathCSV;
+        set => SetProperty(ref _importPathCSV, value);
+    }
+
+
     #region [Stats]
     string? _currentMonthTotal = "$0.00";
     public string? CurrentMonthTotal
@@ -276,7 +284,7 @@ public class MainViewModel : ObservableRecipient
 
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
-    public ICommand RecurringItemCommand { get; }
+    public ICommand ImportItemCommand { get; }
 
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
     DataService? dataService = (DataService?)App.Current.Services.GetService<IDataService>();
@@ -291,7 +299,7 @@ public class MainViewModel : ObservableRecipient
         if (App.LocalConfig is not null)
             Status = "✔️ Loading…";
         else
-            Status = "⚠️ No config!";
+            Status = "⚠️ No configuration.";
 
         #region [Add Action]
         AddItemCommand = new RelayCommand<object>(async (obj) =>
@@ -304,8 +312,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
-                    Status = $"⚠️ Category, Date, Description & Amount must contain some value!";
-                    //_ = App.ShowDialogBox($"Warning", $"{Environment.NewLine}Category, Description & Amount must contain some value.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
+                    Status = $"⚠️ Category, Date, Description & Amount must contain some value.";
                     return;
                 }
 
@@ -327,14 +334,16 @@ public class MainViewModel : ObservableRecipient
                 // Add a new ExpenseItem.
                 if (!duplicate)
                 {
+                    var highest = GetHighestId();
+
                     ExpenseItems.Add(new ExpenseItem
                     {
                         Recurring = SelectedRecurring,
-                        Id = CurrentCount + 1,
+                        Id = highest + 1,
                         Category = $"{SelectedCategory}",
                         Description = $"{SelectedDescription}",
                         Amount = SelectedAmount.StartsWith("$") ? $"{SelectedAmount}" : $"${SelectedAmount}",
-                        Codes = string.IsNullOrEmpty(SelectedCodes) ? $"N/A" : $"{SelectedCodes}",
+                        Codes = string.IsNullOrEmpty(SelectedCodes) ? $"" : $"{SelectedCodes}",
                         Date = (SelectedDate is null) ? DateTime.Now : SelectedDate.Value.DateTime,
                         Color = Microsoft.UI.Colors.WhiteSmoke
                     });
@@ -369,8 +378,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
-                    Status = $"⚠️ Category, Date, Description & Amount must contain some value!";
-                    //_ = App.ShowDialogBox($"Warning", $"{Environment.NewLine}Category, Description & Amount must contain some value.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
+                    Status = $"⚠️ Category, Date, Description & Amount must contain some value.";
                     return;
                 }
 
@@ -389,7 +397,7 @@ public class MainViewModel : ObservableRecipient
                             item.Description = SelectedDescription;
                             item.Amount = SelectedAmount.StartsWith("$") ? $"{SelectedAmount}" : $"${SelectedAmount}";
                             item.Category = SelectedCategory;
-                            item.Codes = string.IsNullOrEmpty(SelectedCodes) ? $"N/A" : $"{SelectedCodes}";
+                            item.Codes = string.IsNullOrEmpty(SelectedCodes) ? $"" : $"{SelectedCodes}";
                             item.Date = (SelectedDate is null) ? DateTime.Now : SelectedDate.Value.DateTime;
                         }
                     }
@@ -418,21 +426,162 @@ public class MainViewModel : ObservableRecipient
         });
         #endregion
 
-        #region [This is not used anymore]
-        RecurringItemCommand = new RelayCommand<object>(async (obj) =>
+        #region [Import Action]
+        ImportItemCommand = new RelayCommand<object>(async (obj) =>
         {
             try
             {
                 IsBusy = true;
-                Status = "⚠️ This feature is coming soon!";
                 
+                if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
+                {
+                    Status = $"⚠️ You must provide a valid file path.";
+                    return;
+                }
+
+                int added = 0;
+                string baseFolder = "";
+
+                if (App.IsPackaged)
+                    baseFolder = ApplicationData.Current.LocalFolder.Path;
+                else
+                    baseFolder = Directory.GetCurrentDirectory();
+
+                if (!File.Exists(Path.Combine(baseFolder, ImportPathCSV)))
+                {
+                    Status = $"⚠️ The file does not exist, check your input and try again.";
+                    return;
+                }
+
+                var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
+                foreach (var line in lines.Skip(1)) // ignore the header
+                {
+                    var tokens = line.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                    // Do we have enough fields to work with?
+                    if (tokens.Length == 0 || tokens.Length < 4)
+                        continue;
+
+                    if (double.TryParse(tokens[3], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
+                    {
+                        if (val < 0)
+                        {
+                            Debug.WriteLine($"[INFO] Processing date line {tokens[0]}");
+
+                            if (DateTime.TryParse($"{tokens[0]}", out DateTime impDT))
+                            {
+                                var impDesc = tokens[1];
+                                var impCat = tokens[2];
+                                var impAmnt = $"{Math.Abs(val)}"; // tokens[3]
+                                var impMemo = (tokens.Length == 5) ? tokens[4] : "";
+
+                                #region [Try to extrapolate memo]
+                                if (string.IsNullOrEmpty(impMemo))
+                                {
+                                    if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("*"))
+                                    {
+                                        try
+                                        {
+                                            impMemo = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[1];
+                                            impDesc = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[0];
+                                        }
+                                        catch (Exception)
+                                        {
+                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                        }
+                                    }
+                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("#"))
+                                    {
+                                        try
+                                        {
+                                            impMemo = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[1];
+                                            impDesc = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[0];
+                                        }
+                                        catch (Exception)
+                                        {
+                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                        }
+                                    }
+                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("~"))
+                                    {
+                                        try
+                                        {
+                                            impMemo = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[1];
+                                            impDesc = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[0];
+                                        }
+                                        catch (Exception)
+                                        {
+                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                        }
+                                    }
+                                }
+                                #endregion
+
+                                bool duplicate = false;
+                                foreach (var item in ExpenseItems)
+                                {
+                                    if (impDT == item.Date && 
+                                        impCat == item.Category && 
+                                        impDesc == item.Description && 
+                                        impAmnt == item.Amount)
+                                    {
+                                        duplicate = true;
+                                        break;
+                                    }
+                                }
+
+                                // Add the imported item.
+                                if (!duplicate)
+                                {
+                                    added++;
+                                    var highest = GetHighestId();
+                                    ExpenseItems.Add(new ExpenseItem
+                                    {
+                                        Recurring = SelectedRecurring,
+                                        Id = highest + 1,
+                                        Category = $"{impCat}",
+                                        Description = $"{impDesc}",
+                                        Amount = impAmnt.StartsWith("$") ? $"{impAmnt}" : $"${impAmnt}",
+                                        Codes = string.IsNullOrEmpty(impMemo) ? $"" : $"{impMemo}",
+                                        Date = (impDT == DateTime.MinValue) ? DateTime.Now : impDT,
+                                        Color = Microsoft.UI.Colors.WhiteSmoke
+                                    });
+                                }
+                                else
+                                {
+                                    Status = "⚠️ This expense item already exists, skipping import.";
+                                }
+                            }
+                            else
+                            {
+                                Status = $"⚠️ This date is not valid: {tokens[0]}";
+                                _ = App.ShowDialogBox($"Import", $"Unable to use this date:{Environment.NewLine}{Environment.NewLine}\"{tokens[0]}\"", "OK", "", null, null, _dialogImgUri);
+                            }
+                        }
+                        else
+                        {
+                            Status = "⚠️ Deposit was skipped, only interested in withdrawals.";
+                        }
+                    }
+                    else
+                    {
+                        Status = $"⚠️ Unable to use this line: {line}";
+                    }
+                }
+
                 await Task.Delay(750); // for spinners
 
-                if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
+                // If we've changed something then update and save.
+                if (added > 0)
                 {
-                    Status = $"⚠️ Category, Date, Description & Amount must contain some value!";
-                    //_ = App.ShowDialogBox($"Warning", $"{Environment.NewLine}Category, Description & Amount must contain some value.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
-                    return;
+                    _ = App.ShowDialogBox($"Import", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
+                    UpdateSummaryTotals();
+                    SaveExpenseItemsJson();
+                    LoadExpenseItemsJson();
+                }
+                else
+                {
+                    _ = App.ShowDialogBox($"Import", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.", "OK", "", null, null, _dialogImgUri);
                 }
             }
             finally
@@ -448,6 +597,21 @@ public class MainViewModel : ObservableRecipient
         }
         #endregion
     }
+
+    public int GetHighestId()
+    {
+        if (ExpenseItems is null || ExpenseItems.Count == 0) { return 0; }
+
+        int highest = 0;
+        foreach (var item in ExpenseItems)
+        {
+            if (item.Id > highest)
+                highest = item.Id;
+        }
+
+        return highest;
+    }
+
 
     #region [Statistical Methods]
     public void UpdateSummaryTotals()
@@ -476,11 +640,11 @@ public class MainViewModel : ObservableRecipient
                     // Year To Date ($)
                     ytdTotal += val * msboy;
 
-                    // Current Month ($)
-                    if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
-                        cmTotal += val;
-                    else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 60))
-                        pmTotal += val;
+                    // Consider it spent already for the current month.
+                    cmTotal += val;
+
+                    // Consider it spent for the previous month.
+                    pmTotal += val;
                 }
                 else
                 {
@@ -502,9 +666,12 @@ public class MainViewModel : ObservableRecipient
             }
         }
 
+        // Exclude outliers in calculation.
         var meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count / 2);
 
         List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
+
+        // TODO: Account for recurring
         var months = CountUniqueMonths(ExpenseItems.ToList());
 
         try
@@ -539,7 +706,7 @@ public class MainViewModel : ObservableRecipient
     public double CalculatePercentageChange(double previous, double current)
     {
         if (previous == 0)
-            throw new DivideByZeroException("⚠️ Previous month's spending cannot be zero!");
+            throw new DivideByZeroException("⚠️ Previous month's spending cannot be zero.");
 
         return ((current - previous) / previous) * 100;
     }
@@ -570,6 +737,9 @@ public class MainViewModel : ObservableRecipient
     /// <param name="elements"><see cref="List{T}"/></param>
     public int CountUniqueMonths(List<ExpenseItem> elements)
     {
+        if (elements is null || elements.Count == 0)
+            return 0;
+
         var uniqueMonths = elements
             .Select(e => new { e.Date!.Value.Year, e.Date!.Value.Month })
             .Distinct()
@@ -592,22 +762,25 @@ public class MainViewModel : ObservableRecipient
     /// <summary>
     /// A more accurate averaging method by removing the outliers.
     /// </summary>
-    public double CalculateMedianAdjustable(List<double> values, int middleSample)
+    public double CalculateMedianAdjustable(List<double> values, int sampleCount)
     {
-        if (values == null || values.Count == 0 || middleSample <= 0)
+        if (values == null || values.Count == 0 || sampleCount <= 0)
             return 0d;
 
         values.Sort();
 
         int count = values.Count;
-        if (middleSample > count)
-            middleSample = count;
+
+        if (sampleCount >= count && count > 2)
+            sampleCount = count - 2;
+        else if (sampleCount >= count && count <= 2)
+            sampleCount = count - 1;
 
         // Calculate the starting index of the middle elements
-        int startIndex = (count - middleSample) / 2;
+        int startIndex = Math.Abs((count - sampleCount) / 2);
 
         // Get the middle elements
-        var middleElements = values.Skip(startIndex).Take(middleSample);
+        var middleElements = values.Skip(startIndex).Take(sampleCount);
 
         // Calculate the average of the middle elements
         double middleAverage = middleElements.Average();
@@ -653,10 +826,11 @@ public class MainViewModel : ObservableRecipient
     {
         return new ObservableCollection<ExpenseItem>
         {
-            new ExpenseItem { Id = 1, Description = $"💰 A sample food expense item", Date = DateTime.Now.AddDays(-2),  Amount = "$54.62", Category = "Grocery", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
-            new ExpenseItem { Id = 2, Description = $"💰 A sample insurance expense item", Date = DateTime.Now.AddDays(-10), Amount = "$321.78", Category = "Insurance", Recurring = true, Color = Microsoft.UI.Colors.WhiteSmoke },
-            new ExpenseItem { Id = 3, Description = $"💰 A sample gas expense item", Date = DateTime.Now.AddDays(-20), Amount = "$99.34", Category = "Fuel", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
-            new ExpenseItem { Id = 4, Description = $"💰 A sample entertainment expense item", Date = DateTime.Now.AddDays(-30), Amount = "$12.00", Category = "Entertainment", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 1, Opacity = 1d, Description = $"💰 A sample food expense item", Date = DateTime.Now.AddDays(-2),  Amount = "$54.62", Category = "Grocery", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 2, Opacity = 1d, Description = $"💰 A sample insurance expense item", Date = DateTime.Now.AddDays(-10), Amount = "$321.78", Category = "Insurance", Codes = "Policy #123456", Recurring = true, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 3, Opacity = 1d, Description = $"💰 A sample gas expense item", Date = DateTime.Now.AddDays(-20), Amount = "$99.34", Category = "Fuel", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 4, Opacity = 1d, Description = $"💰 A sample entertainment expense item", Date = DateTime.Now.AddDays(-31), Amount = "$12.00", Category = "Entertainment", Recurring = false, Codes = "CHK#2112", Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 5, Opacity = 1d, Description = $"💰 A sample travel expense item", Date = DateTime.Now.AddDays(-62), Amount = "$223.11", Category = "Travel", Recurring = false, Codes = "Confirmation QRZ9981", Color = Microsoft.UI.Colors.WhiteSmoke },
         };
     }
 
@@ -667,6 +841,7 @@ public class MainViewModel : ObservableRecipient
         Show = false; Show = true;
     }
 
+    #region [Bound Events]
     /// <summary>
     /// <see cref="ComboBox"/> event for category.
     /// </summary>
@@ -713,12 +888,13 @@ public class MainViewModel : ObservableRecipient
         if (ExpenseItems.Count > 0)
             Status = $"✔️ Loaded {ExpenseItems.Count} expense items.";
         else
-            Status = $"⚠️ No data available!";
+            Status = $"⚠️ No data available.";
         #endregion
 
         _loaded = true;
         UpdateSummaryTotals();
     }
+    #endregion
 
     #region [JSON Serializer Routines]
     /// <summary>
@@ -773,7 +949,7 @@ public class MainViewModel : ObservableRecipient
                     CurrentCount = ExpenseItems.Count;
                 }
                 else
-                    Status = $"⚠️ Json data was null ({App.DatabaseExpense})";
+                    Status = $"⚠️ JSON data was null ({App.DatabaseExpense})";
             }
             else
             {
@@ -790,7 +966,7 @@ public class MainViewModel : ObservableRecipient
             // Signal any listeners.
             ItemsLoadedEvent?.Invoke(this, false);
             Status = $"⚠️ LoadExpenseItemsJson: {ex.Message}";
-            App.DebugLog($"LoadExpenseItemsJson: {ex.Message}");
+            Logger?.WriteLine($"{ex.Message}", LogLevel.Error);
             Debugger.Break();
         }
         finally
@@ -858,7 +1034,7 @@ public class MainViewModel : ObservableRecipient
             if (!App.IsClosing)
                 Status = $"⚠️ SaveExpenseItemsJson: {ex.Message}";
 
-            App.DebugLog($"SaveExpenseItemsJson: {ex.Message}");
+            Logger?.WriteLine($"{ex.Message}", LogLevel.Error);
             Debugger.Break();
         }
         finally

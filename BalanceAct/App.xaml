@@ -40,18 +40,22 @@
             <Color x:Key="BackColor2">#A0A0B0</Color>
             <Color x:Key="BackColor3">#9090A0</Color>
             <Color x:Key="BackColor4">#808090</Color>
-            <Color x:Key="PressedColor1">#C0C0D0</Color>
-            <Color x:Key="PressedColor2">#A0A0B0</Color>
-            <Color x:Key="PressedColor3">#9090A0</Color>
-            <Color x:Key="PressedColor4">#606070</Color>
+            <Color x:Key="TitleColor1">#D0D0D0</Color>
+            <Color x:Key="TitleColor2">#B0B0B0</Color>
+            <Color x:Key="TitleColor3">#909090</Color>
+            <Color x:Key="TitleColor4">#707070</Color>
             <Color x:Key="LinearBorder1">#4F66BCFF</Color>
             <Color x:Key="LinearBorder2">#4F4E91C4</Color>
             <Color x:Key="LinearBorder3">#4F3F769E</Color>
-            <Color x:Key="LinearBorder4">#4F1E384C</Color>
+            <Color x:Key="LinearBorder4">#5F1E384C</Color>
             <Color x:Key="LinearBorder5">#9F66BCFF</Color>
             <Color x:Key="LinearBorder6">#9F4E91C4</Color>
             <Color x:Key="LinearBorder7">#9F3F769E</Color>
             <Color x:Key="LinearBorder8">#9F1E384C</Color>
+            <Color x:Key="LinearBorder9">#EF66BCFF</Color>
+            <Color x:Key="LinearBorder10">#EF4E91C4</Color>
+            <Color x:Key="LinearBorder11">#EF3F769E</Color>
+            <Color x:Key="LinearBorder12">#EF1E384C</Color>
             <Color x:Key="AlphaShadow1">#F0242424</Color>
             <Color x:Key="AlphaShadow2">#F0161616</Color>
             <Color x:Key="AlphaShadow3">#F0090909</Color>
@@ -93,11 +97,25 @@
                 <GradientStop Offset="1.0" Color="{StaticResource LinearBorder4}" />
             </LinearGradientBrush>
 
-            <LinearGradientBrush x:Key="GradientHeaderBrush" StartPoint="0,0" EndPoint="0,1">
+            <LinearGradientBrush x:Key="GradientToolTipBrush" StartPoint="0,0" EndPoint="0,1">
                 <GradientStop Offset="0.0" Color="{StaticResource LinearBorder5}" />
-                <GradientStop Offset="0.25" Color="{StaticResource LinearBorder6}" />
-                <GradientStop Offset="0.75" Color="{StaticResource LinearBorder7}" />
+                <GradientStop Offset="0.1" Color="{StaticResource LinearBorder6}" />
+                <GradientStop Offset="0.2" Color="{StaticResource LinearBorder7}" />
                 <GradientStop Offset="1.0" Color="{StaticResource LinearBorder8}" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="GradientTitleBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Offset="0.0" Color="{StaticResource TitleColor1}" />
+                <GradientStop Offset="0.1" Color="{StaticResource TitleColor2}" />
+                <GradientStop Offset="0.7" Color="{StaticResource TitleColor3}" />
+                <GradientStop Offset="1.0" Color="{StaticResource TitleColor4}" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="GradientHeaderBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Offset="0.0" Color="{StaticResource LinearBorder9}" />
+                <GradientStop Offset="0.25" Color="{StaticResource LinearBorder10}" />
+                <GradientStop Offset="0.75" Color="{StaticResource LinearBorder11}" />
+                <GradientStop Offset="1.0" Color="{StaticResource LinearBorder12}" />
             </LinearGradientBrush>
 
             <LinearGradientBrush x:Key="GradientShadowBrush" StartPoint="0,0" EndPoint="0,1">

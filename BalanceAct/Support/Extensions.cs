@@ -10,6 +10,8 @@ using System.Threading;
 
 using Microsoft.UI;
 using System.IO;
+using System.Threading.Tasks;
+using Windows.Storage;
 
 namespace BalanceAct;
 
@@ -250,24 +252,22 @@ public static class Extensions
     /// Converts a DateTime to a DateTimeOffset with the specified offset
     /// </summary>
     /// <param name="date">The DateTime to convert</param>
-    /// <param name="offset">The offset to apply to the datetime field</param>
+    /// <param name="offset">The offset to apply to the date field</param>
     /// <returns>The corresponding DateTimeOffset</returns>
     public static DateTimeOffset ToOffset(this DateTime date, TimeSpan offset) => new DateTimeOffset(date).ToOffset(offset);
 
     /// <summary>
-    /// Accounts for once the date1 is past date2.
+    /// Accounts for once the <paramref name="date1"/> is past <paramref name="date2"/>
+    /// or falls within the amount of <paramref name="days"/>.
     /// </summary>
-    public static bool WithinOneDayOrPast(this DateTime date1, DateTime date2)
+    public static bool WithinDaysOrPast(this DateTime date1, DateTime date2, double days = 7.0)
     {
-        DateTime first = DateTime.Parse($"{date1}");
-        if (first < date2) // Account for past-due amounts.
-        {
+        if (date1 > date2) // Account for past-due amounts.
             return true;
-        }
         else
         {
-            TimeSpan difference = first - date2;
-            return Math.Abs(difference.TotalDays) <= 1.0;
+            TimeSpan difference = date1 - date2;
+            return Math.Abs(difference.TotalDays) <= days;
         }
     }
 
@@ -276,7 +276,7 @@ public static class Extensions
     /// </summary>
     public static bool WithinOneDay(this DateTime date1, DateTime date2)
     {
-        TimeSpan difference = DateTime.Parse($"{date1}") - date2;
+        TimeSpan difference = date1 - date2;
         return Math.Abs(difference.TotalDays) <= 1.0;
     }
 
@@ -285,7 +285,7 @@ public static class Extensions
     /// </summary>
     public static bool WithinAmountOfDays(this DateTime date1, DateTime date2, double days)
     {
-        TimeSpan difference = DateTime.Parse($"{date1}") - date2;
+        TimeSpan difference = date1 - date2;
         return Math.Abs(difference.TotalDays) <= days;
     }
 
@@ -647,6 +647,126 @@ public static class Extensions
         if (source == null) { throw new ArgumentNullException(nameof(source)); }
         foreach (var element in source) { target.Add(element); }
     }
+
+    /// <summary>
+    /// Gets a string value from a <see cref="StorageFile"/> located in the application local folder.
+    /// </summary>
+    /// <param name="fileName">
+    /// The relative <see cref="string"/> file path.
+    /// </param>
+    /// <returns>
+    /// The stored <see cref="string"/> value.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Exception thrown if the <paramref name="fileName"/> is null or empty.
+    /// </exception>
+    public static async Task<string> ReadLocalFileAsync(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+            throw new ArgumentNullException(nameof(fileName));
+
+        if (App.IsPackaged)
+        {
+            var folder = ApplicationData.Current.LocalFolder;
+            var file = await folder.GetFileAsync(fileName);
+            return await FileIO.ReadTextAsync(file, Windows.Storage.Streams.UnicodeEncoding.Utf8);
+        }
+        else
+        {
+            using (TextReader reader = File.OpenText(Path.Combine(AppContext.BaseDirectory, fileName)))
+            {
+                return await reader.ReadToEndAsync(); // uses UTF8 by default
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// IEnumerable file reader.
+    /// </summary>
+    public static IEnumerable<string> ReadFileLines(string path)
+    {
+        string? line = string.Empty;
+
+        if (!File.Exists(path))
+            yield return line;
+        else
+        {
+            using (TextReader reader = File.OpenText(path))
+            {
+                while ((line = reader.ReadLine()) != null)
+                {
+                    yield return line;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// IAsyncEnumerable file reader.
+    /// </summary>
+    public static async IAsyncEnumerable<string> ReadFileLinesAsync(string path)
+    {
+        string? line = string.Empty;
+
+        if (!File.Exists(path))
+            yield return line;
+        else
+        {
+            using (TextReader reader = File.OpenText(path))
+            {
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    yield return line;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// File writer for <see cref="IEnumerable{T}"/> parameters.
+    /// </summary>
+    public static bool WriteFileLines(string path, IEnumerable<string> lines)
+    {
+        using (TextWriter writer = File.CreateText(path))
+        {
+            foreach (var line in lines)
+            {
+                writer.WriteLine(line);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// De-dupe file reader using a <see cref="HashSet{T}"/>.
+    /// </summary>
+    public static HashSet<string> ReadLines(string path)
+    {
+        if (!File.Exists(path))
+            return new();
+
+        return new HashSet<string>(File.ReadAllLines(path), StringComparer.InvariantCultureIgnoreCase);
+    }
+
+    /// <summary>
+    /// De-dupe file writer using a <see cref="HashSet{T}"/>.
+    /// </summary>
+    public static bool WriteLines(string path, IEnumerable<string> lines)
+    {
+        var output = new HashSet<string>(lines, StringComparer.InvariantCultureIgnoreCase);
+
+        using (TextWriter writer = File.CreateText(path))
+        {
+            foreach (var line in output)
+            {
+                writer.WriteLine(line);
+            }
+        }
+        return true;
+    }
+
 
     public static T? DeserializeFromFile<T>(string filePath, ref string error)
     {

@@ -98,7 +98,7 @@ public partial class App : Application
             this.DebugSettings.XamlResourceReferenceFailed += DebugOnXamlResourceReferenceFailed;
         }
     }
-    
+
     static IServiceProvider ConfigureServices()
     {
         var services = new ServiceCollection();
@@ -109,6 +109,8 @@ public partial class App : Application
 
         return services.BuildServiceProvider();
     }
+
+    #region [Application Events]
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         m_window = new MainWindow();
@@ -143,6 +145,7 @@ public partial class App : Application
         appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
         CenterWindow(m_window);
     }
+    #endregion
 
     #region [Debugger Events]
     void DebugOnXamlResourceReferenceFailed(DebugSettings sender, XamlResourceReferenceFailedEventArgs args)

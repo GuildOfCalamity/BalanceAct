@@ -67,6 +67,8 @@
     <None Remove="Assets\Spinner.png" />
     <None Remove="Assets\StoreLogo.ico" />
     <None Remove="Assets\Warning.png" />
+    <None Remove="Controls\CompositionShadow.xaml" />
+    <None Remove="Controls\SeparatorLine.xaml" />
     <None Remove="MainPage.xaml" />
     <None Remove="Styles\FontSizes.xaml" />
   </ItemGroup>
@@ -99,6 +101,16 @@
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\CompositionShadow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\SeparatorLine.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="MainPage.xaml">

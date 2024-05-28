@@ -7,6 +7,16 @@
     <ActiveDebugProfile>BalanceAct (Unpackaged)</ActiveDebugProfile>
   </PropertyGroup>
   <ItemGroup>
+    <Page Update="Controls\CompositionShadow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\SeparatorLine.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="Styles\FontSizes.xaml">
       <SubType>Designer</SubType>
     </Page>
