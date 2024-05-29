@@ -24,7 +24,7 @@
         ColumnSpacing="10"
         RowSpacing="10">
 
-        <!--#region [Defines]-->
+        <!--#region [Root Defines]-->
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -36,8 +36,9 @@
         </Grid.ColumnDefinitions>
         <!--#endregion-->
 
-        <!--#region [Animation]-->
+        <!--#region [Animations]-->
         <Grid.Resources>
+            <ThemeShadow x:Name="SharedShadow" />
             <Storyboard x:Name="OpacityStoryboard">
                 <DoubleAnimation
                     AutoReverse="False"
@@ -109,7 +110,8 @@
                     HorizontalAlignment="Left"
                     ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
                     SelectedIndex="{x:Bind ViewModel.CategorySelectedIndex, Mode=OneWay}"
-                    SelectionChanged="{x:Bind ViewModel.CategorySelectionChanged, Mode=OneWay}">
+                    SelectionChanged="{x:Bind ViewModel.CategorySelectionChanged, Mode=OneWay}"
+                    SelectionChangedTrigger="Always">
                     <ComboBox.Header>
                         <TextBlock
                             Margin="2,0,0,-5"
@@ -209,7 +211,7 @@
                     Content="Add Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
                     <interact:Interaction.Behaviors>
-                        <behave:ColorGradientBehavior From="#FF4800FF" To="#FF10FFFF" />
+                        <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
                     </interact:Interaction.Behaviors>
                 </Button>
 
@@ -222,7 +224,7 @@
                     Content="Update Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
                     <interact:Interaction.Behaviors>
-                        <behave:ColorGradientBehavior From="#FF4800FF" To="#FF10FFFF" />
+                        <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
                     </interact:Interaction.Behaviors>
                 </Button>
 
@@ -250,6 +252,7 @@
 
             </Grid>
 
+            <!--#region [Behavior Test]-->
             <Image
                 Grid.Row="99"
                 Width="90"
@@ -263,13 +266,20 @@
                         EaseMode="Linear"
                         Seconds="2.0"
                         From="0.0"
-                        To="0.5" />
+                        To="0.6" />
                     <behave:SpringAnimationBehavior
                         Damping="0.2"
                         Final="1.15"
                         Seconds="0.04" />
+                    <behave:ColorAnimationBehavior
+                        EaseMode="QuadEaseOut"
+                        Interpolation="Rgb"
+                        Seconds="3.0"
+                        From="{StaticResource Step1}"
+                        To="{StaticResource Step2}" />
                 </interact:Interaction.Behaviors>
             </Image>
+            <!--#endregion-->
 
         </Grid>
         <!--#endregion-->
@@ -302,14 +312,14 @@
                     <Border
                         Padding="0"
                         BorderBrush="{ThemeResource BorderBrush}"
-                        BorderThickness="0,0,0,1"
+                        BorderThickness="0,0,0,2"
                         CornerRadius="5">
                         <Grid x:Name="gridItem">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="3*" />
-                                <ColumnDefinition Width="10*" />
+                                <ColumnDefinition Width="12*" />
                                 <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="4*" />
+                                <ColumnDefinition Width="3*" />
                                 <ColumnDefinition Width="24" />
                             </Grid.ColumnDefinitions>
                             <Grid.Resources>
@@ -323,7 +333,7 @@
                             </Grid.Resources>
                             <TextBlock
                                 Grid.Column="0"
-                                Margin="1,0,1,0"
+                                Margin="3,0,1,0"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind Category, Mode=OneWay}" />
                             <TextBlock Grid.Column="1" Margin="1,0,1,0">
@@ -338,7 +348,7 @@
                                 Grid.Column="2"
                                 Margin="1,0,1,0"
                                 FontFamily="{ThemeResource SecondaryFont}"
-                                Foreground="{ThemeResource SecondaryBrush}"
+                                Foreground="{x:Bind Amount, Mode=OneWay, Converter={StaticResource AmountToBrush}, ConverterParameter=Amount}"
                                 Text="{x:Bind Amount, Mode=OneWay}" />
                             <TextBlock
                                 Grid.Column="3"
@@ -361,7 +371,7 @@
         </ListView>
         <!--#endregion-->
 
-        <!--#region [Tally Content]-->
+        <!--#region [Expense Tally Content]-->
         <Grid
             Grid.Row="1"
             Grid.Column="1"
@@ -403,9 +413,10 @@
 
             <AppBarButton
                 Grid.Column="3"
+                Height="50"
                 HorizontalAlignment="Right"
+                VerticalContentAlignment="Top"
                 CornerRadius="4"
-                Label="Import"
                 ToolTipService.ToolTip="Import a CSV file">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="{StaticResource Download}" />
@@ -477,6 +488,7 @@
                                 VerticalAlignment="Top" />
 
                             <TextBox
+                                x:Name="tbFilePath"
                                 Grid.Row="2"
                                 Grid.Column="0"
                                 Grid.ColumnSpan="2"
@@ -492,19 +504,38 @@
                                         Foreground="{ThemeResource GradientHeaderBrush}"
                                         Text="Enter file path and click import" />
                                 </TextBox.Header>
+                                <interact:Interaction.Behaviors>
+                                    <behave:AutoFocusBehavior />
+                                </interact:Interaction.Behaviors>
                             </TextBox>
 
-                            <Button
+                            <StackPanel
                                 Grid.Row="3"
                                 Grid.Column="0"
+                                Margin="0,10,0,0"
                                 HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.ImportItemCommand}"
-                                Content="Import"
-                                IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}"
-                                Style="{ThemeResource EnhancedButtonStyle}" />
+                                VerticalAlignment="Center">
+                                <Button
+                                    Command="{x:Bind ViewModel.ImportItemCommand}"
+                                    Content="Import"
+                                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}"
+                                    Shadow="{StaticResource SharedShadow}"
+                                    Style="{ThemeResource EnhancedButton}"
+                                    Translation="0,0,24">
+                                    <!--  Visibility="{x:Bind tbFilePath.Text, Mode=OneWay, Converter={StaticResource NotEmptyToVisible}}"  -->
+                                    <interact:Interaction.Behaviors>
+                                        <!--
+                                            This effect can jump if not enclosed inside a parent container, e.g. a Grid/StackPanel
+                                        -->
+                                        <behave:ButtonAnimationBehavior
+                                            EaseMode="QuadEaseOut"
+                                            Final="0.85"
+                                            Seconds="0.08" />
+                                    </interact:Interaction.Behaviors>
+                                </Button>
+                            </StackPanel>
 
-                            <Image Grid.Row="3" Grid.Column="1">
+                            <Image Grid.Row="0" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -513,7 +544,7 @@
                                             CornerRadius="5"
                                             Orientation="Vertical"
                                             Spacing="4">
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="The CSV fields must be in this order:" />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="The CSV columns must be in this order:" />
                                             <TextBlock
                                                 FontFamily="{ThemeResource SecondaryFont}"
                                                 FontSize="{ThemeResource FontSizeSmall}"
@@ -521,7 +552,7 @@
                                             <TextBlock
                                                 FontSize="{ThemeResource FontSizeSmall}"
                                                 FontStyle="Italic"
-                                                Text="Any additional fields after memo will be ignored." />
+                                                Text="Any additional columns after MEMO will be ignored." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
@@ -534,9 +565,10 @@
 
             <AppBarButton
                 Grid.Column="4"
+                Height="50"
                 HorizontalAlignment="Right"
+                VerticalContentAlignment="Top"
                 CornerRadius="4"
-                Label="Stats"
                 ToolTipService.ToolTip="Additional Statistics">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="{StaticResource AreaChart}" />
@@ -815,12 +847,12 @@
                             <Image
                                 Grid.Row="10"
                                 Grid.ColumnSpan="3"
-                                Width="40"
-                                Height="40"
+                                Width="100"
+                                Height="100"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom"
-                                Opacity="0.5"
-                                Source="ms-appx:///Assets/Chart.png" />
+                                Opacity="0.35"
+                                Source="ms-appx:///Assets/Graph2.png" />
                         </Grid>
                     </Flyout>
                 </AppBarButton.Flyout>

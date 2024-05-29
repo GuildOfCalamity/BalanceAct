@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Drawing;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 
 namespace BalanceAct;
 

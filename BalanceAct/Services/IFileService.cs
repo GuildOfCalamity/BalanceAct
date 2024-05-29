@@ -16,6 +16,7 @@ public interface IDataService
     void Save<T>(string folderPath, string fileName, T content);
     bool Restore(string folderPath, string fileName);
     void Delete(string folderPath, string fileName);
+    bool MakeBackup<T>(string folderPath, string fileName, T content);
 }
 
 public class DataService : IDataService
@@ -95,6 +96,43 @@ public class DataService : IDataService
         {
             Debug.WriteLine($"[ERROR] Save: {ex.Message}");
             throw new Exception(ex.Message, ex);
+        }
+    }
+
+    public bool MakeBackup<T>(string folderPath, string fileName, T content)
+    {
+        try
+        {
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            if (File.Exists(Path.Combine(folderPath, $"{fileName}.bak")))
+            {
+                // Make sure read-only flag is not set.
+                FileAttributes attributes = File.GetAttributes(Path.Combine(folderPath, $"{fileName}.bak"));
+                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    attributes &= ~FileAttributes.ReadOnly;
+                    File.SetAttributes(Path.Combine(folderPath, $"{fileName}.bak"), attributes);
+                }
+            }
+
+            // Serialize and save to file.
+            var fileContent = JsonConvert.SerializeObject(content,
+                Newtonsoft.Json.Formatting.Indented,
+                new JsonSerializerSettings
+                {
+                    NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                }
+            );
+
+            File.WriteAllText(Path.Combine(folderPath, $"{fileName}.bak"), fileContent, Encoding.UTF8);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Backup: {ex.Message}");
+            return false;
         }
     }
 

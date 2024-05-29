@@ -26,6 +26,9 @@ using Windows.Storage;
 
 namespace BalanceAct.ViewModels;
 
+/// <summary>
+/// https://learn.microsoft.com/en-us/windows/apps/develop/data-binding/data-binding-in-depth
+/// </summary>
 public class MainViewModel : ObservableRecipient
 {
     #region [Props]
@@ -53,7 +56,7 @@ public class MainViewModel : ObservableRecipient
         set
         {
             SetProperty(ref _selectedItem, value);
-            if (value != null)
+            if (value != null && _loaded)
             {
                 SelectedId = value.Id;
                 SelectedRecurring = value.Recurring;
@@ -62,18 +65,46 @@ public class MainViewModel : ObservableRecipient
                 SelectedCategory = value.Category;
                 SelectedCodes = value.Codes;
                 SelectedDate = value.Date;
-                // Auto-select the appropriate ComboBox item.
+                #region [Auto-select the appropriate ComboBox item]
+                bool matched = false;
                 for (int i = 0; i < Categories.Count; i++)
                 {
-                    if (!string.IsNullOrEmpty(value.Category) && Categories[i].Contains(value.Category))
+                    if (!string.IsNullOrEmpty(value.Category) && Categories[i].Contains(value.Category, StringComparison.CurrentCultureIgnoreCase))
                     {
+                        matched = true;
                         CategorySelectedIndex = i;
                         break;
                     }
                 }
+                if (!matched)
+                    CategorySelectedIndex = 18; // Undefined
+                #endregion
             }
         }
     }
+
+    public List<string> Categories { get; set; } = new()
+    {
+        "Automotive",
+        "Bills & utilities",
+        "Education",
+        "Entertainment",
+        "Fee & adjustments",
+        "Food & drink",
+        "Gas",
+        "Gifts & donations",
+        "Groceries",
+        "Health & wellness",
+        "Home",
+        "Insurance",
+        "Miscellaneous",
+        "Personal",
+        "Professional services",
+        "Shopping",
+        "Travel",
+        "Workplace",
+        "Undefined",
+    };
 
     ExpenseItem? _scrollToItem;
     public ExpenseItem? ScrollToItem
@@ -202,7 +233,6 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _importPathCSV, value);
     }
 
-
     #region [Stats]
     string? _currentMonthTotal = "$0.00";
     public string? CurrentMonthTotal
@@ -254,37 +284,13 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 
-    public List<string> Categories { get; set; } = new() 
-    { 
-        "Automotive", 
-        "Bills & utilities", 
-        "Education",
-        "Entertainment",
-        "Fee & adjustments",
-        "Food & drink",
-        "Gas",
-        "Gifts & donations",
-        "Groceries",
-        "Health & wellness",
-        "Home",
-        "Insurance",
-        "Miscellaneous",
-        "Personal",
-        "Professional services",
-        "Shopping",
-        "Travel",
-        "Workplace",
-    };
-
-    public Config? Config
-    {
-        get => App.LocalConfig;
-    }
     #endregion
 
+    #region [Relay Commands]
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
     public ICommand ImportItemCommand { get; }
+    #endregion
 
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
     DataService? dataService = (DataService?)App.Current.Services.GetService<IDataService>();
@@ -432,7 +438,9 @@ public class MainViewModel : ObservableRecipient
             try
             {
                 IsBusy = true;
-                
+
+                await Task.Delay(500); // for spinners
+
                 if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
                 {
                     Status = $"⚠️ You must provide a valid file path.";
@@ -454,11 +462,27 @@ public class MainViewModel : ObservableRecipient
                 }
 
                 var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
+
+                #region [Perform backup before the import]
+                List<ExpenseItem> toBackup = new();
+                
+                foreach (var item in ExpenseItems)
+                    toBackup.Add(item);
+                
+                var bkup = dataService?.MakeBackup(baseFolder, App.DatabaseExpense, toBackup);
+                if (bkup != null && !bkup.Value) 
+                {
+                    Status = $"⚠️ Backup attempt failed.";
+                    _ = App.ShowDialogBox($"Backup", $"Unable to backup the current data set!", "OK", "", null, null, _dialogImgUri);
+                    return;
+                }
+                #endregion
+
                 foreach (var line in lines.Skip(1)) // ignore the header
                 {
                     var tokens = line.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-                    // Do we have enough fields to work with?
+                    // Do we have enough columns to work with?
                     if (tokens.Length == 0 || tokens.Length < 4)
                         continue;
 
@@ -476,8 +500,10 @@ public class MainViewModel : ObservableRecipient
                                 var impMemo = (tokens.Length == 5) ? tokens[4] : "";
 
                                 #region [Try to extrapolate memo]
+                                // Certain banks use different delimiters, so you may have to adjust as needed.
                                 if (string.IsNullOrEmpty(impMemo))
                                 {
+                                    // 1st common delimiter
                                     if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("*"))
                                     {
                                         try
@@ -490,6 +516,7 @@ public class MainViewModel : ObservableRecipient
                                             Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
                                         }
                                     }
+                                    // 2nd common delimiter
                                     else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("#"))
                                     {
                                         try
@@ -502,6 +529,7 @@ public class MainViewModel : ObservableRecipient
                                             Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
                                         }
                                     }
+                                    // 3rd common delimiter
                                     else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("~"))
                                     {
                                         try
@@ -514,21 +542,32 @@ public class MainViewModel : ObservableRecipient
                                             Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
                                         }
                                     }
+                                    // 4th common delimiter
+                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("%"))
+                                    {
+                                        try
+                                        {
+                                            impMemo = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[1];
+                                            impDesc = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[0];
+                                        }
+                                        catch (Exception)
+                                        {
+                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                        }
+                                    }
                                 }
                                 #endregion
 
-                                bool duplicate = false;
-                                foreach (var item in ExpenseItems)
-                                {
-                                    if (impDT == item.Date && 
-                                        impCat == item.Category && 
-                                        impDesc == item.Description && 
-                                        impAmnt == item.Amount)
-                                    {
-                                        duplicate = true;
-                                        break;
-                                    }
-                                }
+                                //bool duplicate = false;
+                                //foreach (var item in ExpenseItems)
+                                //{
+                                //    if (impDT == item.Date && impCat == item.Category && impDesc == item.Description && impAmnt == item.Amount)
+                                //    {
+                                //        duplicate = true;
+                                //        break;
+                                //    }
+                                //}
+                                bool duplicate = ExpenseItems.Any(ei => ei.Date == impDT && ei.Category == impCat && ei.Description == impDesc && ei.Amount == impAmnt);
 
                                 // Add the imported item.
                                 if (!duplicate)
@@ -566,22 +605,23 @@ public class MainViewModel : ObservableRecipient
                     else
                     {
                         Status = $"⚠️ Unable to use this line: {line}";
+                        Logger?.WriteLine($"Unable to use this line: {line}", LogLevel.Warning);
                     }
                 }
 
-                await Task.Delay(750); // for spinners
+                await Task.Delay(500); // for spinners
 
                 // If we've changed something then update and save.
                 if (added > 0)
                 {
-                    _ = App.ShowDialogBox($"Import", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
+                    _ = App.ShowDialogBox($"Results", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
                     UpdateSummaryTotals();
                     SaveExpenseItemsJson();
                     LoadExpenseItemsJson();
                 }
                 else
                 {
-                    _ = App.ShowDialogBox($"Import", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.", "OK", "", null, null, _dialogImgUri);
+                    _ = App.ShowDialogBox($"Warning", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.", "OK", "", null, null, _dialogImgUri);
                 }
             }
             finally
@@ -597,21 +637,6 @@ public class MainViewModel : ObservableRecipient
         }
         #endregion
     }
-
-    public int GetHighestId()
-    {
-        if (ExpenseItems is null || ExpenseItems.Count == 0) { return 0; }
-
-        int highest = 0;
-        foreach (var item in ExpenseItems)
-        {
-            if (item.Id > highest)
-                highest = item.Id;
-        }
-
-        return highest;
-    }
-
 
     #region [Statistical Methods]
     public void UpdateSummaryTotals()
@@ -695,9 +720,8 @@ public class MainViewModel : ObservableRecipient
         YearToDateTotal = ytdTotal.ToString("C2", _formatter);
         // NOTE: A percent sign (%) in a format string causes a number to be multiplied by 100 before it is formatted.
         // The localized percent symbol is inserted in the number at the location where the % appears in the format string.
-        // This is why you'll see the (newValue/100) before it is assigned.
+        // This is why you'll see the (value/100) before it is assigned.
         // https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#percent-format-specifier-p
-        // https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-numeric-format-strings#the--custom-specifier-3
         PreviousMonthChange = (changeRate / 100).ToString("P1", _formatter);
         if (grouped.Count > 0)
             FrequentCategory = grouped[0].Key;
@@ -818,6 +842,28 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 
+    #region [Helper Methods]
+    public int GetHighestId()
+    {
+        if (ExpenseItems is null || ExpenseItems.Count == 0) { return 0; }
+
+        int highest = 0;
+        foreach (var item in ExpenseItems)
+        {
+            if (item.Id > highest)
+                highest = item.Id;
+        }
+
+        return highest;
+    }
+
+    void ShowStatusMessage(string message)
+    {
+        Status = $"✔️ {message}";
+        // Cycle prop to re-trigger AutoInfoBar.
+        Show = false; Show = true;
+    }
+
     /// <summary>
     /// Creates a new <see cref="ObservableCollection{T}"/> with example data.
     /// </summary>
@@ -833,13 +879,7 @@ public class MainViewModel : ObservableRecipient
             new ExpenseItem { Id = 5, Opacity = 1d, Description = $"💰 A sample travel expense item", Date = DateTime.Now.AddDays(-62), Amount = "$223.11", Category = "Travel", Recurring = false, Codes = "Confirmation QRZ9981", Color = Microsoft.UI.Colors.WhiteSmoke },
         };
     }
-
-    void ShowStatusMessage(string message)
-    {
-        Status = $"✔️ {message}";
-        // Cycle prop to re-trigger AutoInfoBar.
-        Show = false; Show = true;
-    }
+    #endregion
 
     #region [Bound Events]
     /// <summary>
@@ -1055,11 +1095,11 @@ public class MainViewModel : ObservableRecipient
             _context = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(dis);
             SynchronizationContext.SetSynchronizationContext(_context);
 
-            // SynchronizationContext's Post() is the asynchronous method.
-            _context?.Post(o => fe.Height = 40, null); // Marshal the delegate to the UI thread
+            // SynchronizationContext's Post() is the asynchronous method used in marshaling the delegate to the UI thread.
+            _context?.Post(_ => fe.Height = 40, null);
 
-            // SynchronizationContext's Send() is the synchronous method.
-            _context?.Send(_ => fe.Height = 40, null); // Marshal the delegate to the UI thread
+            // SynchronizationContext's Send() is the synchronous method used in marshaling the delegate to the UI thread.
+            _context?.Send(_ => fe.Height = 40, null);
         }
         else
         {

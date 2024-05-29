@@ -9,6 +9,9 @@ using Windows.Foundation;
 
 namespace BalanceAct;
 
+/// <summary>
+/// For more info on FrameworkElement extensions see ⇒ https://learn.microsoft.com/en-us/windows/communitytoolkit/extensions/frameworkelementextensions
+/// </summary>
 public static class VisualTreeHelperExtensions
 {
     public static T? GetFirstDescendantOfType<T>(this DependencyObject start) where T : DependencyObject

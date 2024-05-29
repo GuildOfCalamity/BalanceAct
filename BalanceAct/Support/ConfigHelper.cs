@@ -54,10 +54,6 @@ public class Config
     [JsonPropertyName("windowH")]
     public int windowH = 250;
 
-    [JsonInclude]
-    [JsonPropertyName("background")]
-    public string? background = "00FFFFFF";
-
     public override string ToString() => JsonSerializer.Serialize<Config>(this, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
 }
 
@@ -145,7 +141,6 @@ public static class ConfigHelper
             return false;
         }
     }
-
 
     public static void SaveEncryptedLocalUser(string data)
     {
@@ -290,10 +285,10 @@ public static class ConfigHelper
 
         var options = new JsonSerializerOptions { IncludeFields = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = true };
 
-        // Basic serialize from object...
+        // Basic serialize from object:
         //string jsonString = JsonSerializer.Serialize<Config>(obj);
 
-        // Basic deserialize to object...
+        // Basic deserialize to object:
         //obj = JsonSerializer.Deserialize<Config>(jsonString);
 
         #region [Synchronous Writing]
@@ -363,7 +358,7 @@ public static class ConfigHelper
             return default;
         }
 
-        var file = await folder.GetFileAsync($"{name}.json");
+        var file = await folder.GetFileAsync($"{name}{FileExtension}");
         var fileContent = await Windows.Storage.FileIO.ReadTextAsync(file);
 
         return JsonSerializer.Deserialize<T>(fileContent);
@@ -437,6 +432,7 @@ public static class ConfigHelper
     /// Returns a <see cref="Windows.Foundation.Collections.IPropertySet"/>.
     /// This represents a settings map object based on the <see cref="Windows.Storage.ApplicationDataContainer"/>.
     /// </summary>
+    /// <remarks>Only valid for packaged applications.</remarks>
     public static IDictionary<string, object>? GetPersistenceStorage(string value, bool createIfMissing = true)
     {
         if (App.IsPackaged)

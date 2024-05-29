@@ -1,18 +1,21 @@
-﻿using System.Diagnostics;
-using System;
-using Microsoft.UI.Xaml;
-using Windows.UI.ViewManagement;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection;
-using Microsoft.UI.Windowing;
+using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
+
 using BalanceAct.Services;
 using BalanceAct.Support;
 using BalanceAct.ViewModels;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
-using System.Threading;
+
 using Windows.UI.Popups;
+using Windows.UI.ViewManagement;
 
 namespace BalanceAct;
 
@@ -113,6 +116,41 @@ public partial class App : Application
     #region [Application Events]
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        #region [Load Config]
+        if (ConfigHelper.DoesConfigExist())
+        {
+            try
+            {
+                LocalConfig = ConfigHelper.LoadConfig();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] {nameof(ConfigHelper.LoadConfig)}: {ex.Message}");
+            }
+        }
+        else // create default config if not found
+        {
+            try
+            {
+                LocalConfig = new Config
+                {
+                    firstRun = true,
+                    version = $"{GetCurrentAssemblyVersion()}",
+                    time = DateTime.Now,
+                    metrics = "N/A",
+                    windowW = m_width,
+                    windowH = m_height,
+                };
+                ConfigHelper.SaveConfig(LocalConfig);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] {nameof(ConfigHelper.SaveConfig)}: {ex.Message}");
+            }
+        }
+        #endregion
+
+        // Instantiate our window object.
         m_window = new MainWindow();
 
         var appWin = GetAppWindow(m_window);
@@ -126,6 +164,15 @@ public partial class App : Application
             {
                 App.IsClosing = true;
                 Debug.WriteLine($"[INFO] Application closing detected at {DateTime.Now.ToString("hh:mm:ss.fff tt")}");
+                _lastSave = SaveConfigFunc(LocalConfig);
+            };
+
+            // Destroying is always called, but Closing is only called when the application is shutdown normally.
+            appWin.Destroying += (s, e) =>
+            {
+                Debug.WriteLine($"[INFO] Application destroying detected at {DateTime.Now.ToString("hh:mm:ss.fff tt")}");
+                if (!_lastSave) // prevent redundant calls
+                    SaveConfigFunc(LocalConfig);
             };
 
             // Set the application icon.
@@ -428,10 +475,10 @@ public partial class App : Application
         double fontSize = 16;
         Microsoft.UI.Xaml.Media.FontFamily fontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas");
 
-        if (App.Current.Resources["FontSizeMedium"] is not null)
+        if (App.Current.Resources.TryGetValue("FontSizeMedium", out object _))
             fontSize = (double)App.Current.Resources["FontSizeMedium"];
 
-        if (App.Current.Resources["PrimaryFont"] is not null)
+        if (App.Current.Resources.TryGetValue("PrimaryFont", out object _))
             fontFamily = (Microsoft.UI.Xaml.Media.FontFamily)App.Current.Resources["PrimaryFont"];
 
         StackPanel panel = new StackPanel()
@@ -444,7 +491,7 @@ public partial class App : Application
         {
             panel.Children.Add(new Image
             {
-                Margin = new Thickness(1, -45, 1, 1), // Move the image into the title area.
+                Margin = new Thickness(1, -50, 1, 1), // Move the image into the title area.
                 HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Right,
                 Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
                 Width = 48,

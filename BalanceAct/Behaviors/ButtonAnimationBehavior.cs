@@ -172,7 +172,6 @@ public class ButtonAnimationBehavior : Behavior<Button>
         // You must call End to get the completed event to fire.
         batch.End();
 
-
         targetVisual.StartAnimation("Scale", scaleAnimation);
     }
 

@@ -7,7 +7,7 @@ public class StringFormatConverter : IValueConverter
 {
     public object? Convert(object value, Type targetType, object parameter, string language)
     {
-        if (value == null)
+        if (value == null || App.IsClosing)
             return null;
 
         if (parameter == null)
