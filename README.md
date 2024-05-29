@@ -2,15 +2,18 @@
 
 ![Example Picture](./ScreenShot1.png)
 
+![Example Picture](./ScreenShot2.png)
+
 * A simple expense item tracking application with statistics.
 * I've added an example of a gradient **SystemBackdrop**, but there is also a [Desktop Acrylic Controller](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.composition.systembackdrops.desktopacryliccontroller?view=windows-app-sdk-1.5) for the main window.
-* Other [Nuget](https://learn.microsoft.com/en-us/nuget/what-is-nuget) packages include:
+* [Nuget](https://learn.microsoft.com/en-us/nuget/what-is-nuget) packages utilized:
 	- "Microsoft.WindowsAppSDK" Version="1.5.240428000" />
 	- "Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.3233"
-	- "CommunityToolkit.Mvvm" Version="8.2.2"
-	- "CommunityToolkit.WinUI" Version="7.1.2"
 	- "Microsoft.Extensions.DependencyInjection" Version="8.0.0"
 	- "Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"
+	- "CommunityToolkit.Mvvm" Version="8.2.2"
+	- "CommunityToolkit.WinUI" Version="7.1.2"
+	- "Newtonsoft.Json" Version="13.0.3"
 
  ## 📝 v1.0.0.0 - May 2024
 * Initial release.
