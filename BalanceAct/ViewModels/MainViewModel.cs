@@ -22,6 +22,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
+using System.Globalization;
 
 
 namespace BalanceAct.ViewModels;
@@ -303,9 +304,12 @@ public class MainViewModel : ObservableRecipient
         _formatter = System.Globalization.NumberFormatInfo.CurrentInfo;
 
         if (App.LocalConfig is not null)
-            Status = "✔️ Loading…";
+            Status = "Loading…";
         else
-            Status = "⚠️ No configuration.";
+            Status = "No configuration ⚠️";
+
+        if (Logger is not null)
+            Logger.OnException += (error) => _ = App.ShowDialogBox($"Logger", $"{error}{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
 
         #region [Add Action]
         AddItemCommand = new RelayCommand<object>(async (obj) =>
@@ -318,7 +322,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
-                    Status = $"⚠️ Category, Date, Description & Amount must contain some value.";
+                    Status = $"Category, Date, Description & Amount must contain some value ⚠️";
                     return;
                 }
 
@@ -360,10 +364,12 @@ public class MainViewModel : ObservableRecipient
                     // Reload our data set.
                     SaveExpenseItemsJson();
                     LoadExpenseItemsJson();
+
+                    Status = "Expense item was added ✔️";
                 }
                 else
                 {
-                    Status = "⚠️ This expense item already exists, try updating instead of adding, or change more details to make it unique.";
+                    Status = "This expense item already exists, try updating instead of adding, or change more details to make it unique ⚠️";
                 }
             }
             finally
@@ -384,7 +390,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
-                    Status = $"⚠️ Category, Date, Description & Amount must contain some value.";
+                    Status = $"Category, Date, Description & Amount must contain some value ⚠️";
                     return;
                 }
 
@@ -411,11 +417,11 @@ public class MainViewModel : ObservableRecipient
 
                 if (!found)
                 {
-                    Status = "⚠️ No existing expense item could be matched, make sure you've selected one from the list.";
+                    Status = "No existing expense item could be matched, make sure you've selected one from the list ⚠️";
                 }
                 else
                 {
-                    Status = "✔️ Expense item was updated.";
+                    Status = "Expense item was updated ✔️";
 
                     // If we've changed something then we should update our totals.
                     UpdateSummaryTotals();
@@ -443,7 +449,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
                 {
-                    Status = $"⚠️ You must provide a valid file path.";
+                    Status = $"You must provide a valid file path ⚠️";
                     return;
                 }
 
@@ -457,7 +463,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (!File.Exists(Path.Combine(baseFolder, ImportPathCSV)))
                 {
-                    Status = $"⚠️ The file does not exist, check your input and try again.";
+                    Status = $"The file does not exist, check your input and try again ⚠️";
                     return;
                 }
 
@@ -472,19 +478,23 @@ public class MainViewModel : ObservableRecipient
                 var bkup = dataService?.MakeBackup(baseFolder, App.DatabaseExpense, toBackup);
                 if (bkup != null && !bkup.Value) 
                 {
-                    Status = $"⚠️ Backup attempt failed.";
+                    Status = $"Backup attempt failed ⚠️";
                     _ = App.ShowDialogBox($"Backup", $"Unable to backup the current data set!", "OK", "", null, null, _dialogImgUri);
                     return;
                 }
                 #endregion
 
+                #region [Analyze each line from the file]
                 foreach (var line in lines.Skip(1)) // ignore the header
                 {
                     var tokens = line.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
                     // Do we have enough columns to work with?
                     if (tokens.Length == 0 || tokens.Length < 4)
+                    {
+                        Logger?.WriteLine($"Not enough columns for this line ⇒ {line}", LogLevel.Warning);
                         continue;
+                    }
 
                     if (double.TryParse(tokens[3], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
                     {
@@ -513,7 +523,7 @@ public class MainViewModel : ObservableRecipient
                                         }
                                         catch (Exception)
                                         {
-                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
                                         }
                                     }
                                     // 2nd common delimiter
@@ -526,7 +536,7 @@ public class MainViewModel : ObservableRecipient
                                         }
                                         catch (Exception)
                                         {
-                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
                                         }
                                     }
                                     // 3rd common delimiter
@@ -539,7 +549,7 @@ public class MainViewModel : ObservableRecipient
                                         }
                                         catch (Exception)
                                         {
-                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
                                         }
                                     }
                                     // 4th common delimiter
@@ -552,22 +562,27 @@ public class MainViewModel : ObservableRecipient
                                         }
                                         catch (Exception)
                                         {
-                                            Status = $"⚠️ Failed to auto-apply memo: \"{tokens[1]}\"";
+                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
                                         }
                                     }
                                 }
                                 #endregion
 
-                                //bool duplicate = false;
-                                //foreach (var item in ExpenseItems)
-                                //{
-                                //    if (impDT == item.Date && impCat == item.Category && impDesc == item.Description && impAmnt == item.Amount)
-                                //    {
-                                //        duplicate = true;
-                                //        break;
-                                //    }
-                                //}
-                                bool duplicate = ExpenseItems.Any(ei => ei.Date == impDT && ei.Category == impCat && ei.Description == impDesc && ei.Amount == impAmnt);
+                                bool duplicate = false;
+                                foreach (var item in ExpenseItems)
+                                {
+                                    if (AreDatesEqualish(item.Date, impDT) && 
+                                        impCat.Equals(item.Category, StringComparison.OrdinalIgnoreCase) && 
+                                        impDesc.Equals(item.Description, StringComparison.OrdinalIgnoreCase) &&
+                                        AreAmountsEqualish(impAmnt, item.Amount))
+                                    {
+                                        Logger?.WriteLine($"Expense item already exists ⇒ {line}", LogLevel.Warning);
+                                        duplicate = true;
+                                        break;
+                                    }
+                                }
+
+                                //bool duplicate = ExpenseItems.Any(ei => AreDatesEqualish(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.CurrentCultureIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.CurrentCultureIgnoreCase) && AreAmountsEqualish(ei.Amount, impAmnt));
 
                                 // Add the imported item.
                                 if (!duplicate)
@@ -588,30 +603,32 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 else
                                 {
-                                    Status = "⚠️ This expense item already exists, skipping import.";
+                                    Logger?.WriteLine($"Expense item already exists ⇒ {line}", LogLevel.Warning);
+                                    Status = $"This expense item already exists, skipping import ⚠️";
                                 }
                             }
                             else
                             {
-                                Status = $"⚠️ This date is not valid: {tokens[0]}";
+                                Status = $"This date is not valid ⇒ {tokens[0]} ⚠️";
                                 _ = App.ShowDialogBox($"Import", $"Unable to use this date:{Environment.NewLine}{Environment.NewLine}\"{tokens[0]}\"", "OK", "", null, null, _dialogImgUri);
                             }
                         }
                         else
                         {
-                            Status = "⚠️ Deposit was skipped, only interested in withdrawals.";
+                            Status = $"Deposit was skipped, only interested in withdrawals ⚠️";
                         }
                     }
                     else
                     {
-                        Status = $"⚠️ Unable to use this line: {line}";
-                        Logger?.WriteLine($"Unable to use this line: {line}", LogLevel.Warning);
+                        Status = $"Unable to use this line ⇒ {line} ⚠️";
+                        Logger?.WriteLine($"Unable to use this line ⇒ {line}", LogLevel.Warning);
                     }
                 }
+                #endregion
 
                 await Task.Delay(500); // for spinners
 
-                // If we've changed something then update and save.
+                // If we've changed something, update and save.
                 if (added > 0)
                 {
                     _ = App.ShowDialogBox($"Results", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
@@ -633,7 +650,7 @@ public class MainViewModel : ObservableRecipient
         if (string.IsNullOrEmpty(SelectedCategory))
         {
             SelectedCategory = Categories[0];
-            Debug.WriteLine($"[INFO] SelectedCategory defaulted ⇒ {SelectedCategory}");
+            Logger?.WriteLine($"SelectedCategory defaulted to \"{SelectedCategory}\"", LogLevel.Info);
         }
         #endregion
     }
@@ -687,6 +704,7 @@ public class MainViewModel : ObservableRecipient
             }
             else
             {
+                Status = $"Amount could not be parsed ⇒ \"{item.Amount}\" ⚠️";
                 _ = App.ShowDialogBox($"Warning", $"{nameof(ExpenseItem)} amount could not be parsed ⇒ \"{item.Amount}\"", "OK", "", null, null, _dialogImgUri);
             }
         }
@@ -711,7 +729,7 @@ public class MainViewModel : ObservableRecipient
         }
         catch (DivideByZeroException ex)
         {
-            Status = $"{ex.Message}";
+            Status = $"{ex.Message} ⚠️";
         }
 
         // Update observable properties.
@@ -843,6 +861,37 @@ public class MainViewModel : ObservableRecipient
     #endregion
 
     #region [Helper Methods]
+    public bool AreDatesEqualish(DateTime? date1, DateTime date2)
+    {
+        if (date1 is null)
+            return false;
+
+        return date1.Value.Year == date2.Year &&
+               date1.Value.Month == date2.Month &&
+               date1.Value.Day == date2.Day;
+    }
+
+    public bool AreAmountsEqualish(string amount1, string? amount2)
+    {
+        if (string.IsNullOrEmpty(amount2))
+            return false;
+
+        if (TryParseDollarAmount(amount1, out decimal value1) && TryParseDollarAmount(amount2, out decimal value2))
+            return value1 == value2;
+
+        // If either parsing fails, consider the amounts not equal
+        return false;
+    }
+
+    public bool TryParseDollarAmount(string amount, out decimal value)
+    {
+        // Remove the dollar sign if present
+        string cleanedAmount = amount.Replace("$", "").Trim();
+
+        // Attempt to parse the cleaned amount
+        return decimal.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
+    }
+
     public int GetHighestId()
     {
         if (ExpenseItems is null || ExpenseItems.Count == 0) { return 0; }
@@ -859,7 +908,7 @@ public class MainViewModel : ObservableRecipient
 
     void ShowStatusMessage(string message)
     {
-        Status = $"✔️ {message}";
+        Status = $"{message} ✔️";
         // Cycle prop to re-trigger AutoInfoBar.
         Show = false; Show = true;
     }
@@ -926,9 +975,9 @@ public class MainViewModel : ObservableRecipient
             LoadExpenseItemsJson();
 
         if (ExpenseItems.Count > 0)
-            Status = $"✔️ Loaded {ExpenseItems.Count} expense items.";
+            Status = $"Loaded {ExpenseItems.Count} expense items ✔️";
         else
-            Status = $"⚠️ No data available.";
+            Status = $"No data available ⚠️";
         #endregion
 
         _loaded = true;
@@ -989,7 +1038,7 @@ public class MainViewModel : ObservableRecipient
                     CurrentCount = ExpenseItems.Count;
                 }
                 else
-                    Status = $"⚠️ JSON data was null ({App.DatabaseExpense})";
+                    Status = $"JSON data was null ({App.DatabaseExpense}) ⚠️";
             }
             else
             {
@@ -1005,7 +1054,7 @@ public class MainViewModel : ObservableRecipient
         {
             // Signal any listeners.
             ItemsLoadedEvent?.Invoke(this, false);
-            Status = $"⚠️ LoadExpenseItemsJson: {ex.Message}";
+            Status = $"LoadExpenseItemsJson: {ex.Message} ⚠️";
             Logger?.WriteLine($"{ex.Message}", LogLevel.Error);
             Debugger.Break();
         }
@@ -1064,7 +1113,7 @@ public class MainViewModel : ObservableRecipient
             {
                 if (!App.IsClosing)
                 {
-                    Status = $"⚠️ No {nameof(ExpenseItem)}s to save.";
+                    Status = $"No {nameof(ExpenseItem)}s to save ⚠️";
                     _ = App.ShowMessageBox("SaveExpenseItems", $"There are no {nameof(ExpenseItem)}s to save.", "OK", string.Empty, null, null);
                 }
             }
@@ -1072,7 +1121,7 @@ public class MainViewModel : ObservableRecipient
         catch (Exception ex)
         {
             if (!App.IsClosing)
-                Status = $"⚠️ SaveExpenseItemsJson: {ex.Message}";
+                Status = $"SaveExpenseItemsJson: {ex.Message} ⚠️";
 
             Logger?.WriteLine($"{ex.Message}", LogLevel.Error);
             Debugger.Break();

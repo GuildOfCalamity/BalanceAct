@@ -102,9 +102,9 @@ public class FileLogger : ILogger
                 {
                     using (var fileStream = new StreamWriter(File.OpenWrite(fullPath)))
                     {
-                        // Jump to the end of the file before writing (same as append)…
+                        // Jump to the end of the file before writing (same as append)
                         fileStream.BaseStream.Seek(0, SeekOrigin.End);
-                        // Write the text to the file (adds CRLF natively)…
+                        // Write the text to the file (adds CRLF natively)
                         fileStream.WriteLine("[{0}]\t{1}\t{2}\t{3}", DateTime.Now.ToString("hh:mm:ss.fff tt"), level, string.IsNullOrEmpty(caller) ? "N/A" : caller, message);
                     }
                     OnLogMessage?.Invoke(message, level);

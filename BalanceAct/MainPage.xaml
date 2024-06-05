@@ -493,6 +493,7 @@
                                 Grid.Column="0"
                                 Grid.ColumnSpan="2"
                                 MinWidth="300"
+                                MaxWidth="300"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 PlaceholderText="C:\Downloads\CardReport.csv"
                                 Text="{x:Bind ViewModel.ImportPathCSV, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
