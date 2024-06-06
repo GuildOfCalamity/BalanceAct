@@ -494,8 +494,8 @@ public partial class App : Application
                 Margin = new Thickness(1, -50, 1, 1), // Move the image into the title area.
                 HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Right,
                 Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
-                Width = 48,
-                Height = 48,
+                Width = 40,
+                Height = 40,
                 Source = new BitmapImage(imageUri)
             });
         }

@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -12,18 +11,15 @@ using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 using BalanceAct.Models;
 using BalanceAct.Services;
-using BalanceAct.Support;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
-using System.Globalization;
-
+using Windows.System;
 
 namespace BalanceAct.ViewModels;
 
@@ -142,7 +138,7 @@ public class MainViewModel : ObservableRecipient
         set
         {
             SetProperty(ref _status, value);
-            // Cycle the prop to trigger the AutoCloseInfoBar.
+            //Cycle the prop to trigger the AutoCloseInfoBar.
             Show = false; Show = true;
         }
     }
@@ -333,7 +329,9 @@ public class MainViewModel : ObservableRecipient
                 {
                     foreach (var item in ExpenseItems)
                     {
-                        if (item.Id == SelectedItem.Id && item.Date == SelectedDate.Value.Date && item.Category == SelectedCategory)
+                        if (AreDatesSimilar(item.Date, SelectedDate.Value.Date) && 
+                            AreAmountsSimilar(item.Amount, SelectedAmount) &&
+                            item.Category == SelectedCategory)
                         {
                             duplicate = true;
                             break;
@@ -470,12 +468,7 @@ public class MainViewModel : ObservableRecipient
                 var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
 
                 #region [Perform backup before the import]
-                List<ExpenseItem> toBackup = new();
-                
-                foreach (var item in ExpenseItems)
-                    toBackup.Add(item);
-                
-                var bkup = dataService?.MakeBackup(baseFolder, App.DatabaseExpense, toBackup);
+                var bkup = dataService?.MakeBackup(baseFolder, App.DatabaseExpense, ExpenseItems.ToList());
                 if (bkup != null && !bkup.Value) 
                 {
                     Status = $"Backup attempt failed ⚠️";
@@ -487,7 +480,7 @@ public class MainViewModel : ObservableRecipient
                 #region [Analyze each line from the file]
                 foreach (var line in lines.Skip(1)) // ignore the header
                 {
-                    var tokens = line.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var tokens = line.Split(',', StringSplitOptions.TrimEntries);
 
                     // Do we have enough columns to work with?
                     if (tokens.Length == 0 || tokens.Length < 4)
@@ -508,6 +501,17 @@ public class MainViewModel : ObservableRecipient
                                 var impCat = tokens[2];
                                 var impAmnt = $"{Math.Abs(val)}"; // tokens[3]
                                 var impMemo = (tokens.Length == 5) ? tokens[4] : "";
+
+                                #region [Try to match predefined categories]
+                                foreach (var preCat in Categories)
+                                {
+                                    if (preCat.Contains(impCat, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        impCat = preCat;
+                                        break;
+                                    }
+                                }
+                                #endregion
 
                                 #region [Try to extrapolate memo]
                                 // Certain banks use different delimiters, so you may have to adjust as needed.
@@ -568,21 +572,8 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 #endregion
 
-                                bool duplicate = false;
-                                foreach (var item in ExpenseItems)
-                                {
-                                    if (AreDatesEqualish(item.Date, impDT) && 
-                                        impCat.Equals(item.Category, StringComparison.OrdinalIgnoreCase) && 
-                                        impDesc.Equals(item.Description, StringComparison.OrdinalIgnoreCase) &&
-                                        AreAmountsEqualish(impAmnt, item.Amount))
-                                    {
-                                        Logger?.WriteLine($"Expense item already exists ⇒ {line}", LogLevel.Warning);
-                                        duplicate = true;
-                                        break;
-                                    }
-                                }
-
-                                //bool duplicate = ExpenseItems.Any(ei => AreDatesEqualish(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.CurrentCultureIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.CurrentCultureIgnoreCase) && AreAmountsEqualish(ei.Amount, impAmnt));
+                                // For the duplicate check, the memo can be amorphous, so we'll ignore it.
+                                bool duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.OrdinalIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.OrdinalIgnoreCase) && AreAmountsSimilar(ei.Amount, impAmnt));
 
                                 // Add the imported item.
                                 if (!duplicate)
@@ -595,8 +586,9 @@ public class MainViewModel : ObservableRecipient
                                         Id = highest + 1,
                                         Category = $"{impCat}",
                                         Description = $"{impDesc}",
+                                        // TODO: honor local culture ⇒ impAmnt.ToString("C2", _formatter)
                                         Amount = impAmnt.StartsWith("$") ? $"{impAmnt}" : $"${impAmnt}",
-                                        Codes = string.IsNullOrEmpty(impMemo) ? $"" : $"{impMemo}",
+                                        Codes = string.IsNullOrEmpty(impMemo) ? "" : $"{impMemo}",
                                         Date = (impDT == DateTime.MinValue) ? DateTime.Now : impDT,
                                         Color = Microsoft.UI.Colors.WhiteSmoke
                                     });
@@ -650,7 +642,7 @@ public class MainViewModel : ObservableRecipient
         if (string.IsNullOrEmpty(SelectedCategory))
         {
             SelectedCategory = Categories[0];
-            Logger?.WriteLine($"SelectedCategory defaulted to \"{SelectedCategory}\"", LogLevel.Info);
+            Debug.WriteLine($"[INFO] SelectedCategory defaulted to \"{SelectedCategory}\"");
         }
         #endregion
     }
@@ -700,7 +692,8 @@ public class MainViewModel : ObservableRecipient
                         pmTotal += val;
                 }
 
-                cats.Add(item.Category);
+                if (!string.IsNullOrEmpty(item.Category))
+                    cats.Add(item.Category);
             }
             else
             {
@@ -747,10 +740,10 @@ public class MainViewModel : ObservableRecipient
 
     public double CalculatePercentageChange(double previous, double current)
     {
-        if (previous == 0)
-            throw new DivideByZeroException("⚠️ Previous month's spending cannot be zero.");
+        if (previous.IsZero())
+            throw new DivideByZeroException("Previous month's spending cannot be zero");
 
-        return ((current - previous) / previous) * 100;
+        return ((current - previous) / previous) * 100d;
     }
 
     public List<KeyValuePair<string, int>> CountAndSortCategories(List<string> categories)
@@ -861,7 +854,10 @@ public class MainViewModel : ObservableRecipient
     #endregion
 
     #region [Helper Methods]
-    public bool AreDatesEqualish(DateTime? date1, DateTime date2)
+    /// <summary>
+    /// Compares two <see cref="DateTime"/>s ignoring the hours, minutes and seconds.
+    /// </summary>
+    public bool AreDatesSimilar(DateTime? date1, DateTime date2)
     {
         if (date1 is null)
             return false;
@@ -871,15 +867,18 @@ public class MainViewModel : ObservableRecipient
                date1.Value.Day == date2.Day;
     }
 
-    public bool AreAmountsEqualish(string amount1, string? amount2)
+    /// <summary>
+    /// Compares two currency amounts formatted as <see cref="string"/>s.
+    /// </summary>
+    public bool AreAmountsSimilar(string? amount1, string amount2)
     {
-        if (string.IsNullOrEmpty(amount2))
+        if (string.IsNullOrEmpty(amount1))
             return false;
 
         if (TryParseDollarAmount(amount1, out decimal value1) && TryParseDollarAmount(amount2, out decimal value2))
             return value1 == value2;
 
-        // If either parsing fails, consider the amounts not equal
+        // If either parsing fails, consider the amounts not equal.
         return false;
     }
 
@@ -889,7 +888,8 @@ public class MainViewModel : ObservableRecipient
         string cleanedAmount = amount.Replace("$", "").Trim();
 
         // Attempt to parse the cleaned amount
-        return decimal.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
+        return decimal.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
+        //return decimal.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
     }
 
     public int GetHighestId()
@@ -922,7 +922,7 @@ public class MainViewModel : ObservableRecipient
         return new ObservableCollection<ExpenseItem>
         {
             new ExpenseItem { Id = 1, Opacity = 1d, Description = $"💰 A sample food expense item", Date = DateTime.Now.AddDays(-2),  Amount = "$54.62", Category = "Grocery", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
-            new ExpenseItem { Id = 2, Opacity = 1d, Description = $"💰 A sample insurance expense item", Date = DateTime.Now.AddDays(-10), Amount = "$321.78", Category = "Insurance", Codes = "Policy #123456", Recurring = true, Color = Microsoft.UI.Colors.WhiteSmoke },
+            new ExpenseItem { Id = 2, Opacity = 1d, Description = $"💰 A sample insurance expense item", Date = DateTime.Now.AddDays(-10), Amount = "$300.78", Category = "Insurance", Codes = "Policy #123456", Recurring = true, Color = Microsoft.UI.Colors.WhiteSmoke },
             new ExpenseItem { Id = 3, Opacity = 1d, Description = $"💰 A sample gas expense item", Date = DateTime.Now.AddDays(-20), Amount = "$99.34", Category = "Fuel", Recurring = false, Color = Microsoft.UI.Colors.WhiteSmoke },
             new ExpenseItem { Id = 4, Opacity = 1d, Description = $"💰 A sample entertainment expense item", Date = DateTime.Now.AddDays(-31), Amount = "$12.00", Category = "Entertainment", Recurring = false, Codes = "CHK#2112", Color = Microsoft.UI.Colors.WhiteSmoke },
             new ExpenseItem { Id = 5, Opacity = 1d, Description = $"💰 A sample travel expense item", Date = DateTime.Now.AddDays(-62), Amount = "$223.11", Category = "Travel", Recurring = false, Codes = "Confirmation QRZ9981", Color = Microsoft.UI.Colors.WhiteSmoke },
@@ -931,6 +931,21 @@ public class MainViewModel : ObservableRecipient
     #endregion
 
     #region [Bound Events]
+    /// <summary>
+    /// <see cref="TextBox"/> keydown event for import.
+    /// </summary>
+    public void ImportFilePathKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (_loaded)
+        {
+            if (e.Key == VirtualKey.Enter)
+            {
+                ImportItemCommand.Execute((TextBox)sender);
+                e.Handled = true;
+            }
+        }
+    }
+
     /// <summary>
     /// <see cref="ComboBox"/> event for category.
     /// </summary>
@@ -959,7 +974,12 @@ public class MainViewModel : ObservableRecipient
     public void MainPageUnloaded(object sender, RoutedEventArgs e)
     {
         if (ExpenseItems.Count > 0)
+        {
+            //Logger?.WriteLine($"Saving {ExpenseItems.Count} items to database.", LogLevel.Debug);
             SaveExpenseItemsJson();
+        }
+
+        Logger?.WriteLine($"The MainPage is unloading.", LogLevel.Debug);
     }
 
     /// <summary>
@@ -1023,15 +1043,15 @@ public class MainViewModel : ObservableRecipient
                     IOrderedEnumerable<ExpenseItem>? sorted = Enumerable.Empty<ExpenseItem>().OrderBy(x => 1);
 
                     // Sort and then validate each item.
-                    if (sortBy.StartsWith("descending", StringComparison.OrdinalIgnoreCase))
-                        sorted = jdata.Select(t => t).OrderByDescending(t => t.Date);
+                    if (sortBy.StartsWith("desc", StringComparison.OrdinalIgnoreCase))
+                        sorted = jdata.Select(t => t).OrderByDescending(t => t.Date); // newest first
+                    else if (sortBy.StartsWith("asc", StringComparison.OrdinalIgnoreCase))
+                        sorted = jdata.Select(t => t).OrderBy(t => t.Date);           // newest last
                     else
-                        sorted = jdata.Select(t => t).OrderBy(x => 1);
+                        sorted = jdata.Select(t => t).OrderBy(x => 1);                // natural order
 
                     foreach (var item in sorted)
-                    {
                         ExpenseItems.Add(item);
-                    }
 
                     // Update our compare set (we don't want a reference copy)
                     CompareItems = ExpenseItems.ToList().DeepCopy();

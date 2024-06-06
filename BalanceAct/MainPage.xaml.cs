@@ -1,15 +1,16 @@
-using BalanceAct.Models;
-using BalanceAct.Services;
-using BalanceAct.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
+using BalanceAct.Models;
+using BalanceAct.Services;
+using BalanceAct.ViewModels;
 
 namespace BalanceAct;
 
@@ -20,25 +21,29 @@ public sealed partial class MainPage : Page
 
     public MainPage()
     {
+        Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
         InitializeComponent();
-        this.Loading += MainPage_Loading;
+        this.Loading += MainPageLoading;
+
+        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType()))
+        {
+            Debug.WriteLine($"[INFO] {ele?.Name}");
+        }
     }
 
-    void MainPage_Loading(FrameworkElement sender, object args)
+    void MainPageLoading(FrameworkElement sender, object args)
     {
-        Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
         Logger?.WriteLine($"The MainPage is loading.", LogLevel.Debug);
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
-        chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(2));
+        chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(1));
     }
 
     void ItemListView_Loaded(object sender, RoutedEventArgs e)
     {
-        var dlv = (ListView)sender;
-        
         return;
-
         #region [For testing, can be removed]
+        var dlv = (ListView)sender;
+
         // Selecting the last item.
         var items = dlv.ItemsSource as IEnumerable<ExpenseItem>;
         var item = items?.LastOrDefault();
@@ -49,7 +54,7 @@ public sealed partial class MainPage : Page
             ((ListViewItem)dlv.ContainerFromItem(item))?.Focus(FocusState.Programmatic);
         }
 
-        // Scrolling through all items.
+        // Scroll through all items.
         Task.Run(async () =>
         {
             if (items != null)
@@ -89,10 +94,6 @@ public sealed partial class MainPage : Page
             {
                 // You could also set the selected DataItem from here.
                 //ViewModel.SelectedItem = di;
-                if (!string.IsNullOrEmpty(di.Description))
-                {
-                   //_ = App.ShowDialogBox($"{di.Category}", $"{di.Description}{Environment.NewLine}{Environment.NewLine}Amount: {di.Amount}{Environment.NewLine}Date: {di.Date}", "OK", "", null, null, new Uri($"ms-appx:///Assets/StoreLogo.png"));
-                }
             }
         }
     }
