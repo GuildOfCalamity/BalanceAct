@@ -13,10 +13,25 @@
     xmlns:local="using:BalanceAct"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="using:BalanceAct.Models"
+    xmlns:ui="using:CommunityToolkit.WinUI.UI"
     x:Name="ThisPage"
     Loaded="{x:Bind ViewModel.MainPageLoaded, Mode=OneWay}"
     Unloaded="{x:Bind ViewModel.MainPageUnloaded, Mode=OneWay}"
     mc:Ignorable="d">
+
+    <!--#region [Listen for Page-wide keypress events]-->
+    <!--
+    <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Number1" Modifiers="Control">
+            <interact:Interaction.Behaviors>
+                <interactcore:EventTriggerBehavior EventName="Invoked">
+                    <interactcore:InvokeCommandAction Command="{x:Bind ViewModel.KeyboardAcceleratorCommand}" />
+                </interactcore:EventTriggerBehavior>
+            </interact:Interaction.Behaviors>
+        </KeyboardAccelerator>
+    </Page.KeyboardAccelerators>
+    -->
+    <!--#endregion-->
 
     <Grid
         x:Name="root"
@@ -73,12 +88,13 @@
             CornerRadius="5"
             RowSpacing="10">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition x:Name="EntryRow" Height="Auto" />
+                <RowDefinition x:Name="CommandsRow" Height="Auto" />
+                <RowDefinition x:Name="AdditionalRow" Height="Auto" />
+                <RowDefinition x:Name="LogoRow" Height="Auto" />
             </Grid.RowDefinitions>
 
+            <!--#region [Data Entry]-->
             <StackPanel
                 Grid.Row="0"
                 Padding="10"
@@ -194,6 +210,7 @@
                     ToolTipService.ToolTip="Recurring expense assumes every 30 days" />
 
             </StackPanel>
+            <!--#endregion-->
 
             <!--#region [Commands]-->
             <Grid Grid.Row="1">
@@ -207,6 +224,7 @@
                     MinWidth="180"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
+                    ui:FrameworkElementExtensions.Cursor="Hand"
                     Command="{x:Bind ViewModel.AddItemCommand}"
                     Content="Add Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
@@ -220,6 +238,7 @@
                     MinWidth="180"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
+                    ui:FrameworkElementExtensions.Cursor="Hand"
                     Command="{x:Bind ViewModel.UpdateItemCommand}"
                     Content="Update Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
@@ -247,12 +266,17 @@
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
                     Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
-
                 <!--#endregion-->
 
             </Grid>
 
-            <!--#region [Behavior Test]-->
+            <!--  Custom Button Style Test  -->
+            <!--<Button
+                Grid.Row="2"
+                Content="❌"
+                Style="{ThemeResource CloseButtonStyle}" />-->
+
+            <!--#region [Behavior Animations]-->
             <Image
                 Grid.Row="99"
                 Width="90"
@@ -266,15 +290,15 @@
                         EaseMode="Linear"
                         Seconds="2.0"
                         From="0.0"
-                        To="0.6" />
+                        To="0.7" />
                     <behave:SpringAnimationBehavior
-                        Damping="0.2"
-                        Final="1.15"
+                        Damping="0.15"
+                        Final="1.175"
                         Seconds="0.04" />
                     <behave:ColorAnimationBehavior
                         EaseMode="QuadEaseOut"
-                        Interpolation="Rgb"
-                        Seconds="3.0"
+                        Interpolation="Hsl"
+                        Seconds="2.0"
                         From="{StaticResource Step1}"
                         To="{StaticResource Step2}" />
                 </interact:Interaction.Behaviors>
@@ -313,14 +337,15 @@
                         Padding="0"
                         BorderBrush="{ThemeResource BorderBrush}"
                         BorderThickness="0,0,0,2"
-                        CornerRadius="5">
+                        CornerRadius="5"
+                        ToolTipService.ToolTip="{x:Bind local:Functions.IdFormatter(Id), Mode=OneWay}">
                         <Grid x:Name="gridItem">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="3*" />
-                                <ColumnDefinition Width="12*" />
-                                <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="3*" />
-                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition x:Name="CategoryColumn" Width="3*" />
+                                <ColumnDefinition x:Name="DescriptionColumn" Width="12*" />
+                                <ColumnDefinition x:Name="AmountColumn" Width="2*" />
+                                <ColumnDefinition x:Name="DateColumn" Width="3*" />
+                                <ColumnDefinition x:Name="RecurringColumn" Width="24" />
                             </Grid.ColumnDefinitions>
                             <Grid.Resources>
                                 <Style TargetType="TextBlock">
@@ -331,6 +356,15 @@
                                     <Setter Property="FontSize" Value="{StaticResource FontSizeMedium}" />
                                 </Style>
                             </Grid.Resources>
+
+                            <ctrl:Shimmer
+                                Grid.Column="0"
+                                Grid.ColumnSpan="5"
+                                Margin="2,0,2,1"
+                                InitialStartPointX="-6.5"
+                                IsActive="{x:Bind Recurring, Mode=OneWay}" />
+                            <!--  IsActive="{Binding ElementName=ThisPage, Path=ViewModel.Loading, Mode=OneWay}"  -->
+
                             <TextBlock
                                 Grid.Column="0"
                                 Margin="3,0,1,0"

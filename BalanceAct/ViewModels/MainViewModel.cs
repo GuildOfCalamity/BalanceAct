@@ -20,6 +20,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
 using Windows.System;
+using Microsoft.UI.Xaml.Input;
 
 namespace BalanceAct.ViewModels;
 
@@ -115,6 +116,13 @@ public class MainViewModel : ObservableRecipient
     {
         get => _borderSize;
         set => SetProperty(ref _borderSize, value);
+    }
+
+    bool _loading = true;
+    public bool Loading
+    {
+        get => _loading;
+        set => SetProperty(ref _loading, value);
     }
 
     bool _isBusy = false;
@@ -287,6 +295,7 @@ public class MainViewModel : ObservableRecipient
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
     public ICommand ImportItemCommand { get; }
+    public ICommand KeyboardAcceleratorCommand { get; }
     #endregion
 
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
@@ -477,6 +486,42 @@ public class MainViewModel : ObservableRecipient
                 }
                 #endregion
 
+                #region [Inspect column names]
+                var inspection = lines.FirstOrDefault()?.Split(',', StringSplitOptions.TrimEntries);
+                if (inspection == null || inspection.Length == 0)
+                {
+                    Status = $"No header row detected ⚠️";
+                    _ = App.ShowDialogBox($"Backup", $"No header row was detected.{Environment.NewLine}Check the file contents and try again.{Environment.NewLine}{Environment.NewLine}\"{ImportPathCSV}\"", "OK", "", null, null, _dialogImgUri);
+                    return;
+                }
+
+                // Configure defaults
+                int colMemo = -1;
+                int colDate = 0;
+                int colDesc = 1;
+                int colCat = 2;
+                int colAmnt = 3;
+
+                for (int i = 0; i < inspection.Length; i++)
+                {
+                    var col = inspection[i];
+
+                    if (string.IsNullOrEmpty(col))
+                        continue;
+
+                    if (col.Contains("date", StringComparison.OrdinalIgnoreCase))
+                        colDate = i;
+                    if (col.Contains("description", StringComparison.OrdinalIgnoreCase))
+                        colDesc = i;
+                    if (col.Contains("category", StringComparison.OrdinalIgnoreCase))
+                        colCat = i;
+                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) || col.Contains("value", StringComparison.OrdinalIgnoreCase))
+                        colAmnt = i;
+                    if (col.Contains("memo", StringComparison.OrdinalIgnoreCase) || col.Contains("additional", StringComparison.OrdinalIgnoreCase))
+                        colMemo = i;
+                }
+                #endregion
+
                 #region [Analyze each line from the file]
                 foreach (var line in lines.Skip(1)) // ignore the header
                 {
@@ -489,18 +534,18 @@ public class MainViewModel : ObservableRecipient
                         continue;
                     }
 
-                    if (double.TryParse(tokens[3], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
+                    if (double.TryParse(tokens[colAmnt], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
                     {
                         if (val < 0)
                         {
-                            Debug.WriteLine($"[INFO] Processing date line {tokens[0]}");
+                            Debug.WriteLine($"[INFO] Processing ⇒ \"{line}\"");
 
-                            if (DateTime.TryParse($"{tokens[0]}", out DateTime impDT))
+                            if (DateTime.TryParse($"{tokens[colDate]}", out DateTime impDT))
                             {
-                                var impDesc = tokens[1];
-                                var impCat = tokens[2];
-                                var impAmnt = $"{Math.Abs(val)}"; // tokens[3]
-                                var impMemo = (tokens.Length == 5) ? tokens[4] : "";
+                                var impDesc = tokens[colDesc];
+                                var impCat = tokens[colCat];
+                                var impAmnt = $"{Math.Abs(val)}";
+                                var impMemo = (colMemo != -1) ? tokens[colMemo] : "";
 
                                 #region [Try to match predefined categories]
                                 foreach (var preCat in Categories)
@@ -645,6 +690,34 @@ public class MainViewModel : ObservableRecipient
             Debug.WriteLine($"[INFO] SelectedCategory defaulted to \"{SelectedCategory}\"");
         }
         #endregion
+
+        KeyboardAcceleratorCommand = new RelayCommand<KeyboardAcceleratorInvokedEventArgs>(ExecuteKeyboardAcceleratorCommand);
+    }
+
+    /// <summary>
+    /// For testing XAML KeyboardAccelerator Key="Number1" Modifiers="Control"
+    /// </summary>
+    /// <param name="e"><see cref="KeyboardAcceleratorInvokedEventArgs"/></param>
+    void ExecuteKeyboardAcceleratorCommand(KeyboardAcceleratorInvokedEventArgs? e)
+    {
+        if (e is null)
+            return;
+
+        int index = e.KeyboardAccelerator.Key switch
+        {
+            VirtualKey.Number1 => 1,
+            VirtualKey.Number2 => 2,
+            VirtualKey.Number3 => 3,
+            VirtualKey.Number4 => 4,
+            VirtualKey.Number5 => 5,
+            VirtualKey.Number6 => 6,
+            VirtualKey.Number7 => 7,
+            VirtualKey.Number8 => 8,
+            VirtualKey.Number9 => 9,
+            _ => 0,
+        };
+
+        e.Handled = true;
     }
 
     #region [Statistical Methods]
@@ -1002,6 +1075,8 @@ public class MainViewModel : ObservableRecipient
 
         _loaded = true;
         UpdateSummaryTotals();
+
+        Loading = false;
     }
     #endregion
 
