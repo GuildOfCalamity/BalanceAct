@@ -515,10 +515,12 @@ public class MainViewModel : ObservableRecipient
                         colDesc = i;
                     if (col.Contains("category", StringComparison.OrdinalIgnoreCase))
                         colCat = i;
-                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) || col.Contains("value", StringComparison.OrdinalIgnoreCase))
+                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) || col.Contains("value", StringComparison.OrdinalIgnoreCase) && !col.Contains("credit", StringComparison.OrdinalIgnoreCase))
                         colAmnt = i;
                     if (col.Contains("memo", StringComparison.OrdinalIgnoreCase) || col.Contains("additional", StringComparison.OrdinalIgnoreCase))
                         colMemo = i;
+                    //if (col.Contains("check number", StringComparison.OrdinalIgnoreCase) || col.Contains("check #", StringComparison.OrdinalIgnoreCase))
+                    //    colMemo = i;
                 }
                 #endregion
 

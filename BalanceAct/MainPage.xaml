@@ -219,39 +219,66 @@
                     <RowDefinition Height="40" />
                 </Grid.RowDefinitions>
 
-                <Button
+                <ctrl:ButtonEx
                     Grid.Row="0"
                     MinWidth="180"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    ui:FrameworkElementExtensions.Cursor="Hand"
                     Command="{x:Bind ViewModel.AddItemCommand}"
                     Content="Add Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                    <ctrl:ButtonEx.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="A" Modifiers="Control" />
+                    </ctrl:ButtonEx.KeyboardAccelerators>
                     <interact:Interaction.Behaviors>
                         <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
                     </interact:Interaction.Behaviors>
-                </Button>
+                </ctrl:ButtonEx>
 
-                <Button
+                <ctrl:ButtonEx
                     Grid.Row="1"
                     MinWidth="180"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    ui:FrameworkElementExtensions.Cursor="Hand"
                     Command="{x:Bind ViewModel.UpdateItemCommand}"
                     Content="Update Expense"
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                    <ctrl:ButtonEx.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="U" Modifiers="Control" />
+                    </ctrl:ButtonEx.KeyboardAccelerators>
                     <interact:Interaction.Behaviors>
                         <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
                     </interact:Interaction.Behaviors>
-                </Button>
+                </ctrl:ButtonEx>
+
+                <!--#region [Shimmer Button Test]-->
+                <!--
+                <Grid Grid.Row="1">
+                    <ctrl:Shimmer
+                        Width="180"
+                        Margin="10,4,10,4"
+                        InitialStartPointX="-6.5"
+                        IsActive="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}" />
+                    <ctrl:ButtonEx
+                        MinWidth="180"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Command="{x:Bind ViewModel.UpdateItemCommand}"
+                        Content="Update Expense"
+                        IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                        <interact:Interaction.Behaviors>
+                            <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
+                        </interact:Interaction.Behaviors>
+                    </ctrl:ButtonEx>
+                </Grid>
+                -->
+                <!--#endregion-->
 
                 <ProgressRing
                     Grid.Row="0"
                     Width="22"
                     Height="22"
-                    Margin="50,0,0,0"
+                    Margin="52,0,0,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
@@ -261,13 +288,12 @@
                     Grid.Row="1"
                     Width="22"
                     Height="22"
-                    Margin="50,0,0,0"
+                    Margin="52,0,0,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
                     Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
                 <!--#endregion-->
-
             </Grid>
 
             <!--  Custom Button Style Test  -->
