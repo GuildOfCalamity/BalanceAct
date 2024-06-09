@@ -63,8 +63,9 @@ public class ExpenseItem : ICloneable
 
     public override string ToString()
     {
-        string format = "Description:{0,-30} Amount:{1,-20} Color:{2,-10} Date:{3,-10} Category:{4,-20} Codes:{5,-10";
-        return String.Format(format, $"{Description}", $"{Amount}", $"{Color}", $"{Date}", $"{Category}", $"{Codes}");
+        //string format = "Description:{0,-30} Amount:{1,-20} Color:{2,-10} Date:{3,-10} Category:{4,-20} Codes:{5,-10}";
+        //return String.Format(format, $"{Description}", $"{Amount}", $"{Color}", $"{Date}", $"{Category}", $"{Codes}");
+        return $"{Category}{Environment.NewLine}{Description}{Environment.NewLine}{Amount}{Environment.NewLine}{Date?.ToString("ddd, dd MMM yyyy")}{Environment.NewLine}";
     }
 }
 

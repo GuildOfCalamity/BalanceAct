@@ -11,6 +11,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 using BalanceAct.Models;
 using BalanceAct.Services;
@@ -20,7 +21,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
 using Windows.System;
-using Microsoft.UI.Xaml.Input;
+
 
 namespace BalanceAct.ViewModels;
 
@@ -32,9 +33,9 @@ public class MainViewModel : ObservableRecipient
     #region [Props]
     bool _loaded = false;
     System.Globalization.NumberFormatInfo _formatter;
-    static Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
-    static Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     static DispatcherTimer? _timer;
+    public Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
+    public Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     public event EventHandler<bool>? ItemsLoadedEvent;
 
     public ObservableCollection<ExpenseItem> ExpenseItems = new();
@@ -515,24 +516,26 @@ public class MainViewModel : ObservableRecipient
                         colDesc = i;
                     if (col.Contains("category", StringComparison.OrdinalIgnoreCase))
                         colCat = i;
-                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) || col.Contains("value", StringComparison.OrdinalIgnoreCase) && !col.Contains("credit", StringComparison.OrdinalIgnoreCase))
+                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) && !col.Contains("credit", StringComparison.OrdinalIgnoreCase))
                         colAmnt = i;
                     if (col.Contains("memo", StringComparison.OrdinalIgnoreCase) || col.Contains("additional", StringComparison.OrdinalIgnoreCase))
                         colMemo = i;
                     //if (col.Contains("check number", StringComparison.OrdinalIgnoreCase) || col.Contains("check #", StringComparison.OrdinalIgnoreCase))
                     //    colMemo = i;
                 }
+                Logger?.WriteLine($"Interpreted column layout ⇒ Date:{colDate}, Description:{colDesc}, Category:{colCat}, Amount:{colAmnt}, Memo:{colMemo}", LogLevel.Debug);
                 #endregion
 
                 #region [Analyze each line from the file]
                 foreach (var line in lines.Skip(1)) // ignore the header
                 {
-                    var tokens = line.Split(',', StringSplitOptions.TrimEntries);
+                    var filtered = line.Replace("\"", "");
+                    var tokens = filtered.Split(',', StringSplitOptions.TrimEntries);
 
                     // Do we have enough columns to work with?
                     if (tokens.Length == 0 || tokens.Length < 4)
                     {
-                        Logger?.WriteLine($"Not enough columns for this line ⇒ {line}", LogLevel.Warning);
+                        Logger?.WriteLine($"Not enough columns for this line ⇒ {filtered}", LogLevel.Warning);
                         continue;
                     }
 
@@ -540,7 +543,7 @@ public class MainViewModel : ObservableRecipient
                     {
                         if (val < 0)
                         {
-                            Debug.WriteLine($"[INFO] Processing ⇒ \"{line}\"");
+                            Debug.WriteLine($"[INFO] Processing ⇒ \"{filtered}\"");
 
                             if (DateTime.TryParse($"{tokens[colDate]}", out DateTime impDT))
                             {
@@ -558,6 +561,7 @@ public class MainViewModel : ObservableRecipient
                                         break;
                                     }
                                 }
+                                // If the category isn't matched then it will contain the native value from the file.
                                 #endregion
 
                                 #region [Try to extrapolate memo]
@@ -642,7 +646,7 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 else
                                 {
-                                    Logger?.WriteLine($"Expense item already exists ⇒ {line}", LogLevel.Warning);
+                                    Logger?.WriteLine($"Expense item already exists ⇒ {filtered}", LogLevel.Warning);
                                     Status = $"This expense item already exists, skipping import ⚠️";
                                 }
                             }
@@ -659,8 +663,8 @@ public class MainViewModel : ObservableRecipient
                     }
                     else
                     {
-                        Status = $"Unable to use this line ⇒ {line} ⚠️";
-                        Logger?.WriteLine($"Unable to use this line ⇒ {line}", LogLevel.Warning);
+                        Status = $"Unable to use this line ⇒ {filtered} ⚠️";
+                        Logger?.WriteLine($"Unable to use this line ⇒ {filtered}", LogLevel.Warning);
                     }
                 }
                 #endregion
@@ -671,6 +675,7 @@ public class MainViewModel : ObservableRecipient
                 if (added > 0)
                 {
                     _ = App.ShowDialogBox($"Results", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
+                    Logger?.WriteLine($"{added} expense items were imported into the database.", LogLevel.Info);
                     UpdateSummaryTotals();
                     SaveExpenseItemsJson();
                     LoadExpenseItemsJson();

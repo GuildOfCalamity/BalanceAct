@@ -303,7 +303,7 @@
                 Style="{ThemeResource CloseButtonStyle}" />-->
 
             <!--#region [Behavior Animations]-->
-            <Image
+            <!--<Image
                 Grid.Row="99"
                 Width="90"
                 Height="90"
@@ -328,13 +328,39 @@
                         From="{StaticResource Step1}"
                         To="{StaticResource Step2}" />
                 </interact:Interaction.Behaviors>
-            </Image>
+            </Image>-->
+            <!--#endregion-->
+
+            <!--#region [Search]-->
+            <AutoSuggestBox
+                Grid.Row="99"
+                MinWidth="250"
+                MaxWidth="250"
+                Margin="10"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                PlaceholderText="Start typing"
+                QueryIcon="Find"
+                SuggestionChosen="OnSuggestionChosen">
+                <AutoSuggestBox.Header>
+                    <TextBlock
+                        Margin="2,0,0,-5"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource GradientHeaderBrush}"
+                        Text="Locate an expense" />
+                </AutoSuggestBox.Header>
+                <interact:Interaction.Behaviors>
+                    <!--<behave:AutoFocusBehavior />-->
+                    <behave:TypingPauseBehavior TypingPaused="OnTypingPaused" />
+                </interact:Interaction.Behaviors>
+            </AutoSuggestBox>
             <!--#endregion-->
 
         </Grid>
         <!--#endregion-->
 
-        <!--#region [Expense Listing Content]-->
+        <!--#region [Expense List Content]-->
         <ListView
             x:Name="ItemListView"
             Grid.Row="0"
