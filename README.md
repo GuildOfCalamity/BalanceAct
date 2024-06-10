@@ -13,7 +13,11 @@
 	- "Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"
 	- "CommunityToolkit.Mvvm" Version="8.2.2"
 	- "CommunityToolkit.WinUI" Version="7.1.2"
+	- "CommunityToolkit.WinUI.UI.Behaviors" Version="7.1.2"
 	- "Newtonsoft.Json" Version="13.0.3"
+
+## 📝 v1.0.0.1 - June 2024
+* Added search feature.
 
  ## 📝 v1.0.0.0 - May 2024
 * Initial release.
