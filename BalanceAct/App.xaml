@@ -145,6 +145,15 @@
                 TintOpacity="0.1" />
             <!--#endregion-->
 
+            <Style x:Key="ListViewItemStretch" TargetType="ListViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+
             <!--#region [Shimmer Styler]-->
             <Style TargetType="ctrl:Shimmer">
                 <Setter Property="CornerRadius" Value="5" />
@@ -164,6 +173,51 @@
                 </Setter>
             </Style>
             <!--#endregion-->
+
+            <!--
+                NOTE: The GroupBox control will not render properly without a default styler.
+                Without a styler, the ChildPresenter will be seen, but the BorderPath and HeadingPresenter will not be visible.
+            -->
+            <Style TargetType="ctrl:GroupBox">
+                <Setter Property="BorderBrush" Value="{ThemeResource PrimaryBrush}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ctrl:GroupBox">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <!--  Border Line  -->
+                                <Path x:Name="PART_BorderPath" Stroke="{TemplateBinding BorderBrush}" />
+                                <!--  Heading Text  -->
+                                <ContentPresenter
+                                    x:Name="PART_HeadingPresenter"
+                                    Content="{TemplateBinding Heading}"
+                                    ContentTemplate="{TemplateBinding HeadingTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding HeadingTemplateSelector}" />
+                                <!--  Control Content  -->
+                                <ContentPresenter
+                                    x:Name="PART_ChildPresenter"
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2"
+                                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
 
             <!--#region [Button Styler]-->
             <Style x:Key="EnhancedButton" TargetType="Button">

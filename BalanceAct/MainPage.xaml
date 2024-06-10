@@ -91,7 +91,7 @@
                 <RowDefinition x:Name="EntryRow" Height="Auto" />
                 <RowDefinition x:Name="CommandsRow" Height="Auto" />
                 <RowDefinition x:Name="AdditionalRow" Height="Auto" />
-                <RowDefinition x:Name="LogoRow" Height="Auto" />
+                <RowDefinition x:Name="LogoRow" Height="*" />
             </Grid.RowDefinitions>
 
             <!--#region [Data Entry]-->
@@ -293,8 +293,9 @@
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
                     Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
-                <!--#endregion-->
+
             </Grid>
+            <!--#endregion-->
 
             <!--  Custom Button Style Test  -->
             <!--<Button
@@ -310,7 +311,7 @@
                 Margin="10"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Bottom"
-                Source="ms-appx:///Assets/StoreLogo.png">
+                Source="ms-appx:///Assets/Balance.png">
                 <interact:Interaction.Behaviors>
                     <behave:OpacityAnimationBehavior
                         EaseMode="Linear"
@@ -336,11 +337,12 @@
                 Grid.Row="99"
                 MinWidth="250"
                 MaxWidth="250"
-                Margin="10"
+                Margin="10,5,10,15"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 PlaceholderText="Start typing"
                 QueryIcon="Find"
+                QuerySubmitted="OnQuerySubmitted"
                 SuggestionChosen="OnSuggestionChosen">
                 <AutoSuggestBox.Header>
                     <TextBlock

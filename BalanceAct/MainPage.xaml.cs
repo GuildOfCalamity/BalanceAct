@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +12,6 @@ using Microsoft.UI.Xaml.Controls;
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.ViewModels;
-using System.Reflection;
 
 namespace BalanceAct;
 
@@ -52,7 +52,7 @@ public sealed partial class MainPage : Page
         {
             //dlv.SelectedItem = item;
             dlv.ScrollIntoView(item);
-            ((ListViewItem)dlv.ContainerFromItem(item))?.Focus(FocusState.Programmatic);
+            ((ListViewItem)dlv.ContainerFromItem(item))?.Focus(FocusState.Keyboard);
         }
 
         // Scroll through all items.
@@ -114,9 +114,15 @@ public sealed partial class MainPage : Page
         });
     }
 
-
+    #region [AutoSuggestBox]
     void OnTypingPaused(object sender, EventArgs e) => DisplaySuggestions(sender as AutoSuggestBox);
 
+    /// <summary>
+    /// <see cref="AutoSuggestBox"/> behavior event when the user pauses whilst typing.
+    /// </summary>
+    /// <remarks>
+    /// Our search parses the <see cref="ExpenseItem.Description"/> and <see cref="ExpenseItem.Codes"/>.
+    /// </remarks>
     void DisplaySuggestions(AutoSuggestBox? sender)
     {
         if (sender == null || ViewModel == null)
@@ -133,10 +139,7 @@ public sealed partial class MainPage : Page
                 continue;
 
             // LINQ "splitText.All(Func<string, bool>)"
-            var found = splitText.All((key) => 
-            { 
-                return name.Contains(key, StringComparison.OrdinalIgnoreCase); 
-            });
+            var found = splitText.All((key) => { return name.Contains(key, StringComparison.OrdinalIgnoreCase); });
 
             if (found)
                 suitableItems.Add(ei);
@@ -149,6 +152,9 @@ public sealed partial class MainPage : Page
         ViewModel.IsBusy = false;
     }
 
+    /// <summary>
+    /// <see cref="AutoSuggestBox"/> event when the user click a suggestion from the list.
+    /// </summary>
     void OnSuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
     {
         var selected = args.SelectedItem as ExpenseItem;
@@ -171,67 +177,58 @@ public sealed partial class MainPage : Page
         }
     }
 
-    public List<string> NameList = new() {
-          "Olivia   ","Liam       ","Emma     ","Noah       ",
-          "Amelia   ","Oliver     ","Ava      ","Elijah     ",
-          "Sophia   ","Lucas      ","Charlotte","Levi       ",
-          "Isabella ","Mason      ","Mia      ","Asher      ",
-          "Luna     ","James      ","Harper   ","Ethan      ",
-          "Gianna   ","Mateo      ","Evelyn   ","Leo        ",
-          "Aria     ","Jack       ","Ella     ","Benjamin   ",
-          "Ellie    ","Aiden      ","Mila     ","Logan      ",
-          "Layla    ","Grayson    ","Avery    ","Jackson    ",
-          "Camila   ","Henry      ","Lily     ","Wyatt      ",
-          "Scarlett ","Sebastian  ","Sofia    ","Carter     ",
-          "Nova     ","Daniel     ","Aurora   ","William    ",
-          "Chloe    ","Alexander  ","Betty    ","Amy        ",
-          "Margaret ","Peggy      ","Paula    ","Steve      ",
-          "Esteban  ","Stephen    ","Riley    ","Ezra       ",
-          "Nora     ","Owen       ","Hazel    ","Michael    ",
-          "Abigail  ","Muhammad   ","Rylee    ","Julian     ",
-          "Penelope ","Hudson     ","Elena    ","Luke       ",
-          "Paul     ","Johan      ","Zoey     ","Samuel     ",
-          "Isla     ","Jacob      ","Eleanor  ","Lincoln    ",
-          "Elizabeth","Gabriel    ","Madison  ","Jayden     ",
-          "Willow   ","Luca       ","Emilia   ","Maverick   ",
-          "Violet   ","David      ","Emily    ","Josiah     ",
-          "Eliana   ","Elias      ","Stella   ","Jaxon      ",
-          "Maya     ","Kai        ","Paisley  ","Anthony    ",
-          "Everly   ","Isaiah     ","Addison  ","Eli        ",
-          "Ryleigh  ","John       ","Ivy      ","Joseph     ",
-          "Grace    ","Matthew    ","Hannah   ","Ezekiel    ",
-          "Bella    ","Adam       ","Naomi    ","Caleb      ",
-          "Zoe      ","Isaac      ","Aaliyah  ","Theodore   ",
-          "Kinsley  ","Nathan     ","Lucy     ","Theo       ",
-          "Delilah  ","Thomas     ","Skylar   ","Nolan      ",
-          "Leilani  ","Waylon     ","Ayla     ","Ryan       ",
-          "Victoria ","Easton     ","Alice    ","Roman      ",
-          "Aubrey   ","Adrian     ","Savannah ","Miles      ",
-          "Serenity ","Greyson    ","Autumn   ","Cameron    ",
-          "Leah     ","Colton     ","Sophie   ","Landon     ",
-          "Natalie  ","Santiago   ","Athena   ","Andrew     ",
-          "Lillian  ","Hunter     ","Hailey   ","Jameson    ",
-          "Audrey   ","Joshua     ","Eva      ","Jace       ",
-          "Everleigh","Cooper     ","Kennedy  ","Dylan      ",
-          "Maria    ","Jeremy     ","Natalia  ","Kingston   ",
-          "Nevaeh   ","Xavier     ","Brooklyn ","Christian  ",
-          "Raelynn  ","Christopher","Arya     ","Kayden     ",
-          "Ariana   ","Charlie    ","Madelyn  ","Aaron      ",
-          "Claire   ","Jaxson     ","Valentina","Silas      ",
-          "Kris     ","Eion       ","Sadie    ","Ryder      ",
-          "Gabriella","Austin     ","Ruby     ","Dominic    ",
-          "Anna     ","Amir       ","Iris     ","Carson     ",
-          "Charlie  ","Jordan     ","Brielle  ","Weston     ",
-          "Emery    ","Micah      ","Melody   ","Rowan      ",
-          "Amara    ","Beau       ","Piper    ","Declan     ",
-          "Eric     ","Nick       ","Jason    ","Evan       ",
-          "Quinn    ","Everett    ","Rebecca  ","Stuart     ",
-          "Mark     ","Nathan     ","Gloria   ","Wilma      ",
-          "Peter    ","Scott      ","Byron    ","Stephanie  ",
-          "Fred     ","Frederick  ","Bill     ","Robert     ",
-          "Frank    ","Jade       ","Alex     ","Bart       ",
-          "Carol    ","Sarah      ","Joan     ","Jose       "
-    };
+    /// <summary>
+    /// For when user clicks the find icon or presses [Enter].
+    /// </summary>
+    /// <remarks>
+    /// Our search parses the <see cref="ExpenseItem.Description"/> and <see cref="ExpenseItem.Codes"/>.
+    /// </remarks>
+    void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        if (sender == null || ViewModel == null)
+            return;
+
+        var selected = args.ChosenSuggestion as ExpenseItem;
+        if (selected != null)
+        {
+            //_ = App.ShowDialogBox($"Selection", $"{selected}", "OK", "", null, null, ViewModel._dialogImgUri2);
+            ItemListView.SelectedItem = selected;
+            ItemListView.ScrollIntoView(selected);
+            var listViewItem = ItemListView.ContainerFromItem(selected) as ListViewItem;
+            if (listViewItem != null)
+            {
+                // For this effect to work properly, set the FocusVisualKind in App.xaml.cs
+                // e.g. "this.FocusVisualKind = FocusVisualKind.Reveal;"
+                listViewItem.Focus(FocusState.Keyboard); // don't use programmatic
+            }
+        }
+        else
+        {
+            ViewModel.IsBusy = true;
+            List<ExpenseItem>? suitableItems = new();
+            string[]? splitText = sender.Text.ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+            foreach (var ei in ViewModel.ExpenseItems)
+            {
+                var name = $"{ei.Description} {ei.Codes}";
+
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
+                // LINQ "splitText.All(Func<string, bool>)"
+                var found = splitText.All((key) => { return name.Contains(key, StringComparison.OrdinalIgnoreCase); });
+
+                if (found)
+                    suitableItems.Add(ei);
+            }
+
+            //if (suitableItems.Count == 0)
+            //    suitableItems.Add("No matching result found");
+
+            sender.ItemsSource = suitableItems;
+            ViewModel.IsBusy = false;
+        }
+    }
+    #endregion
 }
 
 public static class Functions

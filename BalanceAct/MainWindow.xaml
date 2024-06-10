@@ -43,7 +43,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Opacity="0.05"
-                Source="ms-appx:///Assets/Background.png" />
+                Source="ms-appx:///Assets/Balance.png" />
             <local:MainPage />
         </Grid>
     </Grid>

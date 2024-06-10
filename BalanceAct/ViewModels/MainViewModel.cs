@@ -37,7 +37,7 @@ public class MainViewModel : ObservableRecipient
     public Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
     public Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     public event EventHandler<bool>? ItemsLoadedEvent;
-
+    
     public ObservableCollection<ExpenseItem> ExpenseItems = new();
     public List<ExpenseItem> CompareItems = new List<ExpenseItem>();
 
