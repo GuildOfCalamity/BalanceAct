@@ -37,6 +37,7 @@ public sealed partial class MainPage : Page
         Logger?.WriteLine($"The MainPage is loading.", LogLevel.Debug);
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
         chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(1));
+        url.Text = "More WinUI3 examples at my github https://github.com/GuildOfCalamity?tab=repositories";
     }
 
     void ItemListView_Loaded(object sender, RoutedEventArgs e)

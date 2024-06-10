@@ -332,6 +332,21 @@
             </Image>-->
             <!--#endregion-->
 
+            <TextBlock
+                x:Name="url"
+                Grid.Row="2"
+                MaxWidth="250"
+                Margin="10"
+                HorizontalAlignment="Center"
+                FontSize="{StaticResource FontSizeTiny}"
+                HorizontalTextAlignment="Center"
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="WrapWholeWords">
+                <interact:Interaction.Behaviors>
+                    <behave:HyperlinkTextBlockBehavior />
+                </interact:Interaction.Behaviors>
+            </TextBlock>
+
             <!--#region [Search]-->
             <AutoSuggestBox
                 Grid.Row="99"

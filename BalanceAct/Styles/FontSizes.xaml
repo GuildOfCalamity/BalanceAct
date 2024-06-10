@@ -5,7 +5,7 @@
     <x:Double x:Key="FontSizeMedium">16</x:Double>
     <x:Double x:Key="FontSizeNormal">14</x:Double>
     <x:Double x:Key="FontSizeSmall">12</x:Double>
-    <x:Double x:Key="FontSizeTiny">9</x:Double>
+    <x:Double x:Key="FontSizeTiny">10</x:Double>
 
     <FontFamily x:Key="PrimaryFont">ms-appx:///Assets/Fonts/Aptos.ttf#Aptos</FontFamily>
     <FontFamily x:Key="SecondaryFont">ms-appx:///Assets/Fonts/Aptos_Mono.ttf#Aptos Mono</FontFamily>
