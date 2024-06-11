@@ -150,6 +150,18 @@ public partial class App : Application
         }
         #endregion
 
+        var appInst = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent();
+        if (appInst != null)
+        {
+            Debug.WriteLine($"[INFO] Application ProcessId: {appInst.ProcessId}");
+            var appActArgs = appInst.GetActivatedEventArgs();
+            Debug.WriteLine($"[INFO] Activation args type: {appActArgs.Data.GetType().Name}");
+            if (appActArgs.Data is Windows.ApplicationModel.Activation.IActivatedEventArgs actEA)
+            {
+                Debug.WriteLine($"[INFO] Activation kind: {actEA.Kind}");
+            }
+        }
+
         // Instantiate our window object.
         m_window = new MainWindow();
 

@@ -4,35 +4,44 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.UI;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 using Windows.Storage;
 using Windows.Storage.Streams;
-using Microsoft.UI.Xaml.Hosting;
-using System.Globalization;
-using System.Security.Principal;
-using System.Runtime.InteropServices;
-using System.Net.Http;
-using Microsoft.UI.Xaml.Media.Animation;
 
 namespace BalanceAct;
 
 public static class Extensions
 {
+    /// <summary>
+    /// Determine if the application has been launched as an administrator.
+    /// </summary>
+    public static bool IsAppRunAsAdmin()
+    {
+        using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+        return new WindowsPrincipal(identity).IsInRole(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
+    }
+
     /// <summary>
     /// Copies one <see cref="List{T}"/> to another <see cref="List{T}"/> by value (deep copy).
     /// </summary>

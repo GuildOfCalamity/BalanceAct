@@ -296,6 +296,7 @@ public class MainViewModel : ObservableRecipient
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
     public ICommand ImportItemCommand { get; }
+    public ICommand RemoveItemCommand { get; }
     public ICommand KeyboardAcceleratorCommand { get; }
     #endregion
 
@@ -697,6 +698,15 @@ public class MainViewModel : ObservableRecipient
             Debug.WriteLine($"[INFO] SelectedCategory defaulted to \"{SelectedCategory}\"");
         }
         #endregion
+
+        RemoveItemCommand = new RelayCommand<object>(async (obj) =>
+        {
+            if (obj != null && obj is ExpenseItem ei)
+            {
+                Status = $"Got item #{ei.Id}: {ei.Description} 💰";
+                _ = App.ShowDialogBox($"Removal", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
+            }
+        });
 
         KeyboardAcceleratorCommand = new RelayCommand<KeyboardAcceleratorInvokedEventArgs>(ExecuteKeyboardAcceleratorCommand);
     }

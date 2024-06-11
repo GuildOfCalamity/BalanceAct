@@ -12,6 +12,11 @@ using Microsoft.UI.Xaml.Controls;
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.ViewModels;
+using Microsoft.UI.Input;
+using Windows.System;
+using Windows.UI.Core;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace BalanceAct;
 
@@ -97,6 +102,35 @@ public sealed partial class MainPage : Page
                 // You could also set the selected DataItem from here.
                 //ViewModel.SelectedItem = di;
             }
+        }
+    }
+
+    /// <summary>
+    /// Setup a <see cref="CommandBarFlyout"/> for each <see cref="ExpenseItem"/>.
+    /// </summary>
+    void ExpenseItemBorder_Loaded(object sender, RoutedEventArgs e)
+    {
+        DependencyObject item = VisualTreeHelper.GetParent(sender as Border);
+        
+        // Walk the parents until we find a ListViewItem.
+        while (item is not ListViewItem)
+        {
+            item = VisualTreeHelper.GetParent(item);
+        }
+
+        if (item is ListViewItem lvi)
+            lvi.ContextFlyout = eiFlyout;
+    }
+
+    void ItemListView_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        // We can check if the user has ctrl-clicked or shift-clicked.
+        var shiftPress = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(CoreVirtualKeyStates.Down);
+        var ctrlPress = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control).HasFlag(CoreVirtualKeyStates.Down);
+
+        if ((e.OriginalSource as FrameworkElement)?.DataContext is ExpenseItem ei)
+        {
+            //ViewModel?.RemoveItemCommand.Execute(ei);
         }
     }
 
@@ -230,6 +264,7 @@ public sealed partial class MainPage : Page
         }
     }
     #endregion
+
 }
 
 public static class Functions

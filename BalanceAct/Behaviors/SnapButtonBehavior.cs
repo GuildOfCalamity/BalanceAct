@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 
@@ -14,19 +15,82 @@ namespace BalanceAct.Behaviors;
 
 public class SnapButtonBehavior : Behavior<ButtonBase>
 {
-    const double DurationSeconds = 0.3;
-
+    #region [Props]
     bool attached;
     long paddingChangedEventToken;
     long contentChangedEventToken;
     VisualStateGroup? visualStateGroup;
     ContentPresenter? contentPresenter;
     Visual? contentVisual;
-
     Compositor compositor;
     CompositionPropertySet propSet;
     Vector3KeyFrameAnimation translationAnimation1;
     Vector3KeyFrameAnimation translationAnimation2;
+
+    /// <summary>
+    /// Gets or sets the direction for the animation.
+    /// </summary>
+    public ButtonContentSnapType SnapType
+    {
+        get { return (ButtonContentSnapType)GetValue(SnapTypeProperty); }
+        set { SetValue(SnapTypeProperty, value); }
+    }
+    public static readonly DependencyProperty SnapTypeProperty = DependencyProperty.Register(
+        nameof(SnapType),
+        typeof(ButtonContentSnapType),
+        typeof(SnapButtonBehavior),
+        new PropertyMetadata(ButtonContentSnapType.None, (s, a) =>
+        {
+            if (s is SnapButtonBehavior sender && !Equals(a.NewValue, a.OldValue))
+            {
+                sender.UpdateSnapType();
+            }
+        }));
+
+    /// <summary>
+    /// Gets or sets the <see cref="TimeSpan"/> to run the animation for (default is 300 milliseconds).
+    /// </summary>
+    public double DurationSeconds
+    {
+        get => (double)GetValue(DurationSecondsProperty);
+        set => SetValue(DurationSecondsProperty, value);
+    }
+    public static readonly DependencyProperty DurationSecondsProperty = DependencyProperty.Register(
+        nameof(DurationSeconds),
+        typeof(double),
+        typeof(SnapButtonBehavior),
+        new PropertyMetadata(0.3d, OnDurationPropertyChanged));
+
+    /// <summary>
+    /// Upon trigger, the <see cref="DependencyObject"/> will be the control itself (<see cref="SnapButtonBehavior"/>)
+    /// and the <see cref="DependencyPropertyChangedEventArgs"/> will be the <see cref="Action"/> object contained within.
+    /// </summary>
+    static void OnDurationPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var behavior = (SnapButtonBehavior)d;
+        if (behavior != null && e.NewValue is double dbl)
+        {
+            behavior.DurationSeconds = dbl;
+            behavior.UpdateDurations();
+        }
+    }
+    #endregion
+
+    /// <summary>
+    /// Our trick/workaround for the static property changed problem.
+    /// </summary>
+    /// <remarks>
+    /// The CTOR may have already been called at this point so we'll 
+    /// need to update the translation animation durations again.
+    /// </remarks>
+    public void UpdateDurations()
+    {
+        if (translationAnimation1 != null)
+            translationAnimation1.Duration = TimeSpan.FromSeconds(DurationSeconds);
+
+        if (translationAnimation2 != null)
+            translationAnimation2.Duration = TimeSpan.FromSeconds(DurationSeconds);
+    }
 
     public SnapButtonBehavior()
     {
@@ -47,42 +111,13 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
         translationAnimation2.StopBehavior = AnimationStopBehavior.LeaveCurrentValue;
     }
 
-    public ButtonContentSnapType SnapType
+    void AssociatedObject_Loaded(object sender, RoutedEventArgs e) => TryLoadContent((ButtonBase)sender);
+    void AssociatedObject_Unloaded(object sender, RoutedEventArgs e) => UnloadContent((ButtonBase)sender);
+    void AssociatedObject_LayoutUpdated(object? sender, object e) => TryLoadContent(AssociatedObject);
+    void TryLoadContent(ButtonBase? button)
     {
-        get { return (ButtonContentSnapType)GetValue(SnapTypeProperty); }
-        set { SetValue(SnapTypeProperty, value); }
-    }
-
-    public static readonly DependencyProperty SnapTypeProperty = DependencyProperty.Register(
-        nameof(SnapType), 
-        typeof(ButtonContentSnapType), 
-        typeof(SnapButtonBehavior), 
-        new PropertyMetadata(ButtonContentSnapType.None, (s, a) =>
-        {
-            if (s is SnapButtonBehavior sender && !Equals(a.NewValue, a.OldValue))
-            {
-                sender.UpdateSnapType();
-            }
-        }));
-
-    private void AssociatedObject_Loaded(object sender, RoutedEventArgs e)
-    {
-        TryLoadContent((ButtonBase)sender);
-    }
-
-    private void AssociatedObject_Unloaded(object sender, RoutedEventArgs e)
-    {
-        UnloadContent((ButtonBase)sender);
-    }
-
-    private void AssociatedObject_LayoutUpdated(object? sender, object e)
-    {
-        TryLoadContent(AssociatedObject);
-    }
-
-    private void TryLoadContent(ButtonBase? button)
-    {
-        if (button == null) return;
+        if (button == null)
+            return;
 
         button.LayoutUpdated -= AssociatedObject_LayoutUpdated;
 
@@ -101,8 +136,10 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
 
     void LoadContent(ButtonBase button)
     {
-        if (attached) return;
+        if (attached)
+            return;
 
+        // If the button's padding is changed we'll need to call UpdateSnapType().
         paddingChangedEventToken = button.RegisterPropertyChangedCallback(Control.PaddingProperty, OnPaddingPropertyChanged);
         visualStateGroup = VisualStateManager.GetVisualStateGroups((FrameworkElement)VisualTreeHelper.GetChild(button, 0)).FirstOrDefault(c => c.Name == "CommonStates");
 
@@ -113,6 +150,7 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
 
         if (contentPresenter != null)
         {
+            // If the button's content is changed we'll need to update the composition's SetIsTranslationEnabled and IsPixelSnappingEnabled.
             contentChangedEventToken = contentPresenter.RegisterPropertyChangedCallback(ContentPresenter.ContentProperty, OnContentChanged);
             var actualContent = VisualTreeHelper.GetChild(contentPresenter, 0) as UIElement;
 
@@ -194,7 +232,6 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
             }
 
             var actualContent = VisualTreeHelper.GetChild(contentPresenter, 0) as UIElement;
-
             if (actualContent != null)
             {
                 contentVisual = ElementCompositionPreview.GetElementVisual(actualContent);
@@ -206,7 +243,8 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
 
     void VisualStateGroup_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
     {
-        if (!attached || contentVisual == null) return;
+        if (!attached || contentVisual == null)
+            return;
 
         if (e.NewState?.Name == "PointerOver" || e.NewState?.Name == "Pressed")
             contentVisual.StartAnimation("Translation", translationAnimation1);
@@ -218,6 +256,7 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
     void UpdateSnapType()
     {
         var button = AssociatedObject;
+
         if (button == null) 
             return;
 
@@ -228,7 +267,8 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
             if (visualStateGroup != null)
                 hover = visualStateGroup.CurrentState?.Name == "PointerOver" || visualStateGroup.CurrentState?.Name == "Pressed";
 
-            var padding = button.Padding;
+            var padding = button.Padding; // default is 11,5,11,6
+            Debug.WriteLine($"[INFO] SnapButton will use thickness {padding}");
 
             var offset = SnapType switch
             {
@@ -236,7 +276,7 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
                 ButtonContentSnapType.Top => new Vector3(0, (float)(-padding.Top), 0),
                 ButtonContentSnapType.Right => new Vector3((float)(padding.Right), 0, 0),
                 ButtonContentSnapType.Bottom => new Vector3(0, (float)(padding.Bottom), 0),
-                _ => Vector3.Zero
+                _ => Vector3.Zero // None
             };
 
             propSet.InsertVector3("Offset", offset);
@@ -253,7 +293,7 @@ public class SnapButtonBehavior : Behavior<ButtonBase>
         }
         else
         {
-
+            Debug.WriteLine($"[INFO] ButtonBase not attached yet.");
         }
     }
 
