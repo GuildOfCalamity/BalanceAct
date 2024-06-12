@@ -43,6 +43,84 @@
                 <AppBarButton Label="Freeze" />
             </CommandBarFlyout.SecondaryCommands>
         </CommandBarFlyout>
+
+        <!--#region [Settings Flyout Test]-->
+        <Flyout
+            x:Key="SettingsFlyout"
+            x:Name="SettingsFlyout"
+            OverlayInputPassThroughElement="{x:Bind SettingsBar}"
+            Placement="Top">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="CornerRadius" Value="5" />
+                    <Setter Property="Background" Value="#DF202020" />
+                    <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                    <Setter Property="IsTabStop" Value="True" />
+                    <Setter Property="TabNavigation" Value="Cycle" />
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+            <StackPanel
+                Padding="20,15,20,15"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="2"
+                CornerRadius="4"
+                Orientation="Vertical"
+                Spacing="4">
+                <TextBlock
+                    Margin="0,0,0,6"
+                    HorizontalAlignment="Left"
+                    FontSize="{StaticResource FontSizeMedium}"
+                    FontWeight="Medium"
+                    Foreground="{StaticResource SecondaryBrush}"
+                    Text="ViewModel Flag States" />
+
+                <ctrl:SeparatorLine />
+
+                <CheckBox Content="Loading?" IsChecked="{x:Bind ViewModel.Loading, Mode=TwoWay}" />
+                <CheckBox Content="Busy?" IsChecked="{x:Bind ViewModel.IsBusy, Mode=TwoWay}" />
+                <CheckBox Content="Show?" IsChecked="{x:Bind ViewModel.Show, Mode=TwoWay}" />
+
+                <TextBlock
+                    Margin="0,20,0,6"
+                    HorizontalAlignment="Left"
+                    FontSize="{StaticResource FontSizeMedium}"
+                    FontWeight="Medium"
+                    Foreground="{StaticResource SecondaryBrush}"
+                    Text="Preset Delay" />
+
+                <ctrl:SeparatorLine />
+
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <RadioButton
+                        Content="Long"
+                        GroupName="AppDelay"
+                        IsChecked="False">
+                        <RadioButton.CommandParameter>
+                            <x:String>Long</x:String>
+                        </RadioButton.CommandParameter>
+                    </RadioButton>
+                    <RadioButton
+                        Content="Medium"
+                        GroupName="AppDelay"
+                        IsChecked="True">
+                        <RadioButton.CommandParameter>
+                            <x:String>Medium</x:String>
+                        </RadioButton.CommandParameter>
+                    </RadioButton>
+                    <RadioButton
+                        Content="Short"
+                        GroupName="AppDelay"
+                        IsChecked="False">
+                        <RadioButton.CommandParameter>
+                            <x:String>Short</x:String>
+                        </RadioButton.CommandParameter>
+                    </RadioButton>
+                </StackPanel>
+            </StackPanel>
+        </Flyout>
+        <!--#endregion-->
     </Page.Resources>
 
     <Grid
@@ -309,11 +387,12 @@
             </Grid>
             <!--#endregion-->
 
-            <!--  Custom Button Style Test  -->
+            <!--#region [Custom Button Style Test]-->
             <!--<Button
                 Grid.Row="2"
                 Content="❌"
                 Style="{ThemeResource CloseButtonStyle}" />-->
+            <!--#endregion-->
 
             <!--#region [Behavior Animations]-->
             <!--<Image
@@ -553,6 +632,7 @@
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid.Resources>
                 <Style TargetType="TextBlock">
@@ -1041,6 +1121,26 @@
                     </Flyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
+
+            <!--#region [Settings Flyout Test]-->
+            <StackPanel
+                x:Name="SettingsBar"
+                Grid.Column="5"
+                Margin="2,1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Visibility="{x:Bind ViewModel.SettingsVisible, Mode=OneWay}">
+                <!--  Change the visibility to "Visible" to test.  -->
+                <Button
+                    x:Name="SettingsButton"
+                    Content="{StaticResource Settings}"
+                    Flyout="{StaticResource SettingsFlyout}"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="16" />
+            </StackPanel>
+            <!--#endregion-->
+
 
         </Grid>
         <!--#endregion-->

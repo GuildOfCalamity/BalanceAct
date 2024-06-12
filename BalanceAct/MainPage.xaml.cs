@@ -30,7 +30,7 @@ public sealed partial class MainPage : Page
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
         InitializeComponent();
         this.Loading += MainPageLoading;
-
+        
         foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType()))
         {
             Debug.WriteLine($"[INFO] {ele?.Name}");

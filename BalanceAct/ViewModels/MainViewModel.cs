@@ -22,7 +22,6 @@ using CommunityToolkit.Mvvm.Input;
 using Windows.Storage;
 using Windows.System;
 
-
 namespace BalanceAct.ViewModels;
 
 /// <summary>
@@ -117,6 +116,13 @@ public class MainViewModel : ObservableRecipient
     {
         get => _borderSize;
         set => SetProperty(ref _borderSize, value);
+    }
+
+    Microsoft.UI.Xaml.Visibility _settingsVisible = Microsoft.UI.Xaml.Visibility.Collapsed;
+    public Microsoft.UI.Xaml.Visibility SettingsVisible
+    {
+        get => _settingsVisible;
+        set => SetProperty(ref _settingsVisible, value);
     }
 
     bool _loading = true;
@@ -314,6 +320,11 @@ public class MainViewModel : ObservableRecipient
             Status = "Loading…";
         else
             Status = "No configuration ⚠️";
+
+        if (Debugger.IsAttached)
+            SettingsVisible = Visibility.Visible;
+        else
+            SettingsVisible = Visibility.Collapsed;
 
         if (Logger is not null)
             Logger.OnException += (error) => _ = App.ShowDialogBox($"Logger", $"{error}{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
