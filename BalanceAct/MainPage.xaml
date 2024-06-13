@@ -68,56 +68,115 @@
                 CornerRadius="4"
                 Orientation="Vertical"
                 Spacing="4">
-                <TextBlock
-                    Margin="0,0,0,6"
+
+                <ctrl:CompositionShadow
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="3"
+                    Margin="8,-12,0,5"
                     HorizontalAlignment="Left"
-                    FontSize="{StaticResource FontSizeMedium}"
-                    FontWeight="Medium"
-                    Foreground="{StaticResource SecondaryBrush}"
-                    Text="ViewModel Flag States" />
+                    VerticalAlignment="Top"
+                    BlurRadius="1"
+                    OffsetX="3"
+                    OffsetY="3"
+                    Color="#000000">
+                    <TextBlock
+                        FontSize="{ThemeResource FontSizeLarge}"
+                        Foreground="{ThemeResource GradientTitleBrush}"
+                        Text="Developer Settings" />
+                </ctrl:CompositionShadow>
 
-                <ctrl:SeparatorLine />
-
-                <CheckBox Content="Loading?" IsChecked="{x:Bind ViewModel.Loading, Mode=TwoWay}" />
-                <CheckBox Content="Busy?" IsChecked="{x:Bind ViewModel.IsBusy, Mode=TwoWay}" />
-                <CheckBox Content="Show?" IsChecked="{x:Bind ViewModel.Show, Mode=TwoWay}" />
-
-                <TextBlock
-                    Margin="0,20,0,6"
+                <ctrl:GroupBox
+                    MinWidth="300"
+                    Margin="5"
                     HorizontalAlignment="Left"
-                    FontSize="{StaticResource FontSizeMedium}"
-                    FontWeight="Medium"
-                    Foreground="{StaticResource SecondaryBrush}"
-                    Text="Preset Delay" />
+                    HorizontalContentAlignment="Left"
+                    BorderBrush="{ThemeResource SecondaryBorderBrush}"
+                    FontSize="{StaticResource FontSizeMedium}">
+                    <ctrl:GroupBox.Heading>
+                        <StackPanel Orientation="Horizontal">
+                            <SymbolIcon
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Bottom"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Symbol="Flag" />
+                            <!--  https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.symbol?view=windows-app-sdk-1.5#fields  -->
+                            <TextBlock Text="App State Triggers" />
+                        </StackPanel>
+                    </ctrl:GroupBox.Heading>
+                    <StackPanel Orientation="Vertical" Spacing="2">
+                        <CheckBox
+                            Margin="10,5,0,0"
+                            Content="Loading?"
+                            IsChecked="{x:Bind ViewModel.Loading, Mode=TwoWay}" />
+                        <CheckBox
+                            Margin="10,0"
+                            Content="Busy?"
+                            IsChecked="{x:Bind ViewModel.IsBusy, Mode=TwoWay}" />
+                        <CheckBox
+                            Margin="10,0"
+                            Content="Show?"
+                            IsChecked="{x:Bind ViewModel.Show, Mode=TwoWay}" />
+                        <CheckBox
+                            Margin="10,0"
+                            Content="Toast?"
+                            IsChecked="{x:Bind ViewModel.Toast, Mode=TwoWay}" />
+                    </StackPanel>
+                </ctrl:GroupBox>
 
-                <ctrl:SeparatorLine />
+                <ctrl:GroupBox
+                    MinWidth="300"
+                    Margin="5"
+                    HorizontalAlignment="Left"
+                    HorizontalContentAlignment="Left"
+                    BorderBrush="{ThemeResource SecondaryBorderBrush}"
+                    FontSize="{StaticResource FontSizeMedium}">
+                    <ctrl:GroupBox.Heading>
+                        <StackPanel Orientation="Horizontal">
+                            <SymbolIcon
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Bottom"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Symbol="Clock" />
+                            <!--  https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.symbol?view=windows-app-sdk-1.5#fields  -->
+                            <TextBlock Text="Processing Delay" />
+                        </StackPanel>
+                    </ctrl:GroupBox.Heading>
 
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <RadioButton
-                        Content="Long"
-                        GroupName="AppDelay"
-                        IsChecked="False">
-                        <RadioButton.CommandParameter>
-                            <x:String>Long</x:String>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                    <RadioButton
-                        Content="Medium"
-                        GroupName="AppDelay"
-                        IsChecked="True">
-                        <RadioButton.CommandParameter>
-                            <x:String>Medium</x:String>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                    <RadioButton
-                        Content="Short"
-                        GroupName="AppDelay"
-                        IsChecked="False">
-                        <RadioButton.CommandParameter>
-                            <x:String>Short</x:String>
-                        </RadioButton.CommandParameter>
-                    </RadioButton>
-                </StackPanel>
+                    <StackPanel Orientation="Vertical" Spacing="2">
+                        <RadioButton
+                            Margin="10,5,0,0"
+                            Command="{x:Bind ViewModel.SwitchDelayCommand}"
+                            Content="Long"
+                            GroupName="ProcessingDelay"
+                            IsChecked="{x:Bind ViewModel.Delay, Mode=OneWay, Converter={StaticResource DelayEnumToBoolean}, ConverterParameter=Long}">
+                            <RadioButton.CommandParameter>
+                                <x:String>Long</x:String>
+                            </RadioButton.CommandParameter>
+                        </RadioButton>
+                        <RadioButton
+                            Margin="10,0"
+                            Command="{x:Bind ViewModel.SwitchDelayCommand}"
+                            Content="Medium"
+                            GroupName="ProcessingDelay"
+                            IsChecked="{x:Bind ViewModel.Delay, Mode=OneWay, Converter={StaticResource DelayEnumToBoolean}, ConverterParameter=Medium}">
+                            <RadioButton.CommandParameter>
+                                <x:String>Medium</x:String>
+                            </RadioButton.CommandParameter>
+                        </RadioButton>
+                        <RadioButton
+                            Margin="10,0"
+                            Command="{x:Bind ViewModel.SwitchDelayCommand}"
+                            Content="Short"
+                            GroupName="ProcessingDelay"
+                            IsChecked="{x:Bind ViewModel.Delay, Mode=OneWay, Converter={StaticResource DelayEnumToBoolean}, ConverterParameter=Short}">
+                            <RadioButton.CommandParameter>
+                                <x:String>Short</x:String>
+                            </RadioButton.CommandParameter>
+                        </RadioButton>
+                    </StackPanel>
+                </ctrl:GroupBox>
+
             </StackPanel>
         </Flyout>
         <!--#endregion-->

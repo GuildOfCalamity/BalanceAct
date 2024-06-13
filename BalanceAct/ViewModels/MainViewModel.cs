@@ -15,6 +15,8 @@ using Microsoft.UI.Xaml.Input;
 
 using BalanceAct.Models;
 using BalanceAct.Services;
+using BalanceAct.Support;
+using BalanceAct.ViewModels;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -118,11 +120,18 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _borderSize, value);
     }
 
-    Microsoft.UI.Xaml.Visibility _settingsVisible = Microsoft.UI.Xaml.Visibility.Collapsed;
-    public Microsoft.UI.Xaml.Visibility SettingsVisible
+    Visibility _settingsVisible = Visibility.Collapsed;
+    public Visibility SettingsVisible
     {
         get => _settingsVisible;
         set => SetProperty(ref _settingsVisible, value);
+    }
+
+    DelayTime _delay = DelayTime.Medium;
+    public DelayTime Delay
+    {
+        get => _delay;
+        set => SetProperty(ref _delay, value); 
     }
 
     bool _loading = true;
@@ -144,6 +153,23 @@ public class MainViewModel : ObservableRecipient
     {
         get => _show;
         set => SetProperty(ref _show, value);
+    }
+
+    bool _toast = false;
+    public bool Toast
+    {
+        get => _toast;
+        set
+        {
+            if (value)
+            {
+                if (Random.Shared.Next(1,11) >= 8)
+                    ToastHelper.ShowWarningToast("Exception Toast", "This is a fake error, ignore me.", "ButtonNotifyLink");
+                else
+                    ToastHelper.ShowStandardToast("Sample Toast", "This is a sample of body text for the ToastNotification.");
+            }
+            SetProperty(ref _toast, value);
+        }
     }
 
     string _status = "Loading…";
@@ -303,6 +329,7 @@ public class MainViewModel : ObservableRecipient
     public ICommand UpdateItemCommand { get; }
     public ICommand ImportItemCommand { get; }
     public ICommand RemoveItemCommand { get; }
+    public ICommand SwitchDelayCommand { get; }
     public ICommand KeyboardAcceleratorCommand { get; }
     #endregion
 
@@ -336,7 +363,14 @@ public class MainViewModel : ObservableRecipient
             {
                 IsBusy = true;
 
-                await Task.Delay(750); // for spinners
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
@@ -406,7 +440,14 @@ public class MainViewModel : ObservableRecipient
             {
                 IsBusy = true;
 
-                await Task.Delay(750); // for spinners
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
 
                 if (SelectedDate is null || string.IsNullOrEmpty(SelectedCategory) || string.IsNullOrEmpty(SelectedDescription) || string.IsNullOrEmpty(SelectedAmount))
                 {
@@ -465,7 +506,14 @@ public class MainViewModel : ObservableRecipient
             {
                 IsBusy = true;
 
-                await Task.Delay(500); // for spinners
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
 
                 if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
                 {
@@ -681,7 +729,14 @@ public class MainViewModel : ObservableRecipient
                 }
                 #endregion
 
-                await Task.Delay(500); // for spinners
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
 
                 // If we've changed something, update and save.
                 if (added > 0)
@@ -715,7 +770,38 @@ public class MainViewModel : ObservableRecipient
             if (obj != null && obj is ExpenseItem ei)
             {
                 Status = $"Got item #{ei.Id}: {ei.Description} 💰";
+
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
+
                 _ = App.ShowDialogBox($"Removal", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
+            }
+        });
+
+        // Configure delay time command.
+        SwitchDelayCommand = new RelayCommand<string>(async (param) =>
+        {
+            if (!string.IsNullOrEmpty(param))
+            {
+                if (Enum.IsDefined(typeof(DelayTime), param))
+                {
+                    await Task.Delay(10);
+                    Delay = (DelayTime)Enum.Parse(typeof(DelayTime), param);
+                }
+                else
+                {
+                    Debug.WriteLine($"[WARNING] Parameter is not of type '{nameof(DelayTime)}'.");
+                }
+            }
+            else
+            {
+                Debug.WriteLine($"[WARNING] Parameter was empty, nothing to do.");
             }
         });
 
@@ -1281,4 +1367,3 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 }
-

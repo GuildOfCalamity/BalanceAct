@@ -16,6 +16,7 @@ using BalanceAct.ViewModels;
 
 using Windows.UI.Popups;
 using Windows.UI.ViewManagement;
+using Microsoft.UI.Xaml.Media;
 
 namespace BalanceAct;
 
@@ -31,6 +32,7 @@ public partial class App : Application
     public IServiceProvider Services { get; }
     public static IntPtr WindowHandle { get; set; }
     public static FrameworkElement? MainRoot { get; set; }
+    public static Version WindowsVersion => Extensions.GetWindowsVersionUsingAnalyticsInfo();
     public static bool TransparencyEffectsEnabled { get => m_UISettings.AdvancedEffectsEnabled; }
     public static bool AnimationsEffectsEnabled { get => m_UISettings.AnimationsEnabled; }
     public static double TextScaleFactor { get => m_UISettings.TextScaleFactor; }
@@ -106,8 +108,17 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<ILogger, FileLogger>();
+        //services.AddSingleton<ILogger, FileLogger>();
+
+        // Example of adding service with secondary constructor.
+        if (App.IsPackaged)
+            services.AddSingleton<ILogger, FileLogger>(sp => new FileLogger(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, LogLevel.Debug));
+        else
+            services.AddSingleton<ILogger, FileLogger>(sp => new FileLogger(System.AppContext.BaseDirectory, LogLevel.Debug));
+
         services.AddSingleton<IDataService, DataService>();
+
+        // We could choose to pass the Window's MainRoot into the MainViewModel for invoking ContentDialogs.
         services.AddTransient<MainViewModel>();
 
         return services.BuildServiceProvider();
@@ -572,6 +583,18 @@ public partial class App : Application
         }
     }
     #endregion
+
+    public static void CloseAllDialogs()
+    {
+        if (App.MainRoot?.XamlRoot == null) { return; }
+
+        var openedDialogs = VisualTreeHelper.GetOpenPopupsForXamlRoot(App.MainRoot?.XamlRoot);
+        foreach (var item in openedDialogs)
+        {
+            if (item.Child is ContentDialog dialog)
+                dialog.Hide();
+        }
+    }
 
     /// <summary>
     /// Simplified debug logger for app-wide use.

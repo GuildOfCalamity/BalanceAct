@@ -43,6 +43,52 @@ public static class Extensions
     }
 
     /// <summary>
+    ///	Checks if the taskbar is set to auto-hide.
+    /// </summary>
+    public static bool IsAutoHideTaskbarEnabled()
+    {
+        const string registryKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3";
+        const string valueName = "Settings";
+
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(registryKey);
+            var value = key?.GetValue(valueName) as byte[];
+            // The least significant bit of the 9th byte controls the auto-hide setting																		
+            return value != null && ((value[8] & 0x01) == 1);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] IsAutoHideTaskbarEnabled: {ex.Message}");
+        }
+        
+        return false;
+    }
+
+    /// <summary>
+    /// Get OS version by way of <see cref="Windows.System.Profile.AnalyticsInfo"/>.
+    /// </summary>
+    /// <returns><see cref="Version"/></returns>
+    public static Version GetWindowsVersionUsingAnalyticsInfo()
+    {
+        try
+        {
+            ulong version = ulong.Parse(Windows.System.Profile.AnalyticsInfo.VersionInfo.DeviceFamilyVersion);
+            var Major = (ushort)((version & 0xFFFF000000000000L) >> 48);
+            var Minor = (ushort)((version & 0x0000FFFF00000000L) >> 32);
+            var Build = (ushort)((version & 0x00000000FFFF0000L) >> 16);
+            var Revision = (ushort)(version & 0x000000000000FFFFL);
+
+            return new Version(Major, Minor, Build, Revision);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"GetWindowsVersionUsingAnalyticsInfo: {ex.Message}", $"{nameof(Extensions)}");
+            return new Version(); // 0.0
+        }
+    }
+
+    /// <summary>
     /// Copies one <see cref="List{T}"/> to another <see cref="List{T}"/> by value (deep copy).
     /// </summary>
     /// <returns><see cref="List{T}"/></returns>

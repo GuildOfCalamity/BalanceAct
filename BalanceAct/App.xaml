@@ -31,6 +31,7 @@
             <local:NumberToStringConverter x:Key="NumberToString" />
             <local:NotEmptyToVisibleConverter x:Key="NotEmptyToVisible" />
             <local:NotEmptyToEnabledConverter x:Key="NotEmptyToEnabled" />
+            <local:DelayEnumToBooleanConverter x:Key="DelayEnumToBoolean" />
             <!--#endregion-->
 
             <!--#region [Colors]-->
