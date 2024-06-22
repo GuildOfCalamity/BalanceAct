@@ -177,6 +177,51 @@
                     </StackPanel>
                 </ctrl:GroupBox>
 
+                <ctrl:GroupBox
+                    MinWidth="300"
+                    Margin="5"
+                    HorizontalAlignment="Left"
+                    HorizontalContentAlignment="Left"
+                    BorderBrush="{ThemeResource SecondaryBorderBrush}"
+                    FontSize="{StaticResource FontSizeMedium}">
+                    <ctrl:GroupBox.Heading>
+                        <StackPanel Orientation="Horizontal">
+                            <SymbolIcon
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Bottom"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Symbol="Page2" />
+                            <!--  https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.symbol?view=windows-app-sdk-1.5#fields  -->
+                            <TextBlock Text="Logging Options" />
+                        </StackPanel>
+                    </ctrl:GroupBox.Heading>
+
+                    <Button
+                        Margin="10"
+                        Command="{x:Bind ViewModel.OpenLogCommand}"
+                        Style="{ThemeResource EnhancedButton}">
+                        <Button.Content>
+                            <Grid>
+                                <ctrl:CompositionShadow
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    BlurRadius="3"
+                                    OffsetX="2"
+                                    OffsetY="2"
+                                    Color="#000000">
+                                    <TextBlock
+                                        FontSize="{ThemeResource FontSizeNormal}"
+                                        Foreground="{ThemeResource PrimaryBrush}"
+                                        Text="Open Most Recent Log" />
+                                </ctrl:CompositionShadow>
+                            </Grid>
+                        </Button.Content>
+                        <Button.CommandParameter>
+                            <x:String>Most Recent</x:String>
+                        </Button.CommandParameter>
+                    </Button>
+                </ctrl:GroupBox>
+
             </StackPanel>
         </Flyout>
         <!--#endregion-->

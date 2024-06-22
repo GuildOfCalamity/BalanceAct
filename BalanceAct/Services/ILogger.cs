@@ -45,12 +45,21 @@ public interface ILogger
     Task WriteLineAsync(string message, LogLevel level, [CallerMemberName] string caller = "");
     Task WriteLinesAsync(List<string> messages, LogLevel level, [CallerMemberName] string caller = "");
     string GetCurrentLogPath();
+    string GetCurrentLogPathWithName();
+    string GetCurrentBaseDirectory();
+    string GetRootDrive(bool descendingOrder = true);
+    string GetTemporaryPath();
+    void OpenMostRecentLog();
+    bool IsFileLocked(FileInfo file);
     #endregion
 }
 
 /// <summary>
 /// Logger implementation.
 /// </summary>
+/// <remarks>
+/// TODO: Bring in my go-to purge/clean methods to round out this module.
+/// </remarks>
 public class FileLogger : ILogger
 {
     private readonly string mEmpty = "WinUI";
@@ -90,7 +99,7 @@ public class FileLogger : ILogger
 
         lock (threadLock)
         {
-            string fullPath = GetCurrentLogPath();
+            string fullPath = GetCurrentLogPathWithName();
 
             if (!IsPathTooLong(fullPath))
             {
@@ -124,7 +133,7 @@ public class FileLogger : ILogger
 
         lock (threadLock)
         {
-            string fullPath = GetCurrentLogPath();
+            string fullPath = GetCurrentLogPathWithName();
 
             var directory = Path.GetDirectoryName(fullPath);
             try { Directory.CreateDirectory(directory ?? mEmpty); }
@@ -159,7 +168,7 @@ public class FileLogger : ILogger
     {
         if (level < logLevel) { return; }
 
-        string fullPath = GetCurrentLogPath();
+        string fullPath = GetCurrentLogPathWithName();
 
         var directory = Path.GetDirectoryName(fullPath);
         try { Directory.CreateDirectory(directory ?? mEmpty); }
@@ -190,7 +199,7 @@ public class FileLogger : ILogger
     {
         if (level < logLevel || messages.Count == 0) { return; }
 
-        string fullPath = GetCurrentLogPath();
+        string fullPath = GetCurrentLogPathWithName();
 
         var directory = Path.GetDirectoryName(fullPath);
         try { Directory.CreateDirectory(directory ?? mEmpty); }
@@ -216,36 +225,28 @@ public class FileLogger : ILogger
         }
         else { OnException?.Invoke(new Exception($"Path too long: {fullPath}")); }
     }
-
-
-    public static List<string> GetCallerInfo()
-    {
-        List<string> frames = new List<string>();
-        StackTrace stackTrace = new StackTrace();
-
-        var fm1 = stackTrace.GetFrame(1)?.GetMethod();
-        var fm2 = stackTrace.GetFrame(2)?.GetMethod();
-        var fm3 = stackTrace.GetFrame(3)?.GetMethod();
-        frames.Add($"[Method1]: {fm1?.Name}  [Class1]: {fm1?.DeclaringType?.Name}");
-        frames.Add($"[Method2]: {fm2?.Name}  [Class2]: {fm2?.DeclaringType?.Name}");
-        frames.Add($"[Method3]: {fm3?.Name}  [Class3]: {fm3?.DeclaringType?.Name}");
-        return frames;
-    }
     #endregion
 
     #region [Path helpers]
-    public string GetCurrentLogPath()
+    public string GetTemporaryPath()
     {
-        if (!mLogRoot.EndsWith('\\'))
-            return $@"{mLogRoot}Logs\{DateTime.Today.Year}\{DateTime.Today.Month.ToString("00")}-{DateTime.Today.ToString("MMMM")}\{mAppName}_{DateTime.Now.ToString("dd")}.log";
-        else
-            return $@"{mLogRoot}\Logs\{DateTime.Today.Year}\{DateTime.Today.Month.ToString("00")}-{DateTime.Today.ToString("MMMM")}\{mAppName}_{DateTime.Now.ToString("dd")}.log";
+        string tmp = System.IO.Path.GetTempPath();
+
+        if (string.IsNullOrEmpty(tmp) && !string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("TEMP")))
+            tmp = System.Environment.GetEnvironmentVariable("TEMP") ?? System.IO.Path.GetTempPath();
+        else if (string.IsNullOrEmpty(tmp) && !string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("TMP")))
+            tmp = System.Environment.GetEnvironmentVariable("TMP") ?? System.IO.Path.GetTempPath();
+
+        return tmp;
     }
+    public string GetCurrentLogPath() => Path.GetDirectoryName(GetCurrentLogPathWithName());
+    public string GetCurrentLogPathWithName() => Path.Combine(mLogRoot, $@"Logs\{DateTime.Today.Year}\{DateTime.Today.Month.ToString("00")}-{DateTime.Today.ToString("MMMM")}\{mAppName}_{DateTime.Now.ToString("dd")}.log");
+    public string GetCurrentBaseDirectory() => System.AppContext.BaseDirectory; // -or- Directory.GetCurrentDirectory()
 
     /// <summary>
     /// Gets usable drive from <see cref="DriveType.Fixed"/> volumes.
     /// </summary>
-    public static string GetRoot(bool descendingOrder = true)
+    public string GetRootDrive(bool descendingOrder = true)
     {
         string root = string.Empty;
         try
@@ -377,5 +378,108 @@ public class FileLogger : ILogger
         }
     }
     List<string> LongPathList { get; set; } = new List<string>();
+
+    public static char[] RestrictedCharacters
+    {
+        get => new char[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
+    }
+
+    public static string[] RestrictedFileNames = new string[]
+    {
+        "CON",  "PRN",  "AUX", "NUL",  "COM1", "COM2", "COM3", "COM4", "COM5",
+        "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5",
+        "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+    #endregion
+
+    #region [Micellaneous]
+    /// <summary>
+    /// Opens our most recent log file.
+    /// </summary>
+    public void OpenMostRecentLog()
+    {
+        try
+        {
+            var fileNames = Directory.GetFiles(GetCurrentLogPath(), "*", SearchOption.TopDirectoryOnly).OrderByDescending(o => o);
+            //Array.Sort<string>(fileNames, StringComparer.OrdinalIgnoreCase);
+            foreach (string fileName in fileNames)
+            {
+                if (File.Exists(fileName) && !IsFileLocked(new FileInfo(fileName)))
+                {
+                    Debug.WriteLine($"Opening {Path.GetFileName(fileName)} with default viewer...");
+                    System.Threading.ThreadPool.QueueUserWorkItem((object? o) =>
+                    {
+                        ProcessStartInfo startInfo = new ProcessStartInfo
+                        {
+                            UseShellExecute = true,
+                            FileName = fileName
+                        };
+                        Process.Start(startInfo);
+                    });
+                    break;
+                }
+                else
+                {
+                    Debug.WriteLine($"[WARNING] \"{Path.GetFileName(fileName)}\" does not exist or is locked by another process.");
+                    OnException?.Invoke(new Exception($"\"{Path.GetFileName(fileName)}\" does not exist or is locked by another process."));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] OpenMostRecentLog: {ex.Message}");
+            OnException?.Invoke(ex);
+        }
+    }
+
+    /// <summary>
+    /// Helper method.
+    /// </summary>
+    /// <param name="file"><see cref="FileInfo"/></param>
+    /// <returns>true if file is in use, false otherwise</returns>
+    public bool IsFileLocked(FileInfo file)
+    {
+        FileStream? stream = null;
+        try
+        {
+            stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        }
+        catch (IOException)
+        {
+            // The file is unavailable because it is:
+            // - still being written to
+            // - or being processed by another thread 
+            // - or does not exist
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            if (stream != null)
+            {
+                stream.Close();
+                stream = null;
+            }
+        }
+        // File is not locked.
+        return false;
+    }
+
+    public static List<string> GetCallerInfo()
+    {
+        List<string> frames = new List<string>();
+        StackTrace stackTrace = new StackTrace();
+
+        var fm1 = stackTrace.GetFrame(1)?.GetMethod();
+        var fm2 = stackTrace.GetFrame(2)?.GetMethod();
+        var fm3 = stackTrace.GetFrame(3)?.GetMethod();
+        frames.Add($"[Method1]: {fm1?.Name}  [Class1]: {fm1?.DeclaringType?.Name}");
+        frames.Add($"[Method2]: {fm2?.Name}  [Class2]: {fm2?.DeclaringType?.Name}");
+        frames.Add($"[Method3]: {fm3?.Name}  [Class3]: {fm3?.DeclaringType?.Name}");
+        return frames;
+    }
     #endregion
 }

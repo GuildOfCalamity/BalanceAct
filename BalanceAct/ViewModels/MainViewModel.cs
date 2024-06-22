@@ -331,6 +331,7 @@ public class MainViewModel : ObservableRecipient
     public ICommand RemoveItemCommand { get; }
     public ICommand SwitchDelayCommand { get; }
     public ICommand KeyboardAcceleratorCommand { get; }
+    public ICommand OpenLogCommand { get; }
     #endregion
 
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
@@ -806,6 +807,19 @@ public class MainViewModel : ObservableRecipient
         });
 
         KeyboardAcceleratorCommand = new RelayCommand<KeyboardAcceleratorInvokedEventArgs>(ExecuteKeyboardAcceleratorCommand);
+
+        // Log file
+        OpenLogCommand = new RelayCommand<string>(async (param) =>
+        {
+            if (!string.IsNullOrEmpty(param))
+            {
+                Logger?.OpenMostRecentLog();
+            }
+            else
+            {
+                Debug.WriteLine($"[WARNING] Parameter was empty, nothing to do.");
+            }
+        });
     }
 
     /// <summary>
