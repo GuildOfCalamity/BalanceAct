@@ -4,6 +4,8 @@
 
 ![Example Picture](./ScreenShot2.png)
 
+![Debug Mode](./ScreenShot3.png)
+
 * A simple expense item tracking application with statistics.
 * I've added an example of a gradient **SystemBackdrop**, but there is also a [Desktop Acrylic Controller](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.composition.systembackdrops.desktopacryliccontroller?view=windows-app-sdk-1.5) for the main window.
 * [Nuget](https://learn.microsoft.com/en-us/nuget/what-is-nuget) packages utilized:
