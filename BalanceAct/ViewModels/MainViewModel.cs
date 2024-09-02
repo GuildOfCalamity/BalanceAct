@@ -893,8 +893,10 @@ public class MainViewModel : ObservableRecipient
 
         List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
 
-        // TODO: Account for recurring
+        // TODO: Account for recurring charges.
+
         var months = CountUniqueMonths(ExpenseItems.ToList());
+        var avgPerMonth = ytdTotal / (double)months;
 
         try
         {   // Previous Month (%)
@@ -904,16 +906,18 @@ public class MainViewModel : ObservableRecipient
             AverageExpense = meanResult.ToString("C2", _formatter);
             
             // TODO: Add median calculation.
-            AveragePerMonth = (ytdTotal / months).ToString("C2", _formatter);
+            AveragePerMonth = avgPerMonth.ToString("C2", _formatter);
         }
         catch (DivideByZeroException ex)
         {
             Status = $"{ex.Message} ⚠️";
         }
 
-        // Update observable properties.
-        // TODO: Fix the projected year total calculation.
-        ProjectedYearTotal = (cmTotal * 12d).ToString("C2", _formatter);
+        var monthsRemain = MonthsTilEndOfInYear(DateTime.Now);
+
+        #region [Update observable properties]
+        //ProjectedYearTotal = ((cmTotal * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter); // If at the beginning of the current month, then the projected amount can be too low.
+        ProjectedYearTotal = ((avgPerMonth * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter);
         CurrentMonthTotal = cmTotal.ToString("C2", _formatter);
         YearToDateTotal = ytdTotal.ToString("C2", _formatter);
         // NOTE: A percent sign (%) in a format string causes a number to be multiplied by 100 before it is formatted.
@@ -923,6 +927,7 @@ public class MainViewModel : ObservableRecipient
         PreviousMonthChange = (changeRate / 100).ToString("P1", _formatter);
         if (grouped.Count > 0)
             FrequentCategory = grouped[0].Key;
+        #endregion
     }
 
     public double CalculatePercentageChange(double previous, double current)
@@ -979,6 +984,18 @@ public class MainViewModel : ObservableRecipient
         DateTime beginningOfYear = new DateTime(now.Year, 1, 1);
         int monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month;
         return monthsPassed;
+    }
+
+    /// <summary>
+    /// Calculates the remaining months.
+    /// </summary>
+    /// <param name="date"><see cref="DateTime"/></param>
+    /// <returns></returns>
+    public int MonthsTilEndOfInYear(DateTime date)
+    {
+        int currentMonth = date.Month;
+        int totalMonthsInYear = 12;
+        return totalMonthsInYear - currentMonth;
     }
 
     /// <summary>
