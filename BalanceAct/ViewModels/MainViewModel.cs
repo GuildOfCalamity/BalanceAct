@@ -33,10 +33,11 @@ public class MainViewModel : ObservableRecipient
 {
     #region [Props]
     bool _loaded = false;
+    readonly int _avgMonth = 30;
     System.Globalization.NumberFormatInfo _formatter;
     static DispatcherTimer? _timer;
-    public Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
-    public Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
+    readonly Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
+    readonly Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     public event EventHandler<bool>? ItemsLoadedEvent;
     
     public ObservableCollection<ExpenseItem> ExpenseItems = new();
@@ -267,7 +268,13 @@ public class MainViewModel : ObservableRecipient
     string? _importPathCSV = "";
     public string? ImportPathCSV
     {
-        get => _importPathCSV;
+        get
+        {
+            if (string.IsNullOrEmpty(_importPathCSV))
+                _importPathCSV = Windows.Storage.UserDataPaths.GetDefault().Downloads;
+
+            return _importPathCSV;
+        }
         set => SetProperty(ref _importPathCSV, value);
     }
 
@@ -822,32 +829,6 @@ public class MainViewModel : ObservableRecipient
         });
     }
 
-    /// <summary>
-    /// For testing XAML KeyboardAccelerator Key="Number1" Modifiers="Control"
-    /// </summary>
-    /// <param name="e"><see cref="KeyboardAcceleratorInvokedEventArgs"/></param>
-    void ExecuteKeyboardAcceleratorCommand(KeyboardAcceleratorInvokedEventArgs? e)
-    {
-        if (e is null)
-            return;
-
-        int index = e.KeyboardAccelerator.Key switch
-        {
-            VirtualKey.Number1 => 1,
-            VirtualKey.Number2 => 2,
-            VirtualKey.Number3 => 3,
-            VirtualKey.Number4 => 4,
-            VirtualKey.Number5 => 5,
-            VirtualKey.Number6 => 6,
-            VirtualKey.Number7 => 7,
-            VirtualKey.Number8 => 8,
-            VirtualKey.Number9 => 9,
-            _ => 0,
-        };
-
-        e.Handled = true;
-    }
-
     #region [Statistical Methods]
     public void UpdateSummaryTotals()
     {
@@ -887,9 +868,9 @@ public class MainViewModel : ObservableRecipient
                     ytdTotal += val;
 
                     // Current Month ($)
-                    if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 30))
+                    if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, _avgMonth))
                         cmTotal += val;
-                    else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, 60))
+                    else if (((DateTime)item.Date!).WithinAmountOfDays(DateTime.Now, _avgMonth * 2))
                         pmTotal += val;
                 }
 
@@ -904,7 +885,11 @@ public class MainViewModel : ObservableRecipient
         }
 
         // Exclude outliers in calculation.
-        var meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count / 2);
+        double meanResult = 0;
+        if (ExpenseItems.Count > 1)
+            meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count / 2);
+        else
+            meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count);
 
         List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
 
@@ -927,6 +912,7 @@ public class MainViewModel : ObservableRecipient
         }
 
         // Update observable properties.
+        // TODO: Fix the projected year total calculation.
         ProjectedYearTotal = (cmTotal * 12d).ToString("C2", _formatter);
         CurrentMonthTotal = cmTotal.ToString("C2", _formatter);
         YearToDateTotal = ytdTotal.ToString("C2", _formatter);
@@ -961,7 +947,7 @@ public class MainViewModel : ObservableRecipient
         }
         catch (Exception ex)
         {
-            _ = App.ShowDialogBox($"Warning", $"CalculatePercentageChange ⇒ \"{ex.Message}\"", "OK", "", null, null, _dialogImgUri);
+            _ = App.ShowDialogBox($"Warning", $"CountAndSortCategories ⇒ \"{ex.Message}\"", "OK", "", null, null, _dialogImgUri);
             return new List<KeyValuePair<string, int>>();
         }
     }
@@ -1128,6 +1114,32 @@ public class MainViewModel : ObservableRecipient
             new ExpenseItem { Id = 4, Opacity = 1d, Description = $"💰 A sample entertainment expense item", Date = DateTime.Now.AddDays(-31), Amount = "$12.00", Category = "Entertainment", Recurring = false, Codes = "CHK#2112", Color = Microsoft.UI.Colors.WhiteSmoke },
             new ExpenseItem { Id = 5, Opacity = 1d, Description = $"💰 A sample travel expense item", Date = DateTime.Now.AddDays(-62), Amount = "$223.11", Category = "Travel", Recurring = false, Codes = "Confirmation QRZ9981", Color = Microsoft.UI.Colors.WhiteSmoke },
         };
+    }
+
+    /// <summary>
+    /// For testing XAML KeyboardAccelerator Key="Number1" Modifiers="Control"
+    /// </summary>
+    /// <param name="e"><see cref="KeyboardAcceleratorInvokedEventArgs"/></param>
+    void ExecuteKeyboardAcceleratorCommand(KeyboardAcceleratorInvokedEventArgs? e)
+    {
+        if (e is null)
+            return;
+
+        int index = e.KeyboardAccelerator.Key switch
+        {
+            VirtualKey.Number1 => 1,
+            VirtualKey.Number2 => 2,
+            VirtualKey.Number3 => 3,
+            VirtualKey.Number4 => 4,
+            VirtualKey.Number5 => 5,
+            VirtualKey.Number6 => 6,
+            VirtualKey.Number7 => 7,
+            VirtualKey.Number8 => 8,
+            VirtualKey.Number9 => 9,
+            _ => 0,
+        };
+
+        e.Handled = true;
     }
     #endregion
 
