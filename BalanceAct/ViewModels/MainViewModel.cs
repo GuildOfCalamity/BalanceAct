@@ -990,12 +990,12 @@ public class MainViewModel : ObservableRecipient
     /// Calculates the remaining months.
     /// </summary>
     /// <param name="date"><see cref="DateTime"/></param>
-    /// <returns></returns>
-    public int MonthsTilEndOfInYear(DateTime date)
+    public int MonthsTilEndOfInYear(DateTime? date)
     {
-        int currentMonth = date.Month;
-        int totalMonthsInYear = 12;
-        return totalMonthsInYear - currentMonth;
+        if (date is null)
+            date = DateTime.Now;
+
+        return 12 - date.Value.Month;
     }
 
     /// <summary>
