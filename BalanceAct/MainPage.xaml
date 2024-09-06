@@ -37,10 +37,25 @@
     <Page.Resources>
         <CommandBarFlyout x:Name="eiFlyout" Placement="Right">
             <CommandBarFlyout.SecondaryCommands>
-                <AppBarButton Label="Remove" />
-                <!--<AppBarSeparator />-->
-                <AppBarButton Label="Split" />
-                <AppBarButton Label="Freeze" />
+                <!--
+                    NOTE: The item will be set in the ItemListView_RightTapped
+                    event, so we don't need to worry about setting the CommandParameter.
+                -->
+                <AppBarButton Command="{x:Bind ViewModel.RemoveItemCommand, Mode=OneWay}" Label="Remove">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="{StaticResource Delete}" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <AppBarButton Command="{x:Bind ViewModel.RemoveItemCommand, Mode=OneWay}" Label="Split">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="{StaticResource Split20}" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <AppBarButton Command="{x:Bind ViewModel.FreezeItemCommand, Mode=OneWay}" Label="Freeze">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="{StaticResource Lock}" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
             </CommandBarFlyout.SecondaryCommands>
         </CommandBarFlyout>
 
@@ -716,7 +731,6 @@
                     </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
-
 
         </ListView>
         <!--#endregion-->

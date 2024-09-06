@@ -84,6 +84,17 @@ public class MainViewModel : ObservableRecipient
         }
     }
 
+    ExpenseItem? _rightClickedItem;
+    public ExpenseItem? RightClickedItem
+    {
+        get => _rightClickedItem;
+        set
+        {
+            if (value != null)
+                _rightClickedItem = value;
+        }
+    }
+
     public List<string> Categories { get; set; } = new()
     {
         "Automotive",
@@ -336,6 +347,9 @@ public class MainViewModel : ObservableRecipient
     public ICommand UpdateItemCommand { get; }
     public ICommand ImportItemCommand { get; }
     public ICommand RemoveItemCommand { get; }
+    public ICommand SplitItemCommand { get; }
+    public ICommand FreezeItemCommand { get; }
+    public ICommand RightClickedCommand { get; }
     public ICommand SwitchDelayCommand { get; }
     public ICommand KeyboardAcceleratorCommand { get; }
     public ICommand OpenLogCommand { get; }
@@ -773,11 +787,14 @@ public class MainViewModel : ObservableRecipient
         }
         #endregion
 
+        #region [In Development]
         RemoveItemCommand = new RelayCommand<object>(async (obj) =>
         {
-            if (obj != null && obj is ExpenseItem ei)
+            if (RightClickedItem is not null)
             {
-                Status = $"Got item #{ei.Id}: {ei.Description} 💰";
+                Status = $"Got item #{RightClickedItem.Id}: {RightClickedItem.Description} 💰";
+                
+                _ = App.ShowDialogBox($"Removal Feature", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
 
                 // for spinners
                 switch (Delay)
@@ -787,8 +804,71 @@ public class MainViewModel : ObservableRecipient
                     case DelayTime.Long: await Task.Delay(2000); break;
                     default: break; // none
                 }
+            }
+            else
+            {
+                Status = $"You must right-click an item first";
+            }
+        });
 
-                _ = App.ShowDialogBox($"Removal", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
+        SplitItemCommand = new RelayCommand<object>(async (obj) =>
+        {
+            if (RightClickedItem is not null)
+            {
+                Status = $"Got item #{RightClickedItem.Id}: {RightClickedItem.Description} 💰";
+
+                _ = App.ShowDialogBox($"Split Feature", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
+
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
+            }
+            else
+            {
+                Status = $"You must right-click an item first";
+            }
+        });
+
+        FreezeItemCommand = new RelayCommand<object>(async (obj) =>
+        {
+            if (RightClickedItem is not null)
+            {
+                Status = $"Got item #{RightClickedItem.Id}: {RightClickedItem.Description} 💰";
+
+                _ = App.ShowDialogBox($"Freeze Feature", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
+
+                // for spinners
+                switch (Delay)
+                {
+                    case DelayTime.Short: await Task.Delay(200); break;
+                    case DelayTime.Medium: await Task.Delay(600); break;
+                    case DelayTime.Long: await Task.Delay(2000); break;
+                    default: break; // none
+                }
+            }
+            else
+            {
+                Status = $"You must right-click an item first";
+            }
+        });
+        #endregion
+
+        RightClickedCommand = new RelayCommand<object>(async (obj) =>
+        {
+            if (obj is not null && obj is ExpenseItem ei)
+            {
+                RightClickedItem = ei;
+                Status = $"Got item #{ei.Id}: {ei.Description} 💰";
+            }
+            else
+            {
+                RightClickedItem = null;
+                Status = $"You must select an item first";
             }
         });
 

@@ -30,6 +30,7 @@ public sealed partial class MainPage : Page
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
         InitializeComponent();
         this.Loading += MainPageLoading;
+        ItemListView.RightTapped += ItemListView_RightTapped;
         
         foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType()))
         {
@@ -43,6 +44,18 @@ public sealed partial class MainPage : Page
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
         chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(1));
         url.Text = "More WinUI3 examples at my github https://github.com/GuildOfCalamity?tab=repositories";
+
+    }
+
+    void ItemListView_RightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
+    {
+        // Most of the DataTemplate in the Grid are TextBlocks, but you can adjust this to any control you want.
+        var source = e.OriginalSource as TextBlock;
+        Debug.WriteLine($"[INFO] Right-clicked \"{(source != null ? source.Text : "null")}\"");
+
+        var dc = ((FrameworkElement)e.OriginalSource).DataContext;
+        if (dc is not null)
+            ViewModel?.RightClickedCommand.Execute((ExpenseItem)dc);
     }
 
     void ItemListView_Loaded(object sender, RoutedEventArgs e)
@@ -118,6 +131,7 @@ public sealed partial class MainPage : Page
             item = VisualTreeHelper.GetParent(item);
         }
 
+        // When an item is right-clicked our CommandBarFlyout will appear.
         if (item is ListViewItem lvi)
             lvi.ContextFlyout = eiFlyout;
     }
