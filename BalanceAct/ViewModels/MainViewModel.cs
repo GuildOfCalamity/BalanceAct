@@ -1000,11 +1000,11 @@ public class MainViewModel : ObservableRecipient
             var tallyArray = tally.ToArray();
             if (tallyArray.Length >= 2)
             {
-                var cm = tallyArray[0].Value;
-                var pm = tallyArray[1].Value;
-                var estimated = EstimateMonthEndSpending(cm);
+                cmTotal = tallyArray[0].Value;
+                pmTotal = tallyArray[1].Value;
+                var estimated = EstimateMonthEndSpending(cmTotal);
                 // Previous Month (%)
-                changeRate = CalculatePercentageChange(pm, cm);
+                changeRate = CalculatePercentageChange(pmTotal, cmTotal);
             }
             else
             {
