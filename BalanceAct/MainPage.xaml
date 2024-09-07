@@ -978,6 +978,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <!--  Bottom Graphic  -->
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
@@ -1220,14 +1221,31 @@
                                 FontSize="{StaticResource FontSizeSmall}"
                                 HorizontalTextAlignment="Center"
                                 TextTrimming="CharacterEllipsis"
-                                TextWrapping="WrapWholeWords">
+                                TextWrapping="WrapWholeWords"
+                                Visibility="Collapsed">
                                 <interact:Interaction.Behaviors>
                                     <behave:HyperlinkTextBlockBehavior />
                                 </interact:Interaction.Behaviors>
                             </TextBlock>
 
+                            <TextBlock
+                                x:Name="tally"
+                                Grid.Row="9"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                MaxWidth="300"
+                                MaxHeight="300"
+                                Margin="5,20,5,5"
+                                HorizontalAlignment="Stretch"
+                                FontFamily="{StaticResource SecondaryFont}"
+                                FontSize="{StaticResource FontSizeNormal}"
+                                Foreground="{ThemeResource HeaderBrush}"
+                                HorizontalTextAlignment="Center"
+                                Text="{x:Bind ViewModel.YearToDateTally, Mode=OneWay}"
+                                TextWrapping="WrapWholeWords" />
+
                             <Image
-                                Grid.Row="10"
+                                Grid.Row="11"
                                 Grid.ColumnSpan="3"
                                 Width="100"
                                 Height="100"

@@ -23,6 +23,8 @@ using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
 using Windows.System;
+using System.Globalization;
+using System.Text;
 
 namespace BalanceAct.ViewModels;
 
@@ -316,6 +318,13 @@ public class MainViewModel : ObservableRecipient
     {
         get => _projectedYearTotal;
         set => SetProperty(ref _projectedYearTotal, value);
+    }
+
+    string? _yearToDateTally = "$0.00";
+    public string? YearToDateTally
+    {
+        get => _yearToDateTally;
+        set => SetProperty(ref _yearToDateTally, value);
     }
 
     string? _frequentCategory = "N/A";
@@ -807,7 +816,7 @@ public class MainViewModel : ObservableRecipient
             }
             else
             {
-                Status = $"You must right-click an item first";
+                Status = $"You must right-click an item first ⚠️";
             }
         });
 
@@ -830,7 +839,7 @@ public class MainViewModel : ObservableRecipient
             }
             else
             {
-                Status = $"You must right-click an item first";
+                Status = $"You must right-click an item first ⚠️";
             }
         });
 
@@ -853,7 +862,7 @@ public class MainViewModel : ObservableRecipient
             }
             else
             {
-                Status = $"You must right-click an item first";
+                Status = $"You must right-click an item first ⚠️";
             }
         });
         #endregion
@@ -868,7 +877,7 @@ public class MainViewModel : ObservableRecipient
             else
             {
                 RightClickedItem = null;
-                Status = $"You must select an item first";
+                Status = $"You must select an item first ⚠️";
             }
         });
 
@@ -979,9 +988,31 @@ public class MainViewModel : ObservableRecipient
         var avgPerMonth = ytdTotal / (double)months;
 
         try
-        {   // Previous Month (%)
-            changeRate = CalculatePercentageChange(pmTotal, cmTotal);
-            
+        {
+            StringBuilder sb = new();
+            var tally = TallyExpensesByMonth(ExpenseItems.ToList());
+            foreach (var item in tally)
+            {
+                sb.AppendLine($"{item.Key}\t{item.Value.ToString("C2", _formatter)}");
+            }
+            YearToDateTally = $"{sb}";
+
+            var tallyArray = tally.ToArray();
+            if (tallyArray.Length >= 2)
+            {
+                var cm = tallyArray[0].Value;
+                var pm = tallyArray[1].Value;
+                var estimated = EstimateMonthEndSpending(cm);
+                // Previous Month (%)
+                changeRate = CalculatePercentageChange(pm, cm);
+            }
+            else
+            {
+                var estimated = EstimateMonthEndSpending(cmTotal);
+                // Previous Month (%)
+                changeRate = CalculatePercentageChange(pmTotal, cmTotal);
+            }
+
             //AverageExpense = (ytdTotal / CurrentCount).ToString("C2", _formatter);
             AverageExpense = meanResult.ToString("C2", _formatter);
             
@@ -1008,6 +1039,31 @@ public class MainViewModel : ObservableRecipient
         if (grouped.Count > 0)
             FrequentCategory = grouped[0].Key;
         #endregion
+    }
+
+    public Dictionary<string, double> TallyExpensesByMonth(List<ExpenseItem> expenses)
+    {
+        // Use a dictionary to store the sum of expenses per month (MM-yyyy)
+        var expensesByMonth = new Dictionary<string, double>();
+
+        foreach (var expense in expenses)
+        {
+            if (expense.Date is not null)
+            {
+                // Format the date as "MM-yyyy" to use as the key (Month-Year format)
+                string key = expense.Date.Value.ToString("MMM-yyyy", CultureInfo.InvariantCulture);
+                if (TryParseDollarAmount(expense.Amount, out double val))
+                {
+                    // If the monthKey exists, add to the sum, otherwise initialize the entry
+                    if (expensesByMonth.ContainsKey(key))
+                        expensesByMonth[key] += val;
+                    else
+                        expensesByMonth[key] = val;
+                }
+            }
+        }
+
+        return expensesByMonth;
     }
 
     public double CalculatePercentageChange(double previous, double current)
@@ -1076,6 +1132,30 @@ public class MainViewModel : ObservableRecipient
             date = DateTime.Now;
 
         return 12 - date.Value.Month;
+    }
+
+    /// <summary>
+    /// Calculates the remaining days.
+    /// </summary>
+    public int DaysTilEndOfMonth()
+    {
+        DateTime today = DateTime.Today;
+        int daysInMonth = DateTime.DaysInMonth(today.Year, today.Month);
+        return daysInMonth - today.Day;
+    }
+
+    /// <summary>
+    /// Estimates the months spending
+    /// </summary>
+    /// <param name="currentSpending">cmTotal</param>
+    public double EstimateMonthEndSpending(double currentSpending)
+    {
+        DateTime today = DateTime.Today;
+        int daysInMonth = DateTime.DaysInMonth(today.Year, today.Month);
+        int daysPassed = today.Day;
+        double dailySpendingRate = currentSpending / daysPassed;
+        double estimatedTotalSpending = dailySpendingRate * daysInMonth;
+        return estimatedTotalSpending;
     }
 
     /// <summary>
@@ -1168,12 +1248,34 @@ public class MainViewModel : ObservableRecipient
 
     public bool TryParseDollarAmount(string amount, out decimal value)
     {
+        if (string.IsNullOrEmpty(amount))
+        {
+            value = 0;
+            return false;
+        }
+
         // Remove the dollar sign if present
         string cleanedAmount = amount.Replace("$", "").Trim();
 
         // Attempt to parse the cleaned amount
         return decimal.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
         //return decimal.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
+    }
+
+    public bool TryParseDollarAmount(string amount, out double value)
+    {
+        if (string.IsNullOrEmpty(amount))
+        {
+            value = 0;
+            return false;
+        }
+
+        // Remove the dollar sign if present
+        string cleanedAmount = amount.Replace("$", "").Trim();
+
+        // Attempt to parse the cleaned amount
+        return double.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
+        //return double.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
     }
 
     public int GetHighestId()
