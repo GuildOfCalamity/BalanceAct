@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -23,8 +25,6 @@ using CommunityToolkit.Mvvm.Input;
 
 using Windows.Storage;
 using Windows.System;
-using System.Globalization;
-using System.Text;
 
 namespace BalanceAct.ViewModels;
 
@@ -386,7 +386,7 @@ public class MainViewModel : ObservableRecipient
 
         if (Logger is not null)
             Logger.OnException += (error) => _ = App.ShowDialogBox($"Logger", $"{error}{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
-
+        
         #region [Add Action]
         AddItemCommand = new RelayCommand<object>(async (obj) =>
         {
@@ -569,7 +569,7 @@ public class MainViewModel : ObservableRecipient
                 var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
 
                 #region [Perform backup before the import]
-                var bkup = dataService?.MakeBackup(baseFolder, App.DatabaseExpense, ExpenseItems.ToList());
+                var bkup = dataService?.Backup(baseFolder, App.DatabaseExpense, ExpenseItems.ToList());
                 if (bkup != null && !bkup.Value) 
                 {
                     Status = $"Backup attempt failed ⚠️";
@@ -904,7 +904,7 @@ public class MainViewModel : ObservableRecipient
 
         KeyboardAcceleratorCommand = new RelayCommand<KeyboardAcceleratorInvokedEventArgs>(ExecuteKeyboardAcceleratorCommand);
 
-        // Log file
+        // Log file command.
         OpenLogCommand = new RelayCommand<string>(async (param) =>
         {
             if (!string.IsNullOrEmpty(param))

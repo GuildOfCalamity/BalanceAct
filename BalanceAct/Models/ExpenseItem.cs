@@ -69,3 +69,10 @@ public class ExpenseItem : ICloneable
     }
 }
 
+/// <summary>
+/// This makes the deserialization of the ExpenseItem class more performant so it doesn't have to use reflection.
+/// </summary>
+[System.Text.Json.Serialization.JsonSerializable(typeof(List<ExpenseItem>))]
+internal sealed partial class ExpenseItemContext : System.Text.Json.Serialization.JsonSerializerContext
+{
+}

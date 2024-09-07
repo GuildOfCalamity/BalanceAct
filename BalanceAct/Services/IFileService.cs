@@ -1,11 +1,9 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+
+using Newtonsoft.Json;
 
 namespace BalanceAct.Services;
 
@@ -16,15 +14,30 @@ public interface IDataService
     void Save<T>(string folderPath, string fileName, T content);
     bool Restore(string folderPath, string fileName);
     void Delete(string folderPath, string fileName);
-    bool MakeBackup<T>(string folderPath, string fileName, T content);
+    bool Backup<T>(string folderPath, string fileName, T content);
 }
 
+/// <summary>
+/// Basic CRUD for our data model.
+/// </summary>
 public class DataService : IDataService
 {
+    /// <summary>
+    /// Whether to user Newtonsoft or Microsoft for model serialization and deserialization.
+    /// </summary>
+    public bool UseNewtonsoft { get; set; } = false;
+
+    /// <summary>
+    /// <para>Amount (in days) of when a backup should be made.</para>
+    /// <para><i>This value must be a negative number.</i></para>
+    /// </summary>
     public int DaysUntilBackupReplaced { get; set; } = -1;
 
     public DataService() { }
 
+    /// <summary>
+    /// Loads data of type <typeparamref name="T"/>.
+    /// </summary>
     public T? Read<T>(string folderPath, string fileName)
     {
         try
@@ -33,11 +46,24 @@ public class DataService : IDataService
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
-                return JsonConvert.DeserializeObject<T>(json,
-                    new JsonSerializerSettings
+                if (UseNewtonsoft)
+                {
+                    return JsonConvert.DeserializeObject<T>(json,
+                        new JsonSerializerSettings
+                        {
+                            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                        });
+                }
+                else
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions
                     {
-                        NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
-                    });
+                        PropertyNameCaseInsensitive = true,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    };
+                    var obj = System.Text.Json.JsonSerializer.Deserialize<T>(json, options);
+                    return (T)obj;
+                }
             }
         }
         catch (Exception ex)
@@ -49,6 +75,9 @@ public class DataService : IDataService
         return default;
     }
 
+    /// <summary>
+    /// Saves data of type <typeparamref name="T"/>.
+    /// </summary>
     public void Save<T>(string folderPath, string fileName, T content)
     {
         try
@@ -67,15 +96,30 @@ public class DataService : IDataService
                 }
             }
 
-            // Serialize and save to file.
-            var fileContent = JsonConvert.SerializeObject(content,
-                Newtonsoft.Json.Formatting.Indented,
-                new JsonSerializerSettings
+            string fileContent = string.Empty;
+            if (UseNewtonsoft)
+            {
+                // Serialize and save to file.
+                fileContent = JsonConvert.SerializeObject(content,
+                    Newtonsoft.Json.Formatting.Indented,
+                    new JsonSerializerSettings
+                    {
+                        NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                    }
+                );
+                File.WriteAllText(Path.Combine(folderPath, fileName), fileContent, Encoding.UTF8);
+            }
+            else
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
                 {
-                    NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
-                }
-            );
-            File.WriteAllText(Path.Combine(folderPath, fileName), fileContent, Encoding.UTF8);
+                    WriteIndented = true,
+                    PropertyNameCaseInsensitive = true,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                };
+                fileContent = System.Text.Json.JsonSerializer.Serialize<T>(content, options);
+                File.WriteAllText(Path.Combine(folderPath, fileName), fileContent, Encoding.UTF8);
+            }
 
             #region [Automatic backups]
             if (!File.Exists(Path.Combine(folderPath, $"{fileName}.bak")))
@@ -99,7 +143,10 @@ public class DataService : IDataService
         }
     }
 
-    public bool MakeBackup<T>(string folderPath, string fileName, T content)
+    /// <summary>
+    /// Backup data of type <typeparamref name="T"/>.
+    /// </summary>
+    public bool Backup<T>(string folderPath, string fileName, T content)
     {
         try
         {
@@ -116,17 +163,32 @@ public class DataService : IDataService
                     File.SetAttributes(Path.Combine(folderPath, $"{fileName}.bak"), attributes);
                 }
             }
+            
+            string fileContent = string.Empty;
+            if (UseNewtonsoft)
+            {
+                // Serialize and save to file.
+                fileContent = JsonConvert.SerializeObject(content,
+                    Newtonsoft.Json.Formatting.Indented,
+                    new JsonSerializerSettings
+                    {
+                        NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                    }
+                );
 
-            // Serialize and save to file.
-            var fileContent = JsonConvert.SerializeObject(content,
-                Newtonsoft.Json.Formatting.Indented,
-                new JsonSerializerSettings
+                File.WriteAllText(Path.Combine(folderPath, $"{fileName}.bak"), fileContent, Encoding.UTF8);
+            }
+            else
+            {
+                var options = new System.Text.Json.JsonSerializerOptions
                 {
-                    NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
-                }
-            );
-
-            File.WriteAllText(Path.Combine(folderPath, $"{fileName}.bak"), fileContent, Encoding.UTF8);
+                    WriteIndented = true,
+                    PropertyNameCaseInsensitive = true,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                };
+                fileContent = System.Text.Json.JsonSerializer.Serialize<T>(content, options);
+                File.WriteAllText(Path.Combine(folderPath, $"{fileName}.bak"), fileContent, Encoding.UTF8);
+            }
             return true;
         }
         catch (Exception ex)
@@ -136,6 +198,9 @@ public class DataService : IDataService
         }
     }
 
+    /// <summary>
+    /// Restores data from backup to working.
+    /// </summary>
     public bool Restore(string folderPath, string fileName)
     {
         if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(fileName))
@@ -146,7 +211,6 @@ public class DataService : IDataService
 
         try
         {
-            //File.Delete(Path.Combine(folderPath, fileName));
             File.Move(Path.Combine(folderPath, $"{fileName}.bak"), Path.Combine(folderPath, fileName), true);
             return true;
         }
@@ -157,6 +221,9 @@ public class DataService : IDataService
         }
     }
 
+    /// <summary>
+    /// Deletes the data file.
+    /// </summary>
     public void Delete(string folderPath, string fileName)
     {
         try
@@ -170,7 +237,6 @@ public class DataService : IDataService
                     attributes &= ~FileAttributes.ReadOnly;
                     File.SetAttributes(Path.Combine(folderPath, fileName), attributes);
                 }
-
                 // Remove the file.
                 File.Delete(Path.Combine(folderPath, fileName));
             }

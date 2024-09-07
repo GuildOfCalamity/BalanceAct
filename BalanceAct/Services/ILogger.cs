@@ -348,6 +348,8 @@ public class FileLogger : ILogger
         }
     }
 
+    public static bool FilePathHasInvalidChars(string path) => (!string.IsNullOrEmpty(path) && path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0);
+
     /// <summary>
     /// Testing method for evaluating total path lengths.
     /// </summary>
@@ -480,6 +482,39 @@ public class FileLogger : ILogger
         frames.Add($"[Method2]: {fm2?.Name}  [Class2]: {fm2?.DeclaringType?.Name}");
         frames.Add($"[Method3]: {fm3?.Name}  [Class3]: {fm3?.DeclaringType?.Name}");
         return frames;
+    }
+
+    public static void ClearReadOnlyFile(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                FileAttributes attributes = File.GetAttributes(filePath);
+                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    attributes &= ~FileAttributes.ReadOnly;
+                    File.SetAttributes(filePath, attributes);
+                }
+            }
+            catch (Exception) { }
+        }
+    }
+
+    public static void ClearReadOnlyDirectory(string directoryPath)
+    {
+        if (Directory.Exists(directoryPath))
+        {
+            try
+            {
+                string[] files = Directory.GetFiles(directoryPath);
+                foreach (string file in files)
+                {
+                    ClearReadOnlyFile(file);
+                }
+            }
+            catch (Exception) { }
+        }
     }
     #endregion
 }

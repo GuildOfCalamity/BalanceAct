@@ -17,6 +17,8 @@ using BalanceAct.ViewModels;
 using Windows.UI.Popups;
 using Windows.UI.ViewManagement;
 using Microsoft.UI.Xaml.Media;
+using System.Linq;
+using System.Text;
 
 namespace BalanceAct;
 
@@ -78,7 +80,8 @@ public partial class App : Application
 
     public App()
     {
-        Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
+        Debug.WriteLine($"[INFO] {System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
+        Debug.WriteLine($"[INFO] {ReflectPrimitive()}");
 
         App.Current.DebugSettings.FailFastOnErrors = false;
         
@@ -613,5 +616,23 @@ public partial class App : Application
         {
             Debug.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.fff tt")}] {message}");
         }
+    }
+
+    /// <summary>
+    /// Fetching framework version via primitive.
+    /// </summary>
+    public string ReflectPrimitive()
+    {
+        StringBuilder sb = new StringBuilder();
+        try
+        {
+            Assembly info = typeof(int).Assembly;
+            var sig = info.Location;
+            string[] separators = { "\\", "/" };
+            var list = sig.Split(separators, StringSplitOptions.RemoveEmptyEntries).Skip(4);
+            foreach (var str in list) { sb.Append($"{str} • "); }
+        }
+        catch (Exception) { }
+        return $"{sb}";
     }
 }
