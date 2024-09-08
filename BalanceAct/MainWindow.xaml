@@ -42,8 +42,8 @@
                 Margin="50"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Opacity="0.05"
-                Source="ms-appx:///Assets/Balance.png" />
+                Opacity="0.04"
+                Source="ms-appx:///Assets/StoreLogo2.png" />
             <local:MainPage />
         </Grid>
     </Grid>
