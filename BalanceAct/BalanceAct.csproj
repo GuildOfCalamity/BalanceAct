@@ -68,6 +68,7 @@
 	<None Remove="Assets\Spinner.png" />
 	<None Remove="Assets\StoreLogo.ico" />
 	<None Remove="Assets\Warning.png" />
+	<None Remove="Controls\AnimatedCirclesControl.xaml" />
 	<None Remove="Controls\CompositionShadow.xaml" />
 	<None Remove="Controls\SeparatorLine.xaml" />
 	<None Remove="MainPage.xaml" />
@@ -103,6 +104,11 @@
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 	<ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\AnimatedCirclesControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
 	<Page Update="Controls\CompositionShadow.xaml">

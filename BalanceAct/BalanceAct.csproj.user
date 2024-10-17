@@ -7,6 +7,11 @@
     <ActiveDebugProfile>BalanceAct (Unpackaged)</ActiveDebugProfile>
   </PropertyGroup>
   <ItemGroup>
+    <Page Update="Controls\AnimatedCirclesControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="Controls\CompositionShadow.xaml">
       <SubType>Designer</SubType>
     </Page>

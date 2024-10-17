@@ -46,7 +46,7 @@
                         <FontIcon Glyph="{StaticResource Delete}" />
                     </AppBarButton.Icon>
                 </AppBarButton>
-                <AppBarButton Command="{x:Bind ViewModel.RemoveItemCommand, Mode=OneWay}" Label="Split">
+                <AppBarButton Command="{x:Bind ViewModel.SplitItemCommand, Mode=OneWay}" Label="Split">
                     <AppBarButton.Icon>
                         <FontIcon Glyph="{StaticResource Split20}" />
                     </AppBarButton.Icon>
@@ -504,6 +504,20 @@
                     Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
 
             </Grid>
+            <!--#endregion-->
+
+            <!--#region [Custom Loading/Working Animation]-->
+            <ctrl:AnimatedCirclesControl
+                Grid.Row="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                AnimationDuration="0.9"
+                AnimationFrequency="0.1"
+                CircleSize="9"
+                GradientColorOne="{StaticResource LinearBorder9}"
+                GradientColorTwo="{StaticResource LinearBorder12}"
+                IsRunning="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                ScaleFactor="1.25" />
             <!--#endregion-->
 
             <!--#region [Custom Button Style Test]-->
