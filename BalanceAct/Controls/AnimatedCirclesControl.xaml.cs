@@ -402,11 +402,9 @@ public static class AnimatedCirclesExtensions
         {
             //var cr = CalculateContrastRatio(c1, c2);
             //Debug.WriteLine($"[INFO] ContrastRatio is {cr:N2}");
-
             var dominant = ExtractPredominantColor(new Windows.UI.Color[] { c1, c2 });
             Debug.WriteLine($"[INFO] Predominant color is {dominant}");
-
-            //lgb.GradientStops.Add(new GradientStop { Color = dominant.LighterBy(0.2f), Offset = 0.36 });
+            lgb.GradientStops.Add(new GradientStop { Color = dominant.LighterBy(0.2f), Offset = 0.36 });
         }
         lgb.GradientStops.Add(new GradientStop { Color = c2, Offset = 0.57 });
         lgb.ColorInterpolationMode = ColorInterpolationMode.ScRgbLinearInterpolation;
