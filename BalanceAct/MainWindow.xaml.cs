@@ -20,13 +20,19 @@ public sealed partial class MainWindow : Window
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
 
         InitializeComponent();
-        this.ExtendsContentIntoTitleBar = true;
-        this.Title = $"{App.GetCurrentAssemblyName()}";
+
+        if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
+        {
+            this.ExtendsContentIntoTitleBar = true;
+            this.Title = $"{App.GetCurrentAssemblyName()}";
+            SetTitleBar(CustomTitleBar);
+        }
+        
         this.Closed += MainWindow_Closed;
-        SetTitleBar(CustomTitleBar);
+
         if (_useGradient)
         {
-            CreateGradientBackdrop(root, new System.Numerics.Vector2(0.9f,1));
+            CreateGradientBackdrop(root, new System.Numerics.Vector2(0.9f, 1));
         }
         else if (DesktopAcrylicController.IsSupported())
         {

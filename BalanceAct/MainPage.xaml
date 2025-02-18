@@ -483,6 +483,7 @@
                 -->
                 <!--#endregion-->
 
+                <!--
                 <ProgressRing
                     Grid.Row="0"
                     Width="22"
@@ -502,6 +503,7 @@
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource SecondaryBrush}"
                     Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BooleanVisibility}, ConverterParameter=False}" />
+                -->
 
             </Grid>
             <!--#endregion-->
@@ -513,9 +515,9 @@
                 VerticalAlignment="Center"
                 AnimationDuration="0.9"
                 AnimationFrequency="0.1"
-                CircleSize="9"
-                GradientColorOne="{StaticResource LinearBorder9}"
-                GradientColorTwo="{StaticResource LinearBorder12}"
+                CircleSize="10"
+                GradientColorOne="{StaticResource LinearBorder12}"
+                GradientColorTwo="{StaticResource LinearBorder9}"
                 IsRunning="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
                 ScaleFactor="1.25" />
             <!--#endregion-->

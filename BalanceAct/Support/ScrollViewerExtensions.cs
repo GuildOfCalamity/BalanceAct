@@ -12,7 +12,7 @@ namespace BalanceAct.Support;
 /// </summary>
 public static partial class ScrollViewerExtensions
 {
-    private static void OnHorizontalScrollBarMarginPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    static void OnHorizontalScrollBarMarginPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         if (sender is FrameworkElement baseElement)
         {
@@ -32,7 +32,7 @@ public static partial class ScrollViewerExtensions
         }
     }
 
-    private static bool ChangeHorizontalScrollBarMarginProperty(FrameworkElement sender)
+    static bool ChangeHorizontalScrollBarMarginProperty(FrameworkElement sender)
     {
         if (sender == null)
         {
@@ -56,7 +56,7 @@ public static partial class ScrollViewerExtensions
         return true;
     }
 
-    private static void ChangeHorizontalScrollBarMarginProperty(object sender, RoutedEventArgs routedEventArgs)
+    static void ChangeHorizontalScrollBarMarginProperty(object sender, RoutedEventArgs routedEventArgs)
     {
         if (sender is FrameworkElement baseElement)
         {
@@ -67,7 +67,7 @@ public static partial class ScrollViewerExtensions
         }
     }
 
-    private static void OnVerticalScrollBarMarginPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    static void OnVerticalScrollBarMarginPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         if (sender is FrameworkElement baseElement)
         {

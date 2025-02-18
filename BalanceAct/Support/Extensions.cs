@@ -88,6 +88,20 @@ public static class Extensions
         }
     }
 
+    #region [Keyboard Helpers]
+    public static bool IsShiftKeyDown()
+    {
+        var shiftKey = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
+        return shiftKey is Windows.UI.Core.CoreVirtualKeyStates.Down or (Windows.UI.Core.CoreVirtualKeyStates.Down | Windows.UI.Core.CoreVirtualKeyStates.Locked);
+    }
+
+    public static bool IsCtrlKeyDown()
+    {
+        var ctrlKey = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
+        return ctrlKey is Windows.UI.Core.CoreVirtualKeyStates.Down or (Windows.UI.Core.CoreVirtualKeyStates.Down | Windows.UI.Core.CoreVirtualKeyStates.Locked);
+    }
+    #endregion
+
     /// <summary>
     /// Copies one <see cref="List{T}"/> to another <see cref="List{T}"/> by value (deep copy).
     /// </summary>
@@ -536,6 +550,32 @@ public static class Extensions
     /// </summary>
     public static bool Between(this DateTime dt, DateTime rangeBeg, DateTime rangeEnd) => dt.Ticks >= rangeBeg.Ticks && dt.Ticks <= rangeEnd.Ticks;
 
+
+    /// <summary>
+    /// Calculates the remaining months in the given <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="date"><see cref="DateTime"/></param>
+    public static int MonthsTilEndOfInYear(this DateTime? date)
+    {
+        if (date is null)
+            date = DateTime.Now;
+
+        return 12 - date.Value.Month;
+    }
+
+    /// <summary>
+    /// Calculates the remaining days in the given <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="date"><see cref="DateTime"/></param>
+    public static int DaysTilEndOfMonth(this DateTime? date)
+    {
+        if (date is null)
+            date = DateTime.Now;
+
+        int daysInMonth = DateTime.DaysInMonth(date.Value.Year, date.Value.Month);
+        return daysInMonth - date.Value.Day;
+    }
+
     /// <summary>
     /// Returns a range of <see cref="DateTime"/> objects matching the criteria provided.
     /// </summary>
@@ -547,9 +587,34 @@ public static class Extensions
     /// <returns><see cref="IEnumerable{DateTime}"/></returns>
     public static IEnumerable<DateTime> GetDateRangeTo(this DateTime self, DateTime toDate)
     {
-        var range = Enumerable.Range(0, new TimeSpan(toDate.Ticks - self.Ticks).Days);
+        // Query Syntax:
+        //IEnumerable<int> range = Enumerable.Range(0, new TimeSpan(toDate.Ticks - self.Ticks).Days);
+        //IEnumerable<DateTime> dates = from p in range select self.Date.AddDays(p);
 
-        return from p in range select self.Date.AddDays(p);
+        // Method Syntax:
+        IEnumerable<DateTime> dates = Enumerable.Range(0, new TimeSpan(toDate.Ticks - self.Ticks).Days).Select(p => self.Date.AddDays(p));
+
+        return dates;
+    }
+
+    /// <summary>
+    /// Returns an <see cref="Int32"/> amount of days between two <see cref="DateTime"/> objects.
+    /// </summary>
+    /// <param name="self"><see cref="DateTime"/></param>
+    /// <param name="toDate"><see cref="DateTime"/></param>
+    public static int GetDaysBetween(this DateTime self, DateTime toDate)
+    {
+        return new TimeSpan(toDate.Ticks - self.Ticks).Days;
+    }
+
+    /// <summary>
+    /// Returns a <see cref="TimeSpan"/> amount between two <see cref="DateTime"/> objects.
+    /// </summary>
+    /// <param name="self"><see cref="DateTime"/></param>
+    /// <param name="toDate"><see cref="DateTime"/></param>
+    public static TimeSpan GetTimeSpanBetween(this DateTime self, DateTime toDate)
+    {
+        return new TimeSpan(toDate.Ticks - self.Ticks);
     }
 
     /// <summary>
@@ -941,7 +1006,10 @@ public static class Extensions
     /// Linear interpolation for a range of double.
     /// </summary>
     public static double Lerp(this double start, double end, double amount = 0.5F) => start + (end - start) * amount;
-    public static float LogLerp(this float start, float end, float percent, float logBase = 1.2F) => start + (end - start) * (float)Math.Log(percent, logBase);
+
+    public static float LogLerp(this float start, float end, float percent, float logBase = 1.2F) => start + (end - start) * MathF.Log(percent, logBase);
+
+    public static double LogLerp(this double start, double end, double percent, double logBase = 1.2F) => start + (end - start) * Math.Log(percent, logBase);
 
     /// <summary>
     /// Scales a range of integers. [baseMin to baseMax] will become [limitMin to limitMax]
@@ -1105,7 +1173,7 @@ public static class Extensions
         if (inputArray.Length > 1)
             return inputArray.Skip(1).ToArray();
         else
-            return Array.Empty<string>();
+            return inputArray;
     }
 
     /// <summary>
@@ -1115,10 +1183,10 @@ public static class Extensions
     /// <returns>string array of args excluding the 1st arg</returns>
     public static string[] IgnoreNthTakeRest(this string[] inputArray, int skip = 1)
     {
-        if (inputArray.Length > 1)
+        if (inputArray.Length > skip)
             return inputArray.Skip(skip).ToArray();
         else
-            return Array.Empty<string>();
+            return inputArray;
     }
 
     /// <summary>
