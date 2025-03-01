@@ -371,6 +371,8 @@ public class MainViewModel : ObservableRecipient
     {
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
 
+        Debug.WriteLine($"[INFO] MonthsSinceBeginningOfYear={MonthsSinceBeginningOfYear()}");
+
         // https://learn.microsoft.com/en-us/dotnet/api/system.globalization.numberformatinfo?view=net-8.0
         _formatter = System.Globalization.NumberFormatInfo.CurrentInfo;
 
@@ -922,7 +924,9 @@ public class MainViewModel : ObservableRecipient
     public void UpdateSummaryTotals()
     {
         if (ExpenseItems.Count == 0) { return; }
-        
+
+        var tmp = GetDateRangeTo(DateTime.Now, DateTime.Now.AddDays(7));
+
         double cmTotal = 0;
         double pmTotal = 0;
         double ytdTotal = 0;
@@ -978,7 +982,7 @@ public class MainViewModel : ObservableRecipient
         if (ExpenseItems.Count > 1)
             meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count / 2);
         else
-            meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count);
+            meanResult = CalculateMedianAdjustable(amnts, ExpenseItems.Count); // -or- meanResult = amnts[0];
 
         List<KeyValuePair<string, int>> grouped = CountAndSortCategories(cats);
 
@@ -986,6 +990,36 @@ public class MainViewModel : ObservableRecipient
 
         var months = CountUniqueMonths(ExpenseItems.ToList());
         var avgPerMonth = ytdTotal / (double)months;
+
+        #region [Grouping by year]
+        var groupedYear = GroupByYearString(ExpenseItems);
+        foreach (var group in groupedYear)
+        {
+            Debug.WriteLine($"Year: {group.Key}");
+            foreach (var record in group.Value)
+            {
+                string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
+                Debug.WriteLine($" - {record.Description} ({dateDisplay})");
+            }
+        }
+        #endregion
+
+        #region [Grouping by year/month]
+        var groupedYearAndMonth = GroupByYearAndMonth(ExpenseItems);
+        foreach (var yearGroup in groupedYearAndMonth)
+        {
+            Debug.WriteLine($"Year: {yearGroup.Key}");
+            foreach (var monthGroup in yearGroup.Value)
+            {
+                Debug.WriteLine($"  Month: {monthGroup.Key}");
+                foreach (var record in monthGroup.Value)
+                {
+                    string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
+                    Debug.WriteLine($"    - {record.Description} ({dateDisplay})");
+                }
+            }
+        }
+        #endregion
 
         try
         {
@@ -1074,6 +1108,9 @@ public class MainViewModel : ObservableRecipient
         return ((current - previous) / previous) * 100d;
     }
 
+    /// <summary>
+    /// Can be passed a list of repeats and will tally and sort a result of their frequency.
+    /// </summary>
     public List<KeyValuePair<string, int>> CountAndSortCategories(List<string> categories)
     {
         try
@@ -1109,6 +1146,45 @@ public class MainViewModel : ObservableRecipient
             .Count();
 
         return uniqueMonths;
+    }
+
+    /// <summary>
+    /// Group ExpenseItems by year then month and convert to <see cref="Dictionary{TKey, TValue}"/>.
+    /// </summary>
+    /// <param name="records"><see cref="IEnumerable{T}"/></param>
+    public Dictionary<string, Dictionary<string, List<ExpenseItem>>> GroupByYearAndMonth(IEnumerable<ExpenseItem> records)
+    {
+        return records
+            .GroupBy(r => r.Date.HasValue ? r.Date.Value.Year.ToString() : "No Date") // Group by Year
+            .ToDictionary(
+                yearGroup => yearGroup.Key,
+                yearGroup => yearGroup
+                    .GroupBy(r => r.Date.HasValue ? r.Date.Value.ToString("MMMM") : "No Month") // Group by Month
+                    .ToDictionary(monthGroup => monthGroup.Key, monthGroup => monthGroup.ToList())
+            );
+    }
+
+    /// <summary>
+    /// Group ExpenseItems by year and convert to <see cref="Dictionary{TKey, TValue}"/>.
+    /// </summary>
+    /// <param name="records"><see cref="IEnumerable{T}"/></param>
+    /// <returns><see cref="Dictionary{TKey, TValue}"/></returns>
+    public Dictionary<string, List<ExpenseItem>> GroupByYearString(IEnumerable<ExpenseItem> records)
+    {
+        return records
+            .GroupBy(r => r.Date.HasValue ? r.Date.Value.Year.ToString() : "No Date") // Convert year to string
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    /// <summary>
+    /// Group ExpenseItems by year and convert to <see cref="Dictionary{TKey, TValue}"/>.
+    /// </summary>
+    /// <param name="records"><see cref="IEnumerable{T}"/></param>
+    /// <returns><see cref="Dictionary{TKey, TValue}"/></returns>
+    public Dictionary<int?, List<ExpenseItem>> GroupByYearInt(IEnumerable<ExpenseItem> records)
+    {
+        return records.GroupBy(r => r.Date.HasValue ? r.Date.Value.Year : (int?)null) // Group by year or null
+            .ToDictionary(g => g.Key, g => g.ToList()); // Convert to Dictionary
     }
 
     /// <summary>
@@ -1163,8 +1239,11 @@ public class MainViewModel : ObservableRecipient
     /// </summary>
     public double CalculateMedianAdjustable(List<double> values, int sampleCount)
     {
-        if (values == null || values.Count == 0 || sampleCount <= 0)
+        if (values == null || values.Count == 0)
             return 0d;
+
+        if (sampleCount <= 0)
+            sampleCount = values.Count / 2;
 
         values.Sort();
 
@@ -1219,16 +1298,40 @@ public class MainViewModel : ObservableRecipient
 
     #region [Helper Methods]
     /// <summary>
+    /// Returns a range of <see cref="DateTime"/> objects matching the criteria provided.
+    /// <example><code>
+    /// IEnumerable<DateTime> dateRange = GetDateRangeTo(DateTime.Now, DateTime.Now.AddDays(30));
+    /// </code></example>
+    /// </summary>
+    /// <param name="self"><see cref="DateTime"/></param>
+    /// <param name="toDate"><see cref="DateTime"/></param>
+    /// <returns><see cref="IEnumerable{DateTime}"/></returns>
+    public IEnumerable<DateTime> GetDateRangeTo(DateTime self, DateTime toDate)
+    {
+        // Query Syntax:
+        //IEnumerable<int> range = Enumerable.Range(0, new TimeSpan(toDate.Ticks - self.Ticks).Days);
+        //IEnumerable<DateTime> dates = from p in range select self.Date.AddDays(p);
+
+        // Method Syntax:
+        IEnumerable<DateTime> dates = Enumerable.Range(0, new TimeSpan(toDate.Ticks - self.Ticks).Days).Select(p => self.Date.AddDays(p));
+
+        return dates;
+    }
+
+    /// <summary>
     /// Compares two <see cref="DateTime"/>s ignoring the hours, minutes and seconds.
     /// </summary>
-    public bool AreDatesSimilar(DateTime? date1, DateTime date2)
+    public bool AreDatesSimilar(DateTime? date1, DateTime? date2)
     {
-        if (date1 is null)
+        if (date1 is null && date2 is null)
+            return true;
+
+        if (date1 is null || date2 is null)
             return false;
 
-        return date1.Value.Year == date2.Year &&
-               date1.Value.Month == date2.Month &&
-               date1.Value.Day == date2.Day;
+        return date1.Value.Year == date2.Value.Year &&
+               date1.Value.Month == date2.Value.Month &&
+               date1.Value.Day == date2.Value.Day;
     }
 
     /// <summary>
@@ -1255,7 +1358,7 @@ public class MainViewModel : ObservableRecipient
         }
 
         // Remove the dollar sign if present
-        string cleanedAmount = amount.Replace("$", "").Trim();
+        string cleanedAmount = amount.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, "").Trim();
 
         // Attempt to parse the cleaned amount
         return decimal.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
@@ -1271,7 +1374,7 @@ public class MainViewModel : ObservableRecipient
         }
 
         // Remove the dollar sign if present
-        string cleanedAmount = amount.Replace("$", "").Trim();
+        string cleanedAmount = amount.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, "").Trim();
 
         // Attempt to parse the cleaned amount
         return double.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
@@ -1340,6 +1443,28 @@ public class MainViewModel : ObservableRecipient
 
         e.Handled = true;
     }
+
+    /// <summary><code>
+    ///   AddKeyboardAccelerator(SomePage, Windows.System.VirtualKeyModifiers.None, Windows.System.VirtualKey.Up, static (_, kaea) => 
+    ///   {
+    ///      if (kaea.Element is Page ctrl) 
+    ///      {
+    ///         ctrl.Background = CreateLinearGradientBrush(Colors.Transparent, Colors.DodgerBlue, Colors.MidnightBlue);
+    ///         kaea.Handled = true;
+    ///      }
+    ///   });
+    /// </code></summary>
+    public void AddKeyboardAccelerator(UIElement element, Windows.System.VirtualKeyModifiers keyModifiers, Windows.System.VirtualKey key, Windows.Foundation.TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
+    {
+        var accelerator = new KeyboardAccelerator()
+        {
+            Modifiers = keyModifiers,
+            Key = key
+        };
+        accelerator.Invoked += handler;
+        element.KeyboardAccelerators.Add(accelerator);
+    }
+
     #endregion
 
     #region [Bound Events]
@@ -1521,7 +1646,7 @@ public class MainViewModel : ObservableRecipient
             if (ExpenseItems.Count > 0)
             {
                 // We could use our DeepCopy() helper, but we'll
-                // want to filter the current notes to see if there
+                // want to filter the current items to see if there
                 // are any that should be automatically removed.
                 List<ExpenseItem> toSave = new();
                 foreach (var item in ExpenseItems)
