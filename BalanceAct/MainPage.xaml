@@ -1251,12 +1251,12 @@
                                 Grid.ColumnSpan="3"
                                 MaxWidth="300"
                                 MaxHeight="300"
-                                Margin="5,20,5,5"
+                                Margin="1,12,5,5"
                                 HorizontalAlignment="Stretch"
                                 FontFamily="{StaticResource SecondaryFont}"
                                 FontSize="{StaticResource FontSizeNormal}"
                                 Foreground="{ThemeResource HeaderBrush}"
-                                HorizontalTextAlignment="Center"
+                                HorizontalTextAlignment="Left"
                                 Text="{x:Bind ViewModel.YearToDateTally, Mode=OneWay}"
                                 TextWrapping="WrapWholeWords" />
 

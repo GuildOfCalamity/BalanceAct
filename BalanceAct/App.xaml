@@ -51,10 +51,10 @@
             <Color x:Key="LinearBorder2">#4F4E91C4</Color>
             <Color x:Key="LinearBorder3">#4F3F769E</Color>
             <Color x:Key="LinearBorder4">#5F1E384C</Color>
-            <Color x:Key="LinearBorder5">#9F66BCFF</Color>
-            <Color x:Key="LinearBorder6">#9F4E91C4</Color>
-            <Color x:Key="LinearBorder7">#9F3F769E</Color>
-            <Color x:Key="LinearBorder8">#9F1E384C</Color>
+            <Color x:Key="LinearBorder5">#AF66BCFF</Color>
+            <Color x:Key="LinearBorder6">#AF4E91C4</Color>
+            <Color x:Key="LinearBorder7">#AF3F769E</Color>
+            <Color x:Key="LinearBorder8">#AF1E384C</Color>
             <Color x:Key="LinearBorder9">#EF66BCFF</Color>
             <Color x:Key="LinearBorder10">#EF4E91C4</Color>
             <Color x:Key="LinearBorder11">#EF3F769E</Color>

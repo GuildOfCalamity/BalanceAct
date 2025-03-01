@@ -991,44 +991,65 @@ public class MainViewModel : ObservableRecipient
         var months = CountUniqueMonths(ExpenseItems.ToList());
         var avgPerMonth = ytdTotal / (double)months;
 
+        StringBuilder sb = new();
+
         #region [Grouping by year]
-        var groupedYear = GroupByYearString(ExpenseItems);
-        foreach (var group in groupedYear)
-        {
-            Debug.WriteLine($"Year: {group.Key}");
-            foreach (var record in group.Value)
-            {
-                string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
-                Debug.WriteLine($" - {record.Description} ({dateDisplay})");
-            }
-        }
+        //var groupedYear = GroupByYearString(ExpenseItems);
+        //foreach (var group in groupedYear)
+        //{
+        //    Debug.WriteLine($"Year: {group.Key}");
+        //    foreach (var record in group.Value)
+        //    {
+        //        string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
+        //        Debug.WriteLine($" - {record.Description} ({dateDisplay})");
+        //    }
+        //}
         #endregion
 
         #region [Grouping by year/month]
-        var groupedYearAndMonth = GroupByYearAndMonth(ExpenseItems);
-        foreach (var yearGroup in groupedYearAndMonth)
+        //var groupedYearAndMonth = GroupByYearAndMonth(ExpenseItems);
+        //foreach (var yearGroup in groupedYearAndMonth)
+        //{
+        //    Debug.WriteLine($"Year: {yearGroup.Key}");
+        //    foreach (var monthGroup in yearGroup.Value)
+        //    {
+        //        Debug.WriteLine($"  Month: {monthGroup.Key}");
+        //        foreach (var record in monthGroup.Value)
+        //        {
+        //            string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
+        //            Debug.WriteLine($"    - {record.Description} ({dateDisplay})");
+        //        }
+        //    }
+        //}
+        #endregion
+
+        Dictionary<int, double> totalByYear = new();
+        var groupedYears = GroupByYearInt(ExpenseItems);
+        foreach (var group in groupedYears)
         {
-            Debug.WriteLine($"Year: {yearGroup.Key}");
+            if (group.Key is not null)
+                totalByYear.Add((int)group.Key, group.Value.Sum(x => double.Parse(!string.IsNullOrEmpty(x.Amount) ? x.Amount : "0", NumberStyles.Float | NumberStyles.AllowThousands | NumberStyles.AllowCurrencySymbol, CultureInfo.CurrentCulture)));
+        }
+
+        #region [Grouping by year/month with totals]
+        var groupedTotals = GroupByYearAndMonthWithTotals(ExpenseItems);
+        foreach (var yearGroup in groupedTotals)
+        {
+            sb.AppendLine($"Year: {yearGroup.Key}");
             foreach (var monthGroup in yearGroup.Value)
             {
-                Debug.WriteLine($"  Month: {monthGroup.Key}");
-                foreach (var record in monthGroup.Value)
-                {
-                    string dateDisplay = record.Date.HasValue ? record.Date.Value.ToString("MM/dd/yyyy") : "No Date";
-                    Debug.WriteLine($"    - {record.Description} ({dateDisplay})");
-                }
+                sb.AppendLine($"  {monthGroup.Key}: {monthGroup.Value.ToString("C2", _formatter)}");
             }
         }
         #endregion
 
         try
         {
-            StringBuilder sb = new();
             var tally = TallyExpensesByMonth(ExpenseItems.ToList());
-            foreach (var item in tally)
-            {
-                sb.AppendLine($"{item.Key}\t{item.Value.ToString("C2", _formatter)}");
-            }
+            //foreach (var item in tally)
+            //{
+            //    sb.AppendLine($"{item.Key}\t{item.Value.ToString("C2", _formatter)}");
+            //}
             YearToDateTally = $"{sb}";
 
             var tallyArray = tally.ToArray();
@@ -1146,6 +1167,26 @@ public class MainViewModel : ObservableRecipient
             .Count();
 
         return uniqueMonths;
+    }
+
+    /// <summary>
+    /// Group ExpenseItems by year then month and convert to <see cref="Dictionary{TKey, TValue}"/>.
+    /// </summary>
+    /// <param name="records"><see cref="IEnumerable{T}"/></param>
+    public Dictionary<string, Dictionary<string, double>> GroupByYearAndMonthWithTotals(IEnumerable<ExpenseItem> records)
+    {
+        return records
+            .Where(r => r.Date.HasValue) // Ignore null dates
+            .GroupBy(r => r.Date.Value.Year.ToString()) // Group by year
+            .ToDictionary(
+                yearGroup => yearGroup.Key,
+                yearGroup => yearGroup
+                    .GroupBy(r => r.Date.Value.ToString("MMMM")) // Group by month
+                    .ToDictionary(
+                        monthGroup => monthGroup.Key,
+                        monthGroup => monthGroup.Sum(r => GetDollarAmount(r.Amount)) // Sum amount for the month
+                    )
+            );
     }
 
     /// <summary>
@@ -1379,6 +1420,20 @@ public class MainViewModel : ObservableRecipient
         // Attempt to parse the cleaned amount
         return double.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
         //return double.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
+    }
+
+    public double GetDollarAmount(string? amount)
+    {
+        if (string.IsNullOrEmpty(amount))
+            return 0;
+
+        double value = 0;
+        string cleanedAmount = amount.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, "").Trim();
+        if (double.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value))
+        {
+            return value;
+        }
+        return value;
     }
 
     public int GetHighestId()
