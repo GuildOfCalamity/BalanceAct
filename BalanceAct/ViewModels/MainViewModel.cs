@@ -869,6 +869,7 @@ public class MainViewModel : ObservableRecipient
         });
         #endregion
 
+        #region [Commands]
         RightClickedCommand = new RelayCommand<object>(async (obj) =>
         {
             if (obj is not null && obj is ExpenseItem ei)
@@ -918,6 +919,7 @@ public class MainViewModel : ObservableRecipient
                 Debug.WriteLine($"[WARNING] Parameter was empty, nothing to do.");
             }
         });
+        #endregion
     }
 
     #region [Statistical Methods]
@@ -1023,6 +1025,7 @@ public class MainViewModel : ObservableRecipient
         //}
         #endregion
 
+        #region [Total by year]
         Dictionary<int, double> totalByYear = new();
         var groupedYears = GroupByYearInt(ExpenseItems);
         foreach (var group in groupedYears)
@@ -1030,26 +1033,27 @@ public class MainViewModel : ObservableRecipient
             if (group.Key is not null)
                 totalByYear.Add((int)group.Key, group.Value.Sum(x => double.Parse(!string.IsNullOrEmpty(x.Amount) ? x.Amount : "0", NumberStyles.Float | NumberStyles.AllowThousands | NumberStyles.AllowCurrencySymbol, CultureInfo.CurrentCulture)));
         }
+        #endregion
 
         #region [Grouping by year/month with totals]
+        List<double> monthAvgs = new();
         var groupedTotals = GroupByYearAndMonthWithTotals(ExpenseItems);
         foreach (var yearGroup in groupedTotals)
         {
             sb.AppendLine($"Year: {yearGroup.Key}");
             foreach (var monthGroup in yearGroup.Value)
             {
-                sb.AppendLine($"  {monthGroup.Key}: {monthGroup.Value.ToString("C2", _formatter)}");
+                monthAvgs.Add(monthGroup.Value);
+                sb.AppendLine($"  {monthGroup.Key.PadRight(11, '.')}: {monthGroup.Value.ToString("C2", _formatter)}");
             }
         }
+        var medianMonth = CalculateMedianAdjustable(monthAvgs, monthAvgs.Count / 2);
         #endregion
 
         try
         {
             var tally = TallyExpensesByMonth(ExpenseItems.ToList());
-            //foreach (var item in tally)
-            //{
-            //    sb.AppendLine($"{item.Key}\t{item.Value.ToString("C2", _formatter)}");
-            //}
+            //foreach (var item in tally) { sb.AppendLine($"{item.Key}\t{item.Value.ToString("C2", _formatter)}"); }
             YearToDateTally = $"{sb}";
 
             var tallyArray = tally.ToArray();
@@ -1070,9 +1074,11 @@ public class MainViewModel : ObservableRecipient
 
             //AverageExpense = (ytdTotal / CurrentCount).ToString("C2", _formatter);
             AverageExpense = meanResult.ToString("C2", _formatter);
-            
-            // TODO: Add median calculation.
-            AveragePerMonth = avgPerMonth.ToString("C2", _formatter);
+
+            if (monthAvgs.Count > 1)
+                AveragePerMonth = medianMonth.ToString("C2", _formatter);
+            else
+                AveragePerMonth = avgPerMonth.ToString("C2", _formatter);
         }
         catch (DivideByZeroException ex)
         {
@@ -1081,9 +1087,16 @@ public class MainViewModel : ObservableRecipient
 
         var monthsRemain = MonthsTilEndOfInYear(DateTime.Now);
 
+        // New method for calculating the YTD.
+        ytdTotal = SumCurrentYearAmounts(totalByYear);
+
         #region [Update observable properties]
-        //ProjectedYearTotal = ((cmTotal * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter); // If at the beginning of the current month, then the projected amount can be too low.
-        ProjectedYearTotal = ((avgPerMonth * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter);
+        // If at the beginning of the current month, then the projected amount can be too low.
+        //ProjectedYearTotal = ((cmTotal * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter);
+        if (monthAvgs.Count > 1)
+            ProjectedYearTotal = ((medianMonth * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter);
+        else
+            ProjectedYearTotal = ((avgPerMonth * (double)monthsRemain) + ytdTotal).ToString("C2", _formatter);
         CurrentMonthTotal = cmTotal.ToString("C2", _formatter);
         YearToDateTotal = ytdTotal.ToString("C2", _formatter);
         // NOTE: A percent sign (%) in a format string causes a number to be multiplied by 100 before it is formatted.
@@ -1094,6 +1107,22 @@ public class MainViewModel : ObservableRecipient
         if (grouped.Count > 0)
             FrequentCategory = grouped[0].Key;
         #endregion
+    }
+
+    public double SumCurrentYearAmounts(List<ExpenseItem> records)
+    {
+        int currentYear = DateTime.Now.Year;
+        return records
+            .Where(r => r.Date.HasValue && r.Date.Value.Year == currentYear) // Filter current year
+            .Sum(r => GetDollarAmount(r.Amount)); // Sum Amount
+    }
+
+    public double SumCurrentYearAmounts(Dictionary<int, double> data)
+    {
+        int currentYear = DateTime.Now.Year;
+        return data
+            .Where(entry => entry.Key == currentYear) // Filter current year only
+            .Sum(entry => entry.Value); // Sum amounts
     }
 
     public Dictionary<string, double> TallyExpensesByMonth(List<ExpenseItem> expenses)
@@ -1121,6 +1150,9 @@ public class MainViewModel : ObservableRecipient
         return expensesByMonth;
     }
 
+    /// <summary>
+    /// Determines what the change was from the <paramref name="previous"/> month to the <paramref name="current"/> month.
+    /// </summary>
     public double CalculatePercentageChange(double previous, double current)
     {
         if (previous.IsZero())
@@ -1177,7 +1209,7 @@ public class MainViewModel : ObservableRecipient
     {
         return records
             .Where(r => r.Date.HasValue) // Ignore null dates
-            .GroupBy(r => r.Date.Value.Year.ToString()) // Group by year
+            .GroupBy(r => $"{r.Date.Value.Year}") // Group by year
             .ToDictionary(
                 yearGroup => yearGroup.Key,
                 yearGroup => yearGroup
@@ -1224,7 +1256,8 @@ public class MainViewModel : ObservableRecipient
     /// <returns><see cref="Dictionary{TKey, TValue}"/></returns>
     public Dictionary<int?, List<ExpenseItem>> GroupByYearInt(IEnumerable<ExpenseItem> records)
     {
-        return records.GroupBy(r => r.Date.HasValue ? r.Date.Value.Year : (int?)null) // Group by year or null
+        return records
+            .GroupBy(r => r.Date.HasValue ? r.Date.Value.Year : (int?)null) // Group by year or null
             .ToDictionary(g => g.Key, g => g.ToList()); // Convert to Dictionary
     }
 

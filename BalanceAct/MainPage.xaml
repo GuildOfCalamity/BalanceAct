@@ -1254,7 +1254,7 @@
                                 Margin="1,12,5,5"
                                 HorizontalAlignment="Stretch"
                                 FontFamily="{StaticResource SecondaryFont}"
-                                FontSize="{StaticResource FontSizeNormal}"
+                                FontSize="{StaticResource FontSizeMedium}"
                                 Foreground="{ThemeResource HeaderBrush}"
                                 HorizontalTextAlignment="Left"
                                 Text="{x:Bind ViewModel.YearToDateTally, Mode=OneWay}"
