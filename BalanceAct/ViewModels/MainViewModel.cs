@@ -41,7 +41,8 @@ public class MainViewModel : ObservableRecipient
     readonly Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
     readonly Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     public event EventHandler<bool>? ItemsLoadedEvent;
-    
+    Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext? _syncContext;
+
     public ObservableCollection<ExpenseItem> ExpenseItems = new();
     public List<ExpenseItem> CompareItems = new List<ExpenseItem>();
 
@@ -364,9 +365,14 @@ public class MainViewModel : ObservableRecipient
     public ICommand OpenLogCommand { get; }
     #endregion
 
+    #region [Services]
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
     DataService? dataService = (DataService?)App.Current.Services.GetService<IDataService>();
+    #endregion
 
+    /// <summary>
+    /// Default constructor
+    /// </summary>
     public MainViewModel()
     {
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
@@ -375,6 +381,9 @@ public class MainViewModel : ObservableRecipient
 
         // https://learn.microsoft.com/en-us/dotnet/api/system.globalization.numberformatinfo?view=net-8.0
         _formatter = System.Globalization.NumberFormatInfo.CurrentInfo;
+
+        _syncContext = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
+        SynchronizationContext.SetSynchronizationContext(_syncContext);
 
         if (App.LocalConfig is not null)
             Status = "Loading…";
@@ -616,7 +625,7 @@ public class MainViewModel : ObservableRecipient
                     //if (col.Contains("check number", StringComparison.OrdinalIgnoreCase) || col.Contains("check #", StringComparison.OrdinalIgnoreCase))
                     //    colMemo = i;
                 }
-                Logger?.WriteLine($"Interpreted column layout ⇒ Date:{colDate}, Description:{colDesc}, Category:{colCat}, Amount:{colAmnt}, Memo:{colMemo}", LogLevel.Debug);
+                Logger?.WriteLine($"Interpreted column layout ⇒ Date:{colDate}, Description:{colDesc}, Category:{colCat}, Amount:{colAmnt}, Memo:{colMemo}", LogLevel.Debug, "ImportItem");
                 #endregion
 
                 #region [Analyze each line from the file]
@@ -628,7 +637,7 @@ public class MainViewModel : ObservableRecipient
                     // Do we have enough columns to work with?
                     if (tokens.Length == 0 || tokens.Length < 4)
                     {
-                        Logger?.WriteLine($"Not enough columns for this line ⇒ {filtered}", LogLevel.Warning);
+                        Logger?.WriteLine($"Not enough columns for this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
                         continue;
                     }
 
@@ -644,6 +653,12 @@ public class MainViewModel : ObservableRecipient
                                 var impCat = tokens[colCat];
                                 var impAmnt = $"{Math.Abs(val)}";
                                 var impMemo = (colMemo != -1) ? tokens[colMemo] : "";
+
+                                if (!string.IsNullOrEmpty(impMemo) && impMemo.Contains("Transfer To", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Status = $"Transfer was skipped, only interested in withdrawals ⚠️";
+                                    continue;
+                                }
 
                                 #region [Try to match predefined categories]
                                 foreach (var preCat in Categories)
@@ -716,8 +731,17 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 #endregion
 
-                                // For the duplicate check, the memo can be amorphous, so we'll ignore it.
-                                bool duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.OrdinalIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.OrdinalIgnoreCase) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                bool duplicate = false;
+                                if (App.LocalConfig.aggressiveDupe)
+                                {
+                                    // Aggressive duplicate check only involves date and amount.
+                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                }
+                                else
+                                {
+                                    // Standard duplicate check involves date, amount, category and description.
+                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.OrdinalIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.OrdinalIgnoreCase) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                }
 
                                 // Add the imported item.
                                 if (!duplicate)
@@ -739,7 +763,7 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 else
                                 {
-                                    Logger?.WriteLine($"Expense item already exists ⇒ {filtered}", LogLevel.Warning);
+                                    Logger?.WriteLine($"Expense item already exists ⇒ {filtered}", LogLevel.Warning, "ImportItem");
                                     Status = $"This expense item already exists, skipping import ⚠️";
                                 }
                             }
@@ -757,7 +781,7 @@ public class MainViewModel : ObservableRecipient
                     else
                     {
                         Status = $"Unable to use this line ⇒ {filtered} ⚠️";
-                        Logger?.WriteLine($"Unable to use this line ⇒ {filtered}", LogLevel.Warning);
+                        Logger?.WriteLine($"Unable to use this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
                     }
                 }
                 #endregion
@@ -775,7 +799,7 @@ public class MainViewModel : ObservableRecipient
                 if (added > 0)
                 {
                     _ = App.ShowDialogBox($"Results", $"Import was successful.{Environment.NewLine}{Environment.NewLine}{added} expenses were added to the database.", "OK", "", null, null, _dialogImgUri2);
-                    Logger?.WriteLine($"{added} expense items were imported into the database.", LogLevel.Info);
+                    Logger?.WriteLine($"{added} expense items were imported into the database.", LogLevel.Info, "ImportItem");
                     UpdateSummaryTotals();
                     SaveExpenseItemsJson();
                     LoadExpenseItemsJson();
@@ -798,16 +822,15 @@ public class MainViewModel : ObservableRecipient
         }
         #endregion
 
-        #region [In Development]
+        #region [Removal Action]
         RemoveItemCommand = new RelayCommand<object>(async (obj) =>
         {
             if (RightClickedItem is not null)
             {
                 Status = $"Got item #{RightClickedItem.Id}: {RightClickedItem.Description} 💰";
-                
-                _ = App.ShowDialogBox($"Removal Feature", $"📢 This feature is currently in development.{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
-
-                // for spinners
+                ExpenseItems.Remove(RightClickedItem);
+                SaveExpenseItemsJson();
+                UpdateSummaryTotals();
                 switch (Delay)
                 {
                     case DelayTime.Short: await Task.Delay(200); break;
@@ -815,6 +838,7 @@ public class MainViewModel : ObservableRecipient
                     case DelayTime.Long: await Task.Delay(2000); break;
                     default: break; // none
                 }
+                _ = App.ShowDialogBox($"📢 Deleted", $"Removed item #{RightClickedItem.Id}{Environment.NewLine}Category: {RightClickedItem.Category}{Environment.NewLine}Description: {RightClickedItem.Description}{Environment.NewLine}Amount: {RightClickedItem.Amount}{Environment.NewLine}", "OK", "", null, null, _dialogImgUri2);
             }
             else
             {
@@ -869,7 +893,7 @@ public class MainViewModel : ObservableRecipient
         });
         #endregion
 
-        #region [Commands]
+        #region [Misc Commands]
         RightClickedCommand = new RelayCommand<object>(async (obj) =>
         {
             if (obj is not null && obj is ExpenseItem ei)
@@ -1781,26 +1805,21 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 
-    #region [Thread-safe SyncContext Test]
-    Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext? _context;
-    void TestDispatcherQueueSynchronizationContext(FrameworkElement fe)
+    #region [Thread-safe synchronization context test]
+    void TestDispatcherQueueSynchronizationContext(FrameworkElement fe, double amount)
     {
-        var dis = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
-        if (dis is not null)
+        if (_syncContext is not null)
         {
-            _context = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(dis);
-            SynchronizationContext.SetSynchronizationContext(_context);
-
             // SynchronizationContext's Post() is the asynchronous method used in marshaling the delegate to the UI thread.
-            _context?.Post(_ => fe.Height = 40, null);
+            _syncContext?.Post(_ => fe.Height = fe.Width = amount, null);
 
             // SynchronizationContext's Send() is the synchronous method used in marshaling the delegate to the UI thread.
-            _context?.Send(_ => fe.Height = 40, null);
+            _syncContext?.Send(_ => fe.Height = fe.Width = amount, null);
         }
         else
         {
             // You could also use the control's dispatcher for UI calls.
-            fe.DispatcherQueue.TryEnqueue(() => fe.Height = 40);
+            fe.DispatcherQueue.TryEnqueue(() => fe.Height = fe.Width = amount);
         }
     }
     #endregion

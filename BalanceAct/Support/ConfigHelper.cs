@@ -35,6 +35,10 @@ public class Config
     public bool logging = true;
 
     [JsonInclude]
+    [JsonPropertyName("aggressiveDupe")]
+    public bool aggressiveDupe = true;
+
+    [JsonInclude]
     [JsonPropertyName("metrics")]
     public string? metrics;
 
