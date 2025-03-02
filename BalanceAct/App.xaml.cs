@@ -39,6 +39,7 @@ public partial class App : Application
     public static bool AnimationsEffectsEnabled { get => m_UISettings.AnimationsEnabled; }
     public static double TextScaleFactor { get => m_UISettings.TextScaleFactor; }
     public static bool IsClosing { get; set; } = false;
+    public static bool IsWindowMaximized { get; set; }
 
     // https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/#advantages-and-disadvantages-of-packaging-your-app
 #if IS_UNPACKAGED // We're using a custom PropertyGroup Condition we defined in the csproj to help us with the decision.
@@ -201,6 +202,55 @@ public partial class App : Application
                     SaveConfigFunc(LocalConfig);
             };
 
+            // The changed event contains the valuables, such as: position, size, visibility, z-order and presenter.
+            appWin.Changed += (s, args) =>
+            {
+                if (args.DidSizeChange)
+                {
+                    Debug.WriteLine($"[INFO] Window size changed to {s.Size.Width},{s.Size.Height}");
+                    if (s.Presenter is not null && s.Presenter is OverlappedPresenter op)
+                        IsWindowMaximized = op.State is OverlappedPresenterState.Maximized;
+
+                    if (!IsWindowMaximized && LocalConfig is not null)
+                    {
+                        // Update width and height for profile settings.
+                        LocalConfig!.windowH = s.Size.Height;
+                        LocalConfig!.windowW = s.Size.Width;
+                    }
+                }
+
+                if (args.DidPositionChange)
+                {
+                    if (s.Position.X > 0 && s.Position.Y > 0)
+                    {
+                        // This property is initially null. Once a window has been shown it always has a
+                        // presenter applied, either one applied by the platform or applied by the app itself.
+                        if (s.Presenter is not null && s.Presenter is OverlappedPresenter op)
+                        {
+                            if (op.State == OverlappedPresenterState.Minimized)
+                            {
+                                Debug.WriteLine($"[INFO] Window minimized");
+                            }
+                            else if (op.State != OverlappedPresenterState.Maximized && LocalConfig is not null)
+                            {
+                                Debug.WriteLine($"[INFO] Updating window position to {s.Position.X},{s.Position.Y} and size to {s.Size.Width},{s.Size.Height}");
+                                // Update X and Y for profile settings.
+                                LocalConfig!.windowX = s.Position.X;
+                                LocalConfig!.windowY = s.Position.Y;
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"[INFO] Ignoring position saving (window maximized or restored)");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[INFO] Ignoring zero/negative positional values");
+                    }
+                }
+            };
+
             // Set the application icon.
             if (IsPackaged)
                 appWin.SetIcon(System.IO.Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, $"Assets/StoreLogo.ico"));
@@ -215,8 +265,25 @@ public partial class App : Application
         // Save the FrameworkElement for any future content dialogs.
         MainRoot = m_window.Content as FrameworkElement;
 
-        appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
-        CenterWindow(m_window);
+        #region [Restore or center MainWindow]
+        if (LocalConfig is not null)
+        {
+            if (LocalConfig.firstRun)
+            {
+                appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
+                CenterWindow(m_window);
+            }
+            else
+            {
+                appWin?.MoveAndResize(new Windows.Graphics.RectInt32(LocalConfig.windowX, LocalConfig.windowY, LocalConfig.windowW, LocalConfig.windowH), Microsoft.UI.Windowing.DisplayArea.Primary);
+            }
+        }
+        else
+        {
+            appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
+            CenterWindow(m_window);
+        }
+        #endregion
     }
     #endregion
 
