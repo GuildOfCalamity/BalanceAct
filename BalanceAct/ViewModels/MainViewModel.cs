@@ -377,8 +377,6 @@ public class MainViewModel : ObservableRecipient
     {
         Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
 
-        Debug.WriteLine($"[INFO] MonthsSinceBeginningOfYear={MonthsSinceBeginningOfYear()}");
-
         // https://learn.microsoft.com/en-us/dotnet/api/system.globalization.numberformatinfo?view=net-8.0
         _formatter = System.Globalization.NumberFormatInfo.CurrentInfo;
 
@@ -739,8 +737,8 @@ public class MainViewModel : ObservableRecipient
                                 }
                                 else
                                 {
-                                    // Standard duplicate check involves date, amount, category and description.
-                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && ei.Category.Equals(impCat, StringComparison.OrdinalIgnoreCase) && ei.Description.Equals(impDesc, StringComparison.OrdinalIgnoreCase) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                    // Standard duplicate check involves date, amount and description.
+                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) >= 0.5));
                                 }
 
                                 // Add the imported item.

@@ -34,6 +34,94 @@ namespace BalanceAct;
 public static class Extensions
 {
     /// <summary>
+    ///   Determines how similar <paramref name="s1"/> is to <paramref name="s2"/> by computing the Jaccard Similarity.
+    /// </summary>
+    /// <returns>
+    ///   0.00 to 1.00
+    /// </returns>
+    /// <remarks>
+    ///   The higher the score the closer they are to being identical, 1.0 = identical
+    /// </remarks>
+    public static double GetJaccardSimilarity(string s1, string s2)
+    {
+        var set1 = new HashSet<string>(s1.Split(' '));
+        var set2 = new HashSet<string>(s2.Split(' '));
+        var intersection = set1.Intersect(set2).Count();
+        var union = set1.Union(set2).Count();
+        var score = (double)intersection / (double)union;
+        Debug.WriteLine($"[INFO] Jaccard similarity score: {score:N2}");
+        return score;
+    }
+
+    /// <summary>
+    ///   Computes the Levenshtein Distance between two strings.
+    /// </summary>
+    /// <remarks>
+    ///   The lower the score the closer they are to being identical, e.g. 1 = identical
+    /// </remarks>
+    public static int GetLevenshteinDistance(string s1, string s2)
+    {
+        int len1 = s1.Length;
+        int len2 = s2.Length;
+        int[,] dp = new int[len1 + 1, len2 + 1];
+
+        for (int i = 0; i <= len1; i++)
+            dp[i, 0] = i;
+
+        for (int j = 0; j <= len2; j++)
+            dp[0, j] = j;
+
+        for (int i = 1; i <= len1; i++)
+        {
+            for (int j = 1; j <= len2; j++)
+            {
+                int cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+
+                dp[i, j] = Math.Min(Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1), dp[i - 1, j - 1] + cost);
+            }
+        }
+        Debug.WriteLine($"[INFO] Levenshtein score: {dp[len1, len2]}");
+        return dp[len1, len2];
+    }
+
+    /// <summary>
+    ///   Computes the Damerau-Levenshtein Distance between two strings.
+    ///   Detects insertions, deletions, and substitutions, similar to Levenshtein,
+    ///   but can also handle adjacent character swaps (transpositions).
+    /// </summary>
+    /// <remarks>
+    ///   The lower the score the closer they are to being identical, e.g. 1 = identical
+    /// </remarks>
+    public static int GetDamerauLevenshteinDistance(string s1, string s2)
+    {
+        int len1 = s1.Length;
+        int len2 = s2.Length;
+        int[,] dp = new int[len1 + 1, len2 + 1];
+
+        for (int i = 0; i <= len1; i++)
+            dp[i, 0] = i;
+
+        for (int j = 0; j <= len2; j++)
+            dp[0, j] = j;
+
+        for (int i = 1; i <= len1; i++)
+        {
+            for (int j = 1; j <= len2; j++)
+            {
+                int cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+
+                dp[i, j] = Math.Min(Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1), dp[i - 1, j - 1] + cost);
+
+                // Check for transpositions
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1])
+                    dp[i, j] = Math.Min(dp[i, j], dp[i - 2, j - 2] + cost);
+            }
+        }
+        Debug.WriteLine($"[INFO] Damerau-Levenshtein score: {dp[len1, len2]}");
+        return dp[len1, len2];
+    }
+
+    /// <summary>
     /// Determine if the application has been launched as an administrator.
     /// </summary>
     public static bool IsAppRunAsAdmin()
