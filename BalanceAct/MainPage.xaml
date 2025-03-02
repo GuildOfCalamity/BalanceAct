@@ -876,7 +876,7 @@
                                 MaxWidth="320"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 KeyDown="{x:Bind ViewModel.ImportFilePathKeyDown, Mode=OneWay}"
-                                PlaceholderText="C:\Downloads\CardReport.csv"
+                                PlaceholderText="{x:Bind local:Functions.DefaultDownloadPath(), Mode=OneWay}"
                                 Text="{x:Bind ViewModel.ImportPathCSV, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.Header>
                                     <TextBlock

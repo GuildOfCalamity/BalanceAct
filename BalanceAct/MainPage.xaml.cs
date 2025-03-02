@@ -284,4 +284,5 @@ public sealed partial class MainPage : Page
 public static class Functions
 {
     public static string IdFormatter(int id) => $"ID #{id}";
+    public static string DefaultDownloadPath() => $"{Windows.Storage.UserDataPaths.GetDefault().Downloads}";
 }

@@ -282,13 +282,7 @@ public class MainViewModel : ObservableRecipient
     string? _importPathCSV = "";
     public string? ImportPathCSV
     {
-        get
-        {
-            if (string.IsNullOrEmpty(_importPathCSV))
-                _importPathCSV = Windows.Storage.UserDataPaths.GetDefault().Downloads;
-
-            return _importPathCSV;
-        }
+        get => _importPathCSV;
         set => SetProperty(ref _importPathCSV, value);
     }
 
@@ -557,6 +551,7 @@ public class MainViewModel : ObservableRecipient
 
                 if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
                 {
+                    ImportPathCSV = Functions.DefaultDownloadPath(); // assist the user
                     Status = $"You must provide a valid file path ⚠️";
                     return;
                 }
