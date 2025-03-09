@@ -281,6 +281,9 @@ public sealed partial class MainPage : Page
 
 }
 
+/// <summary>
+/// Static helpers for XAML calling.
+/// </summary>
 public static class Functions
 {
     public static string IdFormatter(int id) => $"ID #{id}";

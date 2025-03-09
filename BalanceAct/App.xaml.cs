@@ -34,6 +34,7 @@ public partial class App : Application
     public IServiceProvider Services { get; }
     public static IntPtr WindowHandle { get; set; }
     public static FrameworkElement? MainRoot { get; set; }
+    public static AppWindow? AppWin { get; set; }
     public static Version WindowsVersion => Extensions.GetWindowsVersionUsingAnalyticsInfo();
     public static bool TransparencyEffectsEnabled { get => m_UISettings.AdvancedEffectsEnabled; }
     public static bool AnimationsEffectsEnabled { get => m_UISettings.AnimationsEnabled; }
@@ -180,14 +181,14 @@ public partial class App : Application
         // Instantiate our window object.
         m_window = new MainWindow();
 
-        var appWin = GetAppWindow(m_window);
-        if (appWin != null)
+        AppWin = GetAppWindow(m_window);
+        if (AppWin != null)
         {
             // Gets or sets a value that indicates whether this window will appear in various system representations, such as ALT+TAB and taskbar.
-            appWin.IsShownInSwitchers = true;
+            AppWin.IsShownInSwitchers = true;
 
             // We don't have the Closing event exposed by default, so we'll use the AppWindow to compensate.
-            appWin.Closing += (s, e) =>
+            AppWin.Closing += (s, e) =>
             {
                 App.IsClosing = true;
                 Debug.WriteLine($"[INFO] Application closing detected at {DateTime.Now.ToString("hh:mm:ss.fff tt")}");
@@ -195,7 +196,7 @@ public partial class App : Application
             };
 
             // Destroying is always called, but Closing is only called when the application is shutdown normally.
-            appWin.Destroying += (s, e) =>
+            AppWin.Destroying += (s, e) =>
             {
                 Debug.WriteLine($"[INFO] Application destroying detected at {DateTime.Now.ToString("hh:mm:ss.fff tt")}");
                 if (!_lastSave) // prevent redundant calls
@@ -203,7 +204,7 @@ public partial class App : Application
             };
 
             // The changed event contains the valuables, such as: position, size, visibility, z-order and presenter.
-            appWin.Changed += (s, args) =>
+            AppWin.Changed += (s, args) =>
             {
                 if (args.DidSizeChange)
                 {
@@ -253,11 +254,11 @@ public partial class App : Application
 
             // Set the application icon.
             if (IsPackaged)
-                appWin.SetIcon(System.IO.Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, $"Assets/StoreLogo.ico"));
+                AppWin.SetIcon(System.IO.Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, $"Assets/StoreLogo.ico"));
             else
-                appWin.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, $"Assets/StoreLogo.ico"));
+                AppWin.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, $"Assets/StoreLogo.ico"));
 
-            appWin.TitleBar.IconShowOptions = IconShowOptions.ShowIconAndSystemMenu;
+            AppWin.TitleBar.IconShowOptions = IconShowOptions.ShowIconAndSystemMenu;
         }
 
         m_window.Activate();
@@ -270,17 +271,17 @@ public partial class App : Application
         {
             if (LocalConfig.firstRun)
             {
-                appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
+                AppWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
                 CenterWindow(m_window);
             }
             else
             {
-                appWin?.MoveAndResize(new Windows.Graphics.RectInt32(LocalConfig.windowX, LocalConfig.windowY, LocalConfig.windowW, LocalConfig.windowH), Microsoft.UI.Windowing.DisplayArea.Primary);
+                AppWin?.MoveAndResize(new Windows.Graphics.RectInt32(LocalConfig.windowX, LocalConfig.windowY, LocalConfig.windowW, LocalConfig.windowH), Microsoft.UI.Windowing.DisplayArea.Primary);
             }
         }
         else
         {
-            appWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
+            AppWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
             CenterWindow(m_window);
         }
         #endregion
@@ -374,6 +375,22 @@ public partial class App : Application
         {
             Debug.WriteLine($"[ERROR] {MethodBase.GetCurrentMethod()?.Name}: {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// If <see cref="App.WindowHandle"/> is set then a call to User32 <see cref="SetForegroundWindow(nint)"/> 
+    /// will be invoked. I tried using the native OverlappedPresenter.Restore(true), but that does not work.
+    /// </summary>
+    public static void ActivateMainWindow()
+    {
+        if (App.WindowHandle != IntPtr.Zero)
+        {
+            //_ = SetForegroundWindow(App.WindowHandle);
+        }
+        if (AppWin is not null && AppWin.Presenter is not null && AppWin.Presenter is OverlappedPresenter op)
+        {
+            op.Restore(true);
         }
     }
     #endregion

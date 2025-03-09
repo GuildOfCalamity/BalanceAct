@@ -322,11 +322,18 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _yearToDateTally, value);
     }
 
-    string? _frequentCategory = "N/A";
-    public string? FrequentCategory
+    string? _frequentCategory1 = "N/A";
+    public string? FrequentCategory1
     {
-        get => _frequentCategory;
-        set => SetProperty(ref _frequentCategory, value);
+        get => _frequentCategory1;
+        set => SetProperty(ref _frequentCategory1, value);
+    }
+
+    string? _frequentCategory2 = "N/A";
+    public string? FrequentCategory2
+    {
+        get => _frequentCategory2;
+        set => SetProperty(ref _frequentCategory2, value);
     }
 
     string? _avgExpense = "$0.00";
@@ -373,6 +380,8 @@ public class MainViewModel : ObservableRecipient
 
         // https://learn.microsoft.com/en-us/dotnet/api/system.globalization.numberformatinfo?view=net-8.0
         _formatter = System.Globalization.NumberFormatInfo.CurrentInfo;
+
+        var within = DateTime.Now.WithinAmountOfDays(new DateTime(2025, 3, 3, 23, 0, 0), 0.5);
 
         _syncContext = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
         SynchronizationContext.SetSynchronizationContext(_syncContext);
@@ -725,15 +734,13 @@ public class MainViewModel : ObservableRecipient
                                 #endregion
 
                                 bool duplicate = false;
-                                if (App.LocalConfig.aggressiveDupe)
-                                {
-                                    // Aggressive duplicate check only involves date and amount.
-                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                if (App.LocalConfig!.aggressiveDupe)
+                                {   // Aggressive duplicate check involves amount and date (with tolerance).
+                                    duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
                                 }
                                 else
-                                {
-                                    // Standard duplicate check involves date, amount and description.
-                                    duplicate = ExpenseItems.Any(ei => AreDatesSimilar(ei.Date, impDT) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) >= 0.5));
+                                {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
+                                    duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
                                 }
 
                                 // Add the imported item.
@@ -1121,8 +1128,15 @@ public class MainViewModel : ObservableRecipient
         // This is why you'll see the (value/100) before it is assigned.
         // https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings#percent-format-specifier-p
         PreviousMonthChange = (changeRate / 100).ToString("P1", _formatter);
+        if (grouped.Count > 1)
+        {
+            FrequentCategory1 = grouped[0].Key;
+            FrequentCategory2 = grouped[1].Key;
+        }
         if (grouped.Count > 0)
-            FrequentCategory = grouped[0].Key;
+        {
+            FrequentCategory1 = grouped[0].Key;
+        }
         #endregion
     }
 

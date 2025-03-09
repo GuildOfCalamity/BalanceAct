@@ -57,7 +57,7 @@ public static class Extensions
     ///   Computes the Levenshtein Distance between two strings.
     /// </summary>
     /// <remarks>
-    ///   The lower the score the closer they are to being identical, e.g. 1 = identical
+    ///   The lower the score the closer they are to being identical, e.g. 0 = identical
     /// </remarks>
     public static int GetLevenshteinDistance(string s1, string s2)
     {
@@ -90,7 +90,7 @@ public static class Extensions
     ///   but can also handle adjacent character swaps (transpositions).
     /// </summary>
     /// <remarks>
-    ///   The lower the score the closer they are to being identical, e.g. 1 = identical
+    ///   The lower the score the closer they are to being identical, e.g. 0 = identical
     /// </remarks>
     public static int GetDamerauLevenshteinDistance(string s1, string s2)
     {
@@ -914,7 +914,7 @@ public static class Extensions
     }
 
     /// <summary>
-    /// Only accounts for date1 being within range of date2.
+    /// Returns <c>true</c> if <paramref name="date1"/> is within 1 day of <paramref name="date2"/>, otherwise <c>false</c>.
     /// </summary>
     public static bool WithinOneDay(this DateTime date1, DateTime date2)
     {
@@ -923,11 +923,23 @@ public static class Extensions
     }
 
     /// <summary>
-    /// Only accounts for date1 being within range of date2 by some amount.
+    /// Returns <c>true</c> if <paramref name="date1"/> is within range of <paramref name="date2"/> by <paramref name="days"/> amount, otherwise <c>false</c>.
     /// </summary>
     public static bool WithinAmountOfDays(this DateTime date1, DateTime date2, double days)
     {
         TimeSpan difference = date1 - date2;
+        return Math.Abs(difference.TotalDays) <= days;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if <paramref name="date1"/> is within range of <paramref name="date2"/> by <paramref name="days"/> amount, otherwise <c>false</c>.
+    /// </summary>
+    public static bool WithinAmountOfDays(this DateTime date1, DateTime? date2, double days)
+    {
+        if (date2 is null)
+            return false;
+
+        TimeSpan difference = date1 - date2.Value;
         return Math.Abs(difference.TotalDays) <= days;
     }
 

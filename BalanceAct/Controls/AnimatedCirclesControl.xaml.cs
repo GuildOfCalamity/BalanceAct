@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -56,7 +57,7 @@ public sealed partial class AnimatedCirclesControl : UserControl
         nameof(AnimationDuration),
         typeof(double),
         typeof(AnimatedCirclesControl),
-        new PropertyMetadata(0.8));
+        new PropertyMetadata(0.8, OnDurationChanged));
 
     /// <summary>
     /// DependencyProperty for AnimationFrequency
@@ -70,7 +71,7 @@ public sealed partial class AnimatedCirclesControl : UserControl
         nameof(AnimationFrequency),
         typeof(double),
         typeof(AnimatedCirclesControl),
-        new PropertyMetadata(0.1));
+        new PropertyMetadata(0.1, OnFrequencyChanged));
 
     /// <summary>
     /// DependencyProperty for outer gradient color (1st color in gradient)
@@ -267,6 +268,24 @@ public sealed partial class AnimatedCirclesControl : UserControl
     }
 
     /// <summary>
+    /// Update the animations when the frequency changes.
+    /// </summary>
+    static void OnFrequencyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (AnimatedCirclesControl)d;
+        control?.ConfigureAnimations();
+    }
+
+    /// <summary>
+    /// Update the animations when the duration changes.
+    /// </summary>
+    static void OnDurationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (AnimatedCirclesControl)d;
+        control?.ConfigureAnimations();
+    }
+
+    /// <summary>
     /// Setup and configure the animations.
     /// </summary>
     Storyboard CreateGrowShrinkAnimation(ScaleTransform scaleTransform, double delay, double toSize = 1.4)
@@ -385,7 +404,7 @@ public sealed partial class AnimatedCirclesControl : UserControl
 
 public static class AnimatedCirclesExtensions
 {
-    static bool injectAdditionalGradientStop = false;
+    static bool injectAdditionalGradientStop = true;
 
     /// <summary>
     /// Helper method for creating <see cref="LinearGradientBrush"/>s.
@@ -400,14 +419,13 @@ public static class AnimatedCirclesExtensions
         lgb.GradientStops.Add(new GradientStop { Color = c1, Offset = 0.0 });
         if (injectAdditionalGradientStop && !AreIdentical(c1, c2))
         {
-            //var cr = CalculateContrastRatio(c1, c2);
-            //Debug.WriteLine($"[INFO] ContrastRatio is {cr:N2}");
-            var dominant = ExtractPredominantColor(new Windows.UI.Color[] { c1, c2 });
-            Debug.WriteLine($"[INFO] Predominant color is {dominant}");
-            lgb.GradientStops.Add(new GradientStop { Color = dominant.LighterBy(0.2f), Offset = 0.36 });
+            // Blend the two colors by 50% and inject gradient stop.
+            Color blended = BlendColors(c1, c2);
+            Debug.WriteLine($"[INFO] Blended color will be {blended}");
+            lgb.GradientStops.Add(new GradientStop { Color = blended, Offset = 0.34 });
         }
         lgb.GradientStops.Add(new GradientStop { Color = c2, Offset = 0.57 });
-        lgb.ColorInterpolationMode = ColorInterpolationMode.ScRgbLinearInterpolation;
+        lgb.ColorInterpolationMode = ColorInterpolationMode.SRgbLinearInterpolation;
         //lgb.SpreadMethod = GradientSpreadMethod.Pad;
         return lgb;
     }
@@ -441,16 +459,131 @@ public static class AnimatedCirclesExtensions
         return rgb;
     }
 
+
+    /// <summary>
+    /// Blends two Windows.UI.Color inputs based on the given ratio.
+    /// <example><code>
+    ///   Color blendedMoreTowardsBlue = ColorHelper.BlendColors(Colors.Red, Colors.Blue, 0.75); // Blend 75% blue and 25% red
+    /// </code></example>
+    /// </summary>
+    /// <param name="color1">The first color.</param>
+    /// <param name="color2">The second color.</param>
+    /// <param name="ratio">A ratio between 0 and 1. A value of 0 returns color1, and a value of 1 returns color2. Values in between blend the two colors.</param>
+    /// <returns>A new <see cref="Windows.UI.Color"/> that represents the blended result.</returns>
+    public static Windows.UI.Color BlendColors(Color color1, Color color2, double ratio = 0.5)
+    {
+        // Ensure ratio is between 0 and 1
+        ratio = Math.Clamp(ratio, 0.0, 1.0);
+        byte blendedR = (byte)((color1.R * (1 - ratio)) + (color2.R * ratio));
+        byte blendedG = (byte)((color1.G * (1 - ratio)) + (color2.G * ratio));
+        byte blendedB = (byte)((color1.B * (1 - ratio)) + (color2.B * ratio));
+        byte blendedA = (byte)((color1.A * (1 - ratio)) + (color2.A * ratio));
+        return Windows.UI.Color.FromArgb(blendedA, blendedR, blendedG, blendedB);
+    }
+
+    /// <summary>
+    /// Blends a list of colors based on the corresponding weights.
+    /// <example><code>
+    ///   /* Blending with more weight towards blue */
+    ///   Color blended2 = ColorHelper.BlendMultipleColors(new List<Color> { Colors.Red, Colors.Blue, Colors.Green }, new List<double> { 0.2, 0.6, 0.2 });
+    /// </code></example>
+    /// </summary>
+    /// <param name="colors">A list of colors to blend.</param>
+    /// <param name="weights">A list of weights corresponding to each color. The weights will be normalized if they don't sum to 1.</param>
+    /// <returns>A new <see cref="Windows.UI.Color"/> that represents the blended result.</returns>
+    public static Windows.UI.Color BlendMultipleColors(List<Color> colors, List<double> weights)
+    {
+        // Ensure we have the same number of colors and weights
+        if (colors.Count != weights.Count || colors.Count == 0)
+            throw new ArgumentException("BlendMultipleColors: The number of colors and weights must be the same, and they cannot be empty.");
+
+        // Calculate the total sum of weights
+        double totalWeight = weights.Sum();
+
+        // Normalize the weights if they don't sum to 1
+        if (totalWeight == 0)
+            throw new ArgumentException("BlendMultipleColors: The sum of weights must not be zero.");
+
+        // Initialize blended RGBA values
+        double blendedR = 0, blendedG = 0, blendedB = 0, blendedA = 0;
+
+        for (int i = 0; i < colors.Count; i++)
+        {
+            double normalizedWeight = weights[i] / totalWeight;
+            blendedR += colors[i].R * normalizedWeight;
+            blendedG += colors[i].G * normalizedWeight;
+            blendedB += colors[i].B * normalizedWeight;
+            blendedA += colors[i].A * normalizedWeight;
+        }
+
+        // Return the blended color by clamping values to valid byte range (0-255)
+        return Windows.UI.Color.FromArgb(
+            (byte)Math.Clamp(blendedA, 0, 255),
+            (byte)Math.Clamp(blendedR, 0, 255),
+            (byte)Math.Clamp(blendedG, 0, 255),
+            (byte)Math.Clamp(blendedB, 0, 255)
+        );
+    }
+
+    /// <summary>
+    /// Blends a list of colors based on the corresponding weights, applying a non-linear transformation to the weights.
+    /// <example><code>
+    ///   /* Linear blending (This is just the same as the original blending method. The weights are not transformed.) */
+    ///   Color linBlend = ColorHelper.BlendMultipleColorsNonLinear(new List<Color> { Colors.Red, Colors.Blue, Colors.Green }, new List<double> { 1.0, 1.0, 1.0 }, 1);
+    ///   /* Exponential blending (The weights are squared, making colors with larger weights more dominant, and colors with smaller weights contribute less.) */
+    ///   Color expBlend = ColorHelper.BlendMultipleColorsNonLinear(new List<Color> { Colors.Red, Colors.Blue, Colors.Green }, new List<double> { 1.0, 1.0, 1.0 }, 2);
+    ///   /* Cubic blending (The weights are cubed, further amplifying the dominance of colors with higher weights.) */
+    ///   Color cubBlend = ColorHelper.BlendMultipleColorsNonLinear(new List<Color> { Colors.Red, Colors.Blue, Colors.Green }, new List<double> { 0.2, 0.6, 0.2 }, 3);
+    /// </code></example>
+    /// </summary>
+    /// <param name="colors">A list of colors to blend.</param>
+    /// <param name="weights">A list of weights corresponding to each color.</param>
+    /// <param name="power">The power to which each weight will be raised (e.g., 2 for square/exponential, 3 for cubic blending).</param>
+    /// <returns>A new <see cref="Windows.UI.Color"/> that represents the blended result.</returns>
+    public static Windows.UI.Color BlendMultipleColorsNonLinear(List<Windows.UI.Color> colors, List<double> weights, double power)
+    {
+        // Ensure we have the same number of colors and weights
+        if (colors.Count != weights.Count || colors.Count == 0)
+            throw new ArgumentException("BlendMultipleColorsNonLinear: The number of colors and weights must be the same, and they cannot be empty.");
+
+        // Apply the non-linear transformation to the weights (e.g., square or cubic)
+        var transformedWeights = weights.Select(w => Math.Pow(w, power)).ToList();
+
+        // Calculate the total sum of transformed weights
+        double totalTransformedWeight = transformedWeights.Sum();
+
+        if (totalTransformedWeight == 0)
+            throw new ArgumentException("BlendMultipleColorsNonLinear: The sum of transformed weights must not be zero.");
+
+        // Initialize blended RGBA values
+        double blendedR = 0, blendedG = 0, blendedB = 0, blendedA = 0;
+
+        // Blend colors using the transformed and normalized weights
+        for (int i = 0; i < colors.Count; i++)
+        {
+            double normalizedWeight = transformedWeights[i] / totalTransformedWeight;
+            blendedR += colors[i].R * normalizedWeight;
+            blendedG += colors[i].G * normalizedWeight;
+            blendedB += colors[i].B * normalizedWeight;
+            blendedA += colors[i].A * normalizedWeight;
+        }
+
+        // Return the blended color by clamping values to valid byte range (0-255)
+        return Windows.UI.Color.FromArgb(
+            (byte)Math.Clamp(blendedA, 0, 255),
+            (byte)Math.Clamp(blendedR, 0, 255),
+            (byte)Math.Clamp(blendedG, 0, 255),
+            (byte)Math.Clamp(blendedB, 0, 255)
+        );
+    }
+
     /// <summary>
     /// Darkens the color by the given percentage using lerp.
     /// </summary>
     /// <param name="color">Source color.</param>
     /// <param name="amount">Percentage to darken. Value should be between 0 and 1.</param>
     /// <returns>Color</returns>
-    public static Windows.UI.Color DarkerBy(this Windows.UI.Color color, float amount)
-    {
-        return color.Lerp(Colors.Black, amount);
-    }
+    public static Windows.UI.Color DarkerBy(this Windows.UI.Color color, float amount) => color.Lerp(Colors.Black, amount);
 
     /// <summary>
     /// Lightens the color by the given percentage using lerp.
@@ -458,10 +591,7 @@ public static class AnimatedCirclesExtensions
     /// <param name="color">Source color.</param>
     /// <param name="amount">Percentage to lighten. Value should be between 0 and 1.</param>
     /// <returns>Color</returns>
-    public static Windows.UI.Color LighterBy(this Windows.UI.Color color, float amount)
-    {
-        return color.Lerp(Colors.White, amount);
-    }
+    public static Windows.UI.Color LighterBy(this Windows.UI.Color color, float amount) => color.Lerp(Colors.White, amount);
 
     /// <summary>
     /// Finds the contrast ratio.
@@ -504,8 +634,13 @@ public static class AnimatedCirclesExtensions
 
     /// <summary>
     /// Determine if two colors are the same.
-    public static bool AreIdentical(Windows.UI.Color c1, Windows.UI.Color c2)
+    /// </summary>
+    /// <remarks>By default, the alpha channel is included in the evaluation.</remarks>
+    public static bool AreIdentical(Windows.UI.Color c1, Windows.UI.Color c2, bool includeAlpha = true)
     {
+        if (!includeAlpha)
+            return (c1.R == c2.R && c1.G == c2.G && c1.B == c2.B);
+
         return (c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B);
     }
 
@@ -537,7 +672,7 @@ public static class AnimatedCirclesExtensions
     /// <summary>
     /// Helper method for extracting the dominant color from an array of <see cref="Windows.UI.Color"/>s.
     /// </summary>
-    /// <returns><see cref="Windows.UI.Color"/></returns>
+    /// <returns>The dominantly weighted <see cref="Windows.UI.Color"/>.</returns>
     public static Windows.UI.Color ExtractPredominantColor(Windows.UI.Color[] colors)
     {
         Dictionary<uint, int> dict = new Dictionary<uint, int>();
@@ -591,13 +726,35 @@ public static class AnimatedCirclesExtensions
         return Windows.UI.Color.FromArgb((byte)(maxColor >> 24), (byte)(maxColor >> 16), (byte)(maxColor >> 8), (byte)(maxColor >> 0));
     }
 
+    /// <summary>
+    /// Generates a gradient <see cref="Windows.UI.Color"/> scale where the blue channel is ignored.
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="end"></param>
+    /// <returns></returns>
+    public static Windows.UI.Color[] CreateColorScale(int start, int end)
+    {
+        var colors = new Windows.UI.Color[end - start + 1];
+        for (int i = 0; i < colors.Length; i++)
+        {
+            float factor = ((float)i / (end - start)) * 255; // map the position to 0-255
+            // Create a color gradient from light to dark (ignore blue channel)
+            colors[i] = Windows.UI.Color.FromArgb(255, (byte)(200 * factor), (byte)(255 - 10 * factor), 0);
+        }
+        return colors;
+    }
+
+    /// <summary>
+    /// Helper method for creating a random <see cref="Windows.UI.Color"/> value.
+    /// The alpha channel is forced to 255.
+    /// </summary>
+    /// <returns>A randomly generated <see cref="Windows.UI.Color"/>.</returns>
     public static Windows.UI.Color GetRandomWinUIColor()
     {
         byte[] buffer = new byte[3];
         Random.Shared.NextBytes(buffer);
         return Windows.UI.Color.FromArgb(255, buffer[0], buffer[1], buffer[2]);
     }
-
 
     /// <summary>
     /// Clamping function for any value of type <see cref="IComparable{T}"/>.
@@ -623,22 +780,10 @@ public static class AnimatedCirclesExtensions
         return value;
     }
 
-    public static Windows.UI.Color[] CreateColorScale(int start, int end)
-    {
-        var colors = new Windows.UI.Color[end - start + 1];
-        for (int i = 0; i < colors.Length; i++)
-        {
-            float factor = ((float)i / (end - start)) * 255; // map the position to 0-255
-            // Create a color gradient from light to dark (ignore blue channel)
-            colors[i] = Windows.UI.Color.FromArgb(255, (byte)(200 * factor), (byte)(255 - 10 * factor), 0);
-        }
-        return colors;
-    }
-
-    public static float ScaleValueVector(float begin, float end, int divy = 100)
+    public static float ScaleValueVector(float begin, float end, int divider = 100)
     {
         var result = System.Numerics.Vector3.Dot(new System.Numerics.Vector3(begin, begin, 0), new System.Numerics.Vector3(end, end, 0));
-        return result > 0 ? result / divy : result;
+        return result > 0 ? result / divider : result;
     }
 
     /// <summary>

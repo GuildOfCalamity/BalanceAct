@@ -846,6 +846,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <!--  Bottom Graphic  -->
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
@@ -890,7 +891,7 @@
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
-                                Text="{x:Bind ViewModel.FrequentCategory, Mode=OneWay}" />
+                                Text="{x:Bind ViewModel.FrequentCategory1, Mode=OneWay}" />
                             <Image Grid.Row="2" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
@@ -911,15 +912,43 @@
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
-                                Text="Median/Average expense:" />
+                                Text="2nd most frequent category:" />
                             <TextBlock
                                 Grid.Row="3"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
-                                Text="{x:Bind ViewModel.AverageExpense, Mode=OneWay}" />
+                                Text="{x:Bind ViewModel.FrequentCategory2, Mode=OneWay}" />
                             <Image Grid.Row="3" Grid.Column="2">
+                                <ToolTipService.ToolTip>
+                                    <ToolTip Background="{ThemeResource GradientToolTipBrush}">
+                                        <StackPanel
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            CornerRadius="5"
+                                            Orientation="Vertical">
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the" />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="most used category is." />
+                                        </StackPanel>
+                                    </ToolTip>
+                                </ToolTipService.ToolTip>
+                            </Image>
+
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                HorizontalAlignment="Right"
+                                Foreground="{ThemeResource PrimaryBrush}"
+                                Text="Median/Average expense:" />
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                FontFamily="{ThemeResource SecondaryFont}"
+                                Foreground="{ThemeResource SecondaryBrush}"
+                                Text="{x:Bind ViewModel.AverageExpense, Mode=OneWay}" />
+                            <Image Grid.Row="4" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -939,19 +968,19 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="4"
+                                Grid.Row="5"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Average per month:" />
                             <TextBlock
-                                Grid.Row="4"
+                                Grid.Row="5"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.AveragePerMonth, Mode=OneWay}" />
-                            <Image Grid.Row="4" Grid.Column="2">
+                            <Image Grid.Row="5" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -967,19 +996,19 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="5"
+                                Grid.Row="6"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Current month total:" />
                             <TextBlock
-                                Grid.Row="5"
+                                Grid.Row="6"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.CurrentMonthTotal, Mode=OneWay}" />
-                            <Image Grid.Row="5" Grid.Column="2">
+                            <Image Grid.Row="6" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -995,19 +1024,19 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="6"
+                                Grid.Row="7"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Change vs last month:" />
                             <TextBlock
-                                Grid.Row="6"
+                                Grid.Row="7"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.PreviousMonthChange, Mode=OneWay}" />
-                            <Image Grid.Row="6" Grid.Column="2">
+                            <Image Grid.Row="7" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -1023,19 +1052,19 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="7"
+                                Grid.Row="8"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Year to date:" />
                             <TextBlock
-                                Grid.Row="7"
+                                Grid.Row="8"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.YearToDateTotal, Mode=OneWay}" />
-                            <Image Grid.Row="7" Grid.Column="2">
+                            <Image Grid.Row="8" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -1051,19 +1080,19 @@
                             </Image>
 
                             <TextBlock
-                                Grid.Row="8"
+                                Grid.Row="9"
                                 Grid.Column="0"
                                 HorizontalAlignment="Right"
                                 Foreground="{ThemeResource PrimaryBrush}"
                                 Text="Projected year total:" />
                             <TextBlock
-                                Grid.Row="8"
+                                Grid.Row="9"
                                 Grid.Column="1"
                                 HorizontalAlignment="Left"
                                 FontFamily="{ThemeResource SecondaryFont}"
                                 Foreground="{ThemeResource SecondaryBrush}"
                                 Text="{x:Bind ViewModel.ProjectedYearTotal, Mode=OneWay}" />
-                            <Image Grid.Row="8" Grid.Column="2">
+                            <Image Grid.Row="9" Grid.Column="2">
                                 <ToolTipService.ToolTip>
                                     <ToolTip Background="{ThemeResource GradientToolTipBrush}">
                                         <StackPanel
@@ -1080,7 +1109,7 @@
 
                             <TextBlock
                                 x:Name="url"
-                                Grid.Row="9"
+                                Grid.Row="10"
                                 Grid.ColumnSpan="3"
                                 MaxWidth="200"
                                 Margin="5,20,5,5"
@@ -1097,7 +1126,7 @@
 
                             <TextBlock
                                 x:Name="tally"
-                                Grid.Row="9"
+                                Grid.Row="10"
                                 Grid.Column="0"
                                 Grid.ColumnSpan="3"
                                 MaxWidth="300"
@@ -1112,7 +1141,7 @@
                                 TextWrapping="WrapWholeWords" />
 
                             <Image
-                                Grid.Row="11"
+                                Grid.Row="12"
                                 Grid.ColumnSpan="3"
                                 Width="100"
                                 Height="100"

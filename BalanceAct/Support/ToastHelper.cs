@@ -59,7 +59,6 @@ public static class ToastHelper
         }
     }
 
-
     #region [Toast Routines]
     /// <summary>
     /// https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/toast-progress-bar?tabs=builder-syntax#using-data-binding-to-update-a-toast
@@ -252,6 +251,7 @@ public static class ToastHelper
                     Debug.WriteLine($"ToastKey: '{item.Key}'  ToastValue: '{item.Value}'");
                 }
             }
+            App.ActivateMainWindow();
         }
     }
     static void ToastOnDismissed(ToastNotification sender, ToastDismissedEventArgs args)
