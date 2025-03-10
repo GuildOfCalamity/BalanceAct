@@ -929,7 +929,7 @@
                                             CornerRadius="5"
                                             Orientation="Vertical">
                                             <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the" />
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="most used category is." />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="2nd most used category is." />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>
