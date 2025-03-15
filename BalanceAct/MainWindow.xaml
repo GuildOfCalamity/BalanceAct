@@ -39,6 +39,7 @@
 
         <Grid Grid.Row="1">
             <Image
+                x:Name="imgWatermark"
                 Margin="60,30,30,30"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"

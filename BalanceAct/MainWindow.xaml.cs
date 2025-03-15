@@ -1,10 +1,10 @@
 using System;
 using System.Diagnostics;
-
+using System.Threading.Tasks;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
-
+using Windows.Graphics.Imaging;
 using WinRT; // required to support Window.As<ICompositionSupportsSystemBackdrop>()
 
 namespace BalanceAct;
@@ -27,7 +27,9 @@ public sealed partial class MainWindow : Window
             this.Title = $"{App.GetCurrentAssemblyName()}";
             SetTitleBar(CustomTitleBar);
         }
-        
+
+        var dispatcher = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
         this.Closed += MainWindow_Closed;
 
         if (_useGradient)
@@ -57,6 +59,24 @@ public sealed partial class MainWindow : Window
             else
                 root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
         }
+
+        _ = Task.Run(async () =>
+        {
+            if (dispatcher is null) { return; }
+            try
+            {
+                SoftwareBitmap? sftbmp = await Support.BlurHelper.LoadSoftwareBitmapFromPathAsync(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Balance2.png"));
+                if (sftbmp != null)
+                {
+                    var source = Support.BlurHelper.ApplyBlur(sftbmp, 4);
+                    dispatcher.TryEnqueue(async () => { imgWatermark.Source = await Support.BlurHelper.ConvertSoftwareBitmapToBitmapImageAsync(source); });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[WARNING] During blur apply: {ex.Message}");
+            }
+        });
     }
 
     void CreateGradientBackdrop(FrameworkElement fe, System.Numerics.Vector2 endPoint)

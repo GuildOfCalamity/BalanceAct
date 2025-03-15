@@ -4,19 +4,20 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
+using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.System;
 using Windows.UI.Core;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace BalanceAct;
 
@@ -39,7 +40,7 @@ public sealed partial class MainPage : Page
         }
     }
 
-    void MainPageLoading(FrameworkElement sender, object args)
+    async void MainPageLoading(FrameworkElement sender, object args)
     {
         Logger?.WriteLine($"The MainPage is loading.", LogLevel.Debug);
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));

@@ -428,14 +428,15 @@
             <!--#region [Commands]-->
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="40" />
-                    <RowDefinition Height="40" />
+                    <RowDefinition Height="56" />
+                    <RowDefinition Height="56" />
                 </Grid.RowDefinitions>
 
                 <ctrl:ButtonEx
                     x:Name="btnAdd"
                     Grid.Row="0"
-                    MinWidth="180"
+                    MinWidth="200"
+                    MinHeight="48"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Command="{x:Bind ViewModel.AddItemCommand}"
@@ -452,7 +453,8 @@
                 <ctrl:ButtonEx
                     x:Name="btnUpdate"
                     Grid.Row="1"
-                    MinWidth="180"
+                    MinWidth="200"
+                    MinHeight="48"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Command="{x:Bind ViewModel.UpdateItemCommand}"
@@ -1074,7 +1076,7 @@
                                             BorderThickness="0"
                                             CornerRadius="5"
                                             Orientation="Vertical">
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what the year's" />
+                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="An indicator of what this year's" />
                                             <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="current spending has amounted to." />
                                         </StackPanel>
                                     </ToolTip>
