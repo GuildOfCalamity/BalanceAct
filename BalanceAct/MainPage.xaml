@@ -433,6 +433,7 @@
                 </Grid.RowDefinitions>
 
                 <ctrl:ButtonEx
+                    x:Name="btnAdd"
                     Grid.Row="0"
                     MinWidth="180"
                     HorizontalAlignment="Center"
@@ -449,6 +450,7 @@
                 </ctrl:ButtonEx>
 
                 <ctrl:ButtonEx
+                    x:Name="btnUpdate"
                     Grid.Row="1"
                     MinWidth="180"
                     HorizontalAlignment="Center"
@@ -1337,12 +1339,12 @@
             Margin="0"
             VerticalAlignment="Bottom">
             <!--  Wrap this in a StackPanel/Grid to support AnimateUIElementOffset  -->
-            <ctrl:AutoCloseInfoBar
+            <ctrl:SlideBar
                 x:Name="infoBar"
                 AutoCloseInterval="6000"
+                FadeDuration="0:0:0.9"
                 IsOpen="{x:Bind ViewModel.Show, Mode=OneWay}"
                 Message="{x:Bind ViewModel.Status, Mode=OneWay}"
-                Seconds="2.0"
                 Severity="Informational"
                 SlideUp="True" />
         </StackPanel>

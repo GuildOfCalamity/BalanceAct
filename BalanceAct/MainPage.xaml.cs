@@ -22,6 +22,7 @@ namespace BalanceAct;
 
 public sealed partial class MainPage : Page
 {
+    bool useBloom = false;
     MainViewModel? ViewModel = App.Current.Services.GetService<MainViewModel>();
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
 
@@ -44,7 +45,33 @@ public sealed partial class MainPage : Page
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
         chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(1));
         url.Text = "More WinUI3 examples at my github https://github.com/GuildOfCalamity?tab=repositories";
-
+        if (useBloom)
+        {
+            btnAdd.Loaded += (s, e) =>
+            {
+                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
+                if (pnl is not null)
+                    Support.BloomHelper.AddBloom((UIElement)s, pnl, Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+            };
+            btnUpdate.Loaded += (s, e) =>
+            {
+                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
+                if (pnl is not null)
+                    Support.BloomHelper.AddBloom((UIElement)s, pnl, Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+            };
+            btnAdd.Unloaded += (s, e) =>
+            {
+                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
+                if (pnl is not null)
+                    Support.BloomHelper.RemoveBloom((UIElement)s, pnl, null);
+            };
+            btnUpdate.Unloaded += (s, e) =>
+            {
+                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
+                if (pnl is not null)
+                    Support.BloomHelper.RemoveBloom((UIElement)s, pnl, null);
+            };
+        }
     }
 
     void ItemListView_RightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
