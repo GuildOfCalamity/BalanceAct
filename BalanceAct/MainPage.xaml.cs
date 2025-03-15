@@ -33,14 +33,10 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         this.Loading += MainPageLoading;
         ItemListView.RightTapped += ItemListView_RightTapped;
-        
-        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType()))
-        {
-            Debug.WriteLine($"[INFO] {ele?.Name}");
-        }
+        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[INFO] {ele?.Name}"); }
     }
 
-    async void MainPageLoading(FrameworkElement sender, object args)
+    void MainPageLoading(FrameworkElement sender, object args)
     {
         Logger?.WriteLine($"The MainPage is loading.", LogLevel.Debug);
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
@@ -50,27 +46,19 @@ public sealed partial class MainPage : Page
         {
             btnAdd.Loaded += (s, e) =>
             {
-                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
-                if (pnl is not null)
-                    Support.BloomHelper.AddBloom((UIElement)s, pnl, Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+                Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
             };
             btnUpdate.Loaded += (s, e) =>
             {
-                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
-                if (pnl is not null)
-                    Support.BloomHelper.AddBloom((UIElement)s, pnl, Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+                Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
             };
             btnAdd.Unloaded += (s, e) =>
             {
-                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
-                if (pnl is not null)
-                    Support.BloomHelper.RemoveBloom((UIElement)s, pnl, null);
+                Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
             };
             btnUpdate.Unloaded += (s, e) =>
             {
-                var pnl = Support.BloomHelper.FindParentPanel((UIElement)s);
-                if (pnl is not null)
-                    Support.BloomHelper.RemoveBloom((UIElement)s, pnl, null);
+                Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
             };
         }
     }

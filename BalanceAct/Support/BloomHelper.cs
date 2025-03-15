@@ -26,7 +26,7 @@ public static class BloomHelper
     ///   Should never be applied more than one parent level up, since this will make offset adjustments
     ///   to the <see cref="Microsoft.UI.Composition.LayerVisual"/>, this could result in undesired behavior.
     /// </remarks>
-    public static void AddBloom(UIElement element, UIElement parent, Windows.UI.Color color, Vector3 offset, float blurRadius = 10)
+    public static void AddBloom(UIElement? element, UIElement? parent, Windows.UI.Color color, Vector3 offset, float blurRadius = 10)
     {
         if (element == null || parent == null)
         {
@@ -78,14 +78,14 @@ public static class BloomHelper
         // Insert the visual at the top of the collection.
         parentContainerVisual.Children.InsertAtTop(lVisual);
     }
-    public static void AddBloom(UIElement element, UIElement parent, float blurRadius = 10) => AddBloom(element, parent, _defaultColor, Vector3.Zero, blurRadius);
-    public static void AddBloom(UIElement element, UIElement parent, Windows.UI.Color color, float blurRadius = 10) => AddBloom(element, parent, color, Vector3.Zero, blurRadius);
+    public static void AddBloom(UIElement? element, UIElement? parent, float blurRadius = 10) => AddBloom(element, parent, _defaultColor, Vector3.Zero, blurRadius);
+    public static void AddBloom(UIElement? element, UIElement? parent, Windows.UI.Color color, float blurRadius = 10) => AddBloom(element, parent, color, Vector3.Zero, blurRadius);
 
     /// <summary>
     ///   Removes the bloom effect from the specified <see cref="UIElement"/>. If <paramref name="layerVisual"/> 
     ///   is null, all <see cref="Microsoft.UI.Composition.Visual"/>s will be removed from the parent container.
     /// </summary>
-    public static void RemoveBloom(UIElement element, UIElement parent, Microsoft.UI.Composition.LayerVisual? layerVisual)
+    public static void RemoveBloom(UIElement? element, UIElement? parent, Microsoft.UI.Composition.LayerVisual? layerVisual)
     {
         if (element == null || parent == null)
             return;
