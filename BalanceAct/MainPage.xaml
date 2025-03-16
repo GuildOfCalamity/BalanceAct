@@ -1145,13 +1145,14 @@
                                 TextWrapping="WrapWholeWords" />
 
                             <Image
+                                x:Name="imgGraph"
                                 Grid.Row="12"
                                 Grid.ColumnSpan="3"
                                 Width="100"
                                 Height="100"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom"
-                                Opacity="0.35"
+                                Opacity="0.65"
                                 Source="ms-appx:///Assets/Graph2.png" />
                         </Grid>
                     </Flyout>

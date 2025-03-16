@@ -4,15 +4,18 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.ViewModels;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -23,7 +26,7 @@ namespace BalanceAct;
 
 public sealed partial class MainPage : Page
 {
-    bool useBloom = false;
+    bool useBloom = true;
     MainViewModel? ViewModel = App.Current.Services.GetService<MainViewModel>();
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
 
@@ -33,7 +36,7 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         this.Loading += MainPageLoading;
         ItemListView.RightTapped += ItemListView_RightTapped;
-        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[INFO] {ele?.Name}"); }
+        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
     }
 
     void MainPageLoading(FrameworkElement sender, object args)
@@ -44,22 +47,31 @@ public sealed partial class MainPage : Page
         url.Text = "More WinUI3 examples at my github https://github.com/GuildOfCalamity?tab=repositories";
         if (useBloom)
         {
-            btnAdd.Loaded += (s, e) =>
+            imgGraph.Loaded += (s, e) =>
             {
-                Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+                //Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(200, 150, 217, 255), 8);
+                Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(200, 0, 0, 0), new System.Numerics.Vector3(3,3,0), 3);
             };
-            btnUpdate.Loaded += (s, e) =>
-            {
-                Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
-            };
-            btnAdd.Unloaded += (s, e) =>
+            imgGraph.Unloaded += (s, e) =>
             {
                 Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
             };
-            btnUpdate.Unloaded += (s, e) =>
-            {
-                Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
-            };
+            //btnAdd.Loaded += (s, e) =>
+            //{
+            //    Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+            //};
+            //btnAdd.Unloaded += (s, e) =>
+            //{
+            //    Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
+            //};
+            //btnUpdate.Loaded += (s, e) =>
+            //{
+            //    Support.BloomHelper.AddBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), Windows.UI.Color.FromArgb(220, 249, 249, 249), System.Numerics.Vector3.Zero);
+            //};
+            //btnUpdate.Unloaded += (s, e) =>
+            //{
+            //    Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
+            //};
         }
     }
 

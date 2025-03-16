@@ -60,15 +60,16 @@ public sealed partial class MainWindow : Window
                 root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
         }
 
+        #region [Blur watermark background]
         _ = Task.Run(async () =>
         {
-            if (dispatcher is null) { return; }
+            if (dispatcher is null || !App.AnimationsEffectsEnabled) { return; }
             try
             {
                 SoftwareBitmap? sftbmp = await Support.BlurHelper.LoadSoftwareBitmapFromPathAsync(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Balance2.png"));
-                if (sftbmp != null)
+                if (sftbmp is not null)
                 {
-                    var source = Support.BlurHelper.ApplyBlur(sftbmp, 4);
+                    var source = Support.BlurHelper.ApplyBlur(sftbmp, 3);
                     dispatcher.TryEnqueue(async () => { imgWatermark.Source = await Support.BlurHelper.ConvertSoftwareBitmapToBitmapImageAsync(source); });
                 }
             }
@@ -77,6 +78,7 @@ public sealed partial class MainWindow : Window
                 Debug.WriteLine($"[WARNING] During blur apply: {ex.Message}");
             }
         });
+        #endregion
     }
 
     void CreateGradientBackdrop(FrameworkElement fe, System.Numerics.Vector2 endPoint)

@@ -1842,6 +1842,176 @@ public static class Extensions
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Converts a <see cref="TimeSpan"/> into a human-friendly readable string.
+    /// </summary>
+    /// <param name="timeSpan"><see cref="TimeSpan"/> to convert (can be negative)</param>
+    /// <returns>human-friendly string representation of the given <see cref="TimeSpan"/></returns>
+    public static string ToHumanFriendlyString(this TimeSpan timeSpan)
+    {
+        if (timeSpan == TimeSpan.Zero)
+            return "0 seconds";
+
+        bool isNegative = false;
+        List<string> parts = new();
+
+        // Check for negative TimeSpan.
+        if (timeSpan < TimeSpan.Zero)
+        {
+            isNegative = true;
+            timeSpan = timeSpan.Negate(); // Make it positive for the calculations.
+        }
+
+        if (timeSpan.Days > 0)
+            parts.Add($"{timeSpan.Days} day{(timeSpan.Days > 1 ? "s" : "")}");
+        if (timeSpan.Hours > 0)
+            parts.Add($"{timeSpan.Hours} hour{(timeSpan.Hours > 1 ? "s" : "")}");
+        if (timeSpan.Minutes > 0)
+            parts.Add($"{timeSpan.Minutes} minute{(timeSpan.Minutes > 1 ? "s" : "")}");
+        if (timeSpan.Seconds > 0)
+            parts.Add($"{timeSpan.Seconds} second{(timeSpan.Seconds > 1 ? "s" : "")}");
+
+        // If no large amounts so far, try milliseconds.
+        if (parts.Count == 0 && timeSpan.Milliseconds > 0)
+            parts.Add($"{timeSpan.Milliseconds} millisecond{(timeSpan.Milliseconds > 1 ? "s" : "")}");
+
+        // If no milliseconds, use ticks (nanoseconds).
+        if (parts.Count == 0 && timeSpan.Ticks > 0)
+        {
+            // A tick is equal to 100 nanoseconds. While this maps well into units of time
+            // such as hours and days, any periods longer than that aren't representable in
+            // a succinct fashion, e.g. a month can be between 28 and 31 days, while a year
+            // can contain 365 or 366 days. A decade can have between 1 and 3 leap-years,
+            // depending on when you map the TimeSpan into the calendar. This is why TimeSpan
+            // does not provide a "Years" property or a "Months" property.
+            parts.Add($"{(timeSpan.Ticks * 10)} microsecond{((timeSpan.Ticks * 10) > 1 ? "s" : "")}");
+        }
+
+        // Join the sections with commas and "and" for the last one.
+        if (parts.Count == 1)
+            return isNegative ? $"Negative {parts[0]}" : parts[0];
+        else if (parts.Count == 2)
+            return isNegative ? $"Negative {string.Join(" and ", parts)}" : string.Join(" and ", parts);
+        else
+        {
+            string lastPart = parts[parts.Count - 1];
+            parts.RemoveAt(parts.Count - 1);
+            return isNegative ? $"Negative " + string.Join(", ", parts) + " and " + lastPart : string.Join(", ", parts) + " and " + lastPart;
+        }
+    }
+
+    /// <summary>
+    /// uint max = 4,294,967,295 (4.29 Gbps)
+    /// </summary>
+    /// <returns>formatted bit-rate string</returns>
+    public static string FormatBitrate(this uint amount)
+    {
+        var sizes = new string[]
+        {
+            "bps",
+            "Kbps", // kilo
+            "Mbps", // mega
+            "Gbps", // giga
+            "Tbps", // tera
+        };
+        var order = amount.OrderOfMagnitude();
+        var speed = amount / Math.Pow(1000, order);
+        return $"{speed:0.##} {sizes[order]}";
+    }
+
+    /// <summary>
+    /// ulong max = 18,446,744,073,709,551,615 (18.45 Ebps)
+    /// </summary>
+    /// <returns>formatted bit-rate string</returns>
+    public static string FormatBitrate(this ulong amount)
+    {
+        var sizes = new string[]
+        {
+            "bps",
+            "Kbps", // kilo
+            "Mbps", // mega
+            "Gbps", // giga
+            "Tbps", // tera
+            "Pbps", // peta
+            "Ebps", // exa
+            "Zbps", // zetta
+            "Ybps"  // yotta
+        };
+        var order = amount.OrderOfMagnitude();
+        var speed = amount / Math.Pow(1000, order);
+        return $"{speed:0.##} {sizes[order]}";
+    }
+
+    /// <summary>
+    /// Returns the order of magnitude (10^3)
+    /// </summary>
+    public static int OrderOfMagnitude(this ulong amount) => (int)Math.Floor(Math.Log(amount, 1000));
+
+    /// <summary>
+    /// Returns the order of magnitude (10^3)
+    /// </summary>
+    public static int OrderOfMagnitude(this uint amount) => (int)Math.Floor(Math.Log(amount, 1000));
+
+    #region [Easing Functions]
+
+    // Quadratic Easing (t²): EaseInQuadratic → Starts slow, speeds up.  EaseOutQuadratic → Starts fast, slows down.  EaseInOutQuadratic → Symmetric acceleration-deceleration.
+    public static double EaseInQuadratic(double t) => t * t;
+    public static double EaseOutQuadratic(double t) => 1.0 - (1.0 - t) * (1.0 - t);
+    public static double EaseInOutQuadratic(double t) => t < 0.5 ? 2.0 * t * t : 1.0 - Math.Pow(-2.0 * t + 2.0, 2.0) / 2.0;
+
+    // Cubic Easing (t³): EaseInCubic → Stronger acceleration.  EaseOutCubic → Slower deceleration.  EaseInOutCubic → Balanced smooth curve.
+    public static double EaseInCubic(double t) => Math.Pow(t, 3.0);
+    public static double EaseOutCubic(double t) => 1.0 - Math.Pow(1.0 - t, 3.0);
+    public static double EaseInOutCubic(double t) => t < 0.5 ? 4.0 * Math.Pow(t, 3.0) : 1.0 - Math.Pow(-2.0 * t + 2.0, 3.0) / 2.0;
+
+    // Quartic Easing (t⁴): Sharper transition than cubic easing.
+    public static double EaseInQuartic(double t) => Math.Pow(t, 4.0);
+    public static double EaseOutQuartic(double t) => 1.0 - Math.Pow(1.0 - t, 4.0);
+    public static double EaseInOutQuartic(double t) => t < 0.5 ? 8.0 * Math.Pow(t, 4.0) : 1.0 - Math.Pow(-2.0 * t + 2.0, 4.0) / 2.0;
+
+    // Quintic Easing (t⁵): Even steeper curve for dramatic transitions.
+    public static double EaseInQuintic(double t) => Math.Pow(t, 5.0);
+    public static double EaseOutQuintic(double t) => 1.0 - Math.Pow(1.0 - t, 5.0);
+    public static double EaseInOutQuintic(double t) => t < 0.5 ? 16.0 * Math.Pow(t, 5.0) : 1.0 - Math.Pow(-2.0 * t + 2.0, 5.0) / 2.0;
+
+    // Elastic Easing (Bouncing Effect)
+    public static double EaseInElastic(double t) => t == 0 ? 0 : t == 1 ? 1 : -Math.Pow(2.0, 10.0 * t - 10.0) * Math.Sin((t * 10.0 - 10.75) * (2.0 * Math.PI) / 3.0);
+    public static double EaseOutElastic(double t) => t == 0 ? 0 : t == 1 ? 1 : Math.Pow(2.0, -10.0 * t) * Math.Sin((t * 10.0 - 0.75) * (2.0 * Math.PI) / 3.0) + 1.0;
+    public static double EaseInOutElastic(double t) => t == 0 ? 0 : t == 1 ? 1 : t < 0.5 ? -(Math.Pow(2.0, 20.0 * t - 10.0) * Math.Sin((20.0 * t - 11.125) * (2.0 * Math.PI) / 4.5)) / 2.0 : (Math.Pow(2.0, -20.0 * t + 10.0) * Math.Sin((20.0 * t - 11.125) * (2.0 * Math.PI) / 4.5)) / 2.0 + 1.0;
+
+    //Bounce Easing(Ball Bouncing Effect)
+    public static double EaseInBounce(double t) => 1.0 - EaseOutBounce(1.0 - t);
+    public static double EaseOutBounce(double t)
+    {
+        double n1 = 7.5625, d1 = 2.75;
+        if (t < 1.0 / d1)
+            return n1 * t * t;
+        else if (t < 2.0 / d1)
+            return n1 * (t -= 1.5 / d1) * t + 0.75;
+        else if (t < 2.5 / d1)
+            return n1 * (t -= 2.25 / d1) * t + 0.9375;
+        else
+            return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+    public static double EaseInOutBounce(double t) => t < 0.5 ? (1.0 - EaseOutBounce(1.0 - 2.0 * t)) / 2.0 : (1.0 + EaseOutBounce(2.0 * t - 1.0)) / 2.0;
+
+    // Exponential Easing(Fast Growth/Decay)
+    public static double EaseInExpo(double t) => t == 0 ? 0 : Math.Pow(2.0, 10.0 * t - 10.0);
+    public static double EaseOutExpo(double t) => t == 1 ? 1 : 1.0 - Math.Pow(2.0, -10.0 * t);
+    public static double EaseInOutExpo(double t) => t == 0 ? 0 : t == 1 ? 1 : t < 0.5 ? Math.Pow(2.0, 20.0 * t - 10.0) / 2.0 : (2.0 - Math.Pow(2.0, -20.0 * t + 10.0)) / 2.0;
+
+    // Circular Easing(Smooth Circular Motion)
+    public static double EaseInCircular(double t) => 1.0 - Math.Sqrt(1.0 - Math.Pow(t, 2.0));
+    public static double EaseOutCircular(double t) => Math.Sqrt(1.0 - Math.Pow(t - 1.0, 2.0));
+    public static double EaseInOutCircular(double t) => t < 0.5 ? (1.0 - Math.Sqrt(1.0 - Math.Pow(2.0 * t, 2.0))) / 2.0 : (Math.Sqrt(1.0 - Math.Pow(-2.0 * t + 2.0, 2.0)) + 1.0) / 2.0;
+
+    // Back Easing(Overshoots Before Settling)
+    public static double EaseInBack(double t) => 2.70158 * t * t * t - 1.70158 * t * t;
+    public static double EaseOutBack(double t) => 1.0 + 2.70158 * Math.Pow(t - 1.0, 3.0) + 1.70158 * Math.Pow(t - 1.0, 2.0);
+    public static double EaseInOutBack(double t) => t < 0.5 ? (Math.Pow(2.0 * t, 2.0) * ((2.59491 + 1.0) * 2.0 * t - 2.59491)) / 2.0 : (Math.Pow(2.0 * t - 2.0, 2.0) * ((2.59491 + 1.0) * (t * 2.0 - 2.0) + 2.59491) + 2.0) / 2.0;
+
+    #endregion
+
     #region [WinUI Specific]
     /// <summary>
     /// Can be useful if you only have a root (not merged) resource dictionary.
