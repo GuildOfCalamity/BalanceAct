@@ -32,6 +32,10 @@
 
 ![Debug Mode](./ScreenShot3.png)
 
+> Home-made graph control
+
+![Home-made graph control](./ScreenShot5.png)
+
 > Home-made drop shadow effects (code-behind version & XAML version)
 
 ![Home-made drop shadow](./ScreenShot4.png)
