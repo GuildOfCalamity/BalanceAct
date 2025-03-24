@@ -774,6 +774,7 @@
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid.Resources>
@@ -808,7 +809,7 @@
                 CornerRadius="4"
                 ToolTipService.ToolTip="Additional Statistics">
                 <AppBarButton.Icon>
-                    <FontIcon Glyph="{StaticResource AreaChart}" />
+                    <FontIcon Glyph="{StaticResource AllApps}" />
                 </AppBarButton.Icon>
                 <AppBarButton.Flyout>
                     <Flyout AreOpenCloseAnimationsEnabled="True" Placement="Full">
@@ -1165,6 +1166,52 @@
                 HorizontalAlignment="Right"
                 VerticalContentAlignment="Top"
                 CornerRadius="4"
+                ToolTipService.ToolTip="Graph all spending">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="{StaticResource AreaChart}" />
+                </AppBarButton.Icon>
+                <!--<AppBarButton.Content>
+                    <Grid>
+                        <PathIcon Data="{StaticResource PathIcons.PlotLayer1}" Foreground="WhiteSmoke" />
+                        <PathIcon Data="{StaticResource PathIcons.PlotLayer2}" Foreground="DimGray" />
+                    </Grid>
+                </AppBarButton.Content>-->
+                <AppBarButton.Flyout>
+                    <Flyout
+                        AreOpenCloseAnimationsEnabled="True"
+                        LightDismissOverlayMode="Off"
+                        Opened="{x:Bind ViewModel.GraphFlyoutOpened, Mode=OneWay}"
+                        Placement="Full">
+                        <Flyout.FlyoutPresenterStyle>
+                            <Style TargetType="FlyoutPresenter">
+                                <Setter Property="CornerRadius" Value="6" />
+                                <Setter Property="MinWidth" Value="750" />
+                                <Setter Property="Background" Value="{ThemeResource RevealAcrylicBrush}" />
+                                <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                <Setter Property="IsTabStop" Value="True" />
+                                <Setter Property="TabNavigation" Value="Cycle" />
+                            </Style>
+                        </Flyout.FlyoutPresenterStyle>
+                        <ctrl:PlotControl
+                            Title="Current year spending plot"
+                            PointBorderBrush="{ThemeResource GradientTitleBrush}"
+                            PointBrush="{ThemeResource GradientPointBrush}"
+                            PointGround="True"
+                            PointRadius="{x:Bind ViewModel.PointSize, Mode=OneWay, FallbackValue=4}"
+                            PointSource="{x:Bind ViewModel.Points, Mode=OneWay}"
+                            PointStrokeThickness="1"
+                            ShowTitleDivider="False" />
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+
+            <AppBarButton
+                Grid.Column="5"
+                Height="50"
+                HorizontalAlignment="Right"
+                VerticalContentAlignment="Top"
+                CornerRadius="4"
                 ToolTipService.ToolTip="Import a CSV file">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="{StaticResource Download}" />
@@ -1315,7 +1362,7 @@
             <!--#region [Settings Flyout Test]-->
             <StackPanel
                 x:Name="SettingsBar"
-                Grid.Column="5"
+                Grid.Column="6"
                 Margin="2,1"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"

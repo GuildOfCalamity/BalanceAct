@@ -349,6 +349,20 @@ public class MainViewModel : ObservableRecipient
         get => _avgPerMonth;
         set => SetProperty(ref _avgPerMonth, value);
     }
+
+    List<double> _points = new();
+    public List<double> Points
+    {
+        get => _points;
+        set => SetProperty(ref _points, value);
+    }
+
+    double _pointSize = 4;
+    public double PointSize
+    {
+        get => _pointSize;
+        set => SetProperty(ref _pointSize, value);
+    }
     #endregion
 
     #endregion
@@ -395,7 +409,7 @@ public class MainViewModel : ObservableRecipient
             SettingsVisible = Visibility.Visible;
         else
             SettingsVisible = Visibility.Collapsed;
-
+            
         if (Logger is not null)
             Logger.OnException += (error) => _ = App.ShowDialogBox($"Logger", $"{error}{Environment.NewLine}", "OK", "", null, null, _dialogImgUri);
         
@@ -950,6 +964,8 @@ public class MainViewModel : ObservableRecipient
     public void UpdateSummaryTotals()
     {
         if (ExpenseItems.Count == 0) { return; }
+
+        Points.Clear(); // signal to remake the graph
 
         var tmp = GetDateRangeTo(DateTime.Now, DateTime.Now.AddDays(7));
 
@@ -1587,6 +1603,47 @@ public class MainViewModel : ObservableRecipient
     #endregion
 
     #region [Bound Events]
+    /// <summary>
+    /// <see cref="Flyout"/> opened event for graphing.
+    /// </summary>
+    public void GraphFlyoutOpened(object sender, object e)
+    {
+        if (Points.Count == 0)
+        {
+            int yearCount = 0;
+            var groupedYears = GroupByYearInt(ExpenseItems);
+            foreach (var group in groupedYears)
+            {
+                if (group.Key is not null && group.Key == DateTime.Now.Year)
+                {
+                    foreach (var item in group.Value)
+                    {
+                        yearCount++;
+                        if (TryParseDollarAmount(item.Amount, out double val))
+                        {
+                            Points.Add(val);
+                        }
+                    }
+
+                    // A Flyout stays small in comparison to the app window, so we'll
+                    // adjust the plot points width based on the number of elements.
+                    if (yearCount > 100)
+                        PointSize = 2;
+                    else if (yearCount > 75)
+                        PointSize = 3;
+                    else if (yearCount > 50)
+                        PointSize = 4;
+                    else if (yearCount > 25)
+                        PointSize = 6;
+                    else if (yearCount > 0)
+                        PointSize = 8;
+                }
+            }
+            // oldest spending on the left
+            Points.Reverse();
+        }
+    }
+
     /// <summary>
     /// <see cref="TextBox"/> keydown event for import.
     /// </summary>

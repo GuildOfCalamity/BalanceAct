@@ -65,11 +65,13 @@
 	<None Remove="Assets\Fonts\Aptos.ttf" />
 	<None Remove="Assets\Fonts\OdinRounded.ttf" />
 	<None Remove="Assets\Fonts\TaurusMonoOutline.ttf" />
+	<None Remove="Assets\Measurement.png" />
 	<None Remove="Assets\Spinner.png" />
 	<None Remove="Assets\StoreLogo.ico" />
 	<None Remove="Assets\Warning.png" />
 	<None Remove="Controls\AnimatedCirclesControl.xaml" />
 	<None Remove="Controls\CompositionShadow.xaml" />
+	<None Remove="Controls\PlotControl.xaml" />
 	<None Remove="Controls\SeparatorLine.xaml" />
 	<None Remove="MainPage.xaml" />
 	<None Remove="Styles\FontSizes.xaml" />
@@ -118,6 +120,14 @@
     <Content Update="Assets\Balance4.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="Assets\Measurement.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\PlotControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\AnimatedCirclesControl.xaml">
