@@ -1185,18 +1185,22 @@
                         <Flyout.FlyoutPresenterStyle>
                             <Style TargetType="FlyoutPresenter">
                                 <Setter Property="CornerRadius" Value="6" />
-                                <Setter Property="MinWidth" Value="750" />
+                                <Setter Property="MinWidth" Value="800" />
                                 <Setter Property="Background" Value="{ThemeResource RevealAcrylicBrush}" />
-                                <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
-                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                <Setter Property="ScrollViewer.VerticalScrollMode" Value="Auto" />
+                                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+                                <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Auto" />
+                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
                                 <Setter Property="IsTabStop" Value="True" />
                                 <Setter Property="TabNavigation" Value="Cycle" />
                             </Style>
                         </Flyout.FlyoutPresenterStyle>
                         <ctrl:PlotControl
                             Title="Current year spending plot"
-                            PointBorderBrush="{ThemeResource GradientTitleBrush}"
+                            PointBorderBrush="{ThemeResource GradientPointBorderBrush}"
                             PointBrush="{ThemeResource GradientPointBrush}"
+                            PointCanvasMargin="64"
+                            PointDelayMS="2"
                             PointGround="True"
                             PointRadius="{x:Bind ViewModel.PointSize, Mode=OneWay, FallbackValue=4}"
                             PointSource="{x:Bind ViewModel.Points, Mode=OneWay}"

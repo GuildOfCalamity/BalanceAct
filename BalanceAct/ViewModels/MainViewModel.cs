@@ -350,8 +350,8 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _avgPerMonth, value);
     }
 
-    List<double> _points = new();
-    public List<double> Points
+    List<ExpenseItem> _points = new();
+    public List<ExpenseItem> Points
     {
         get => _points;
         set => SetProperty(ref _points, value);
@@ -1610,7 +1610,7 @@ public class MainViewModel : ObservableRecipient
     {
         if (Points.Count == 0)
         {
-            int yearCount = 0;
+            int groupCount = 0;
             var groupedYears = GroupByYearInt(ExpenseItems);
             foreach (var group in groupedYears)
             {
@@ -1618,24 +1618,21 @@ public class MainViewModel : ObservableRecipient
                 {
                     foreach (var item in group.Value)
                     {
-                        yearCount++;
-                        if (TryParseDollarAmount(item.Amount, out double val))
-                        {
-                            Points.Add(val);
-                        }
+                        groupCount++;
+                        Points.Add(item);
                     }
-
                     // A Flyout stays small in comparison to the app window, so we'll
                     // adjust the plot points width based on the number of elements.
-                    if (yearCount > 100)
-                        PointSize = 2;
-                    else if (yearCount > 75)
+                    // Typically 1/4 of the year will contain ~100 plot points.
+                    if (groupCount > 100)
                         PointSize = 3;
-                    else if (yearCount > 50)
+                    else if (groupCount > 75)
                         PointSize = 4;
-                    else if (yearCount > 25)
+                    else if (groupCount > 50)
+                        PointSize = 5;
+                    else if (groupCount > 25)
                         PointSize = 6;
-                    else if (yearCount > 0)
+                    else
                         PointSize = 8;
                 }
             }

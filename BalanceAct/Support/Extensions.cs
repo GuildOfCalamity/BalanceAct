@@ -624,6 +624,14 @@ public static class Extensions
         return false;
     }
 
+    public static bool IsInvalidOrZero(this double value)
+    {
+        if (value == double.NaN || value == double.NegativeInfinity || value == double.PositiveInfinity || value <= 0)
+            return true;
+
+        return false;
+    }
+
     public static double Mod(this double number, double divider)
     {
         var result = number % divider;
@@ -1842,6 +1850,20 @@ public static class Extensions
         return sb.ToString();
     }
 
+    public static long TimeToTicks(int hour, int minute, int second)
+    {
+        long MaxSeconds = long.MaxValue / TimeSpan.TicksPerSecond;
+        long MinSeconds = long.MinValue / TimeSpan.TicksPerSecond;
+
+        // "totalSeconds" is bounded by 2^31 * 2^12 + 2^31 * 2^8 + 2^31,
+        // which is less than 2^44, meaning we won't overflow totalSeconds
+        long totalSeconds = (long)hour * 3600 + (long)minute * 60 + (long)second;
+        if (totalSeconds > MaxSeconds || totalSeconds < MinSeconds)
+            throw new Exception("Argument out of range: TimeSpan too long.");
+
+        return totalSeconds * TimeSpan.TicksPerSecond;
+    }
+
     /// <summary>
     /// Converts a <see cref="TimeSpan"/> into a human-friendly readable string.
     /// </summary>
@@ -1884,7 +1906,10 @@ public static class Extensions
             // can contain 365 or 366 days. A decade can have between 1 and 3 leap-years,
             // depending on when you map the TimeSpan into the calendar. This is why TimeSpan
             // does not provide a "Years" property or a "Months" property.
-            parts.Add($"{(timeSpan.Ticks * 10)} microsecond{((timeSpan.Ticks * 10) > 1 ? "s" : "")}");
+            // Internally TimeSpan uses long (Int64) for its values, so:
+            //  - TimeSpan.MaxValue = long.MaxValue
+            //  - TimeSpan.MinValue = long.MinValue
+            parts.Add($"{(timeSpan.Ticks * TimeSpan.TicksPerMicrosecond)} microsecond{((timeSpan.Ticks * TimeSpan.TicksPerMicrosecond) > 1 ? "s" : "")}");
         }
 
         // Join the sections with commas and "and" for the last one.

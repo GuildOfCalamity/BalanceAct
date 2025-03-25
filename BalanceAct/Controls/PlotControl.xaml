@@ -73,13 +73,14 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             Background="Transparent">
-            <!--  Circle plots will be drawn here  -->
+
+            <!--  ** plots points will be drawn here **  -->
+
             <ToolTipService.ToolTip>
                 <ToolTip
                     x:Name="ttPlot"
                     Background="{StaticResource GradientToolTipBrush}"
                     BackgroundSizing="OuterBorderEdge"
-                    Opacity="0.9"
                     Placement="Mouse"
                     Shadow="{ThemeResource CommandBarFlyoutOverflowShadow}"
                     Translation="0,0,32"
@@ -91,16 +92,19 @@
                         Orientation="Horizontal"
                         Spacing="6">
                         <Image
-                            Width="34"
-                            Height="34"
-                            Source="ms-appx:///Assets/Measurement.png" />
+                            Width="44"
+                            Height="44"
+                            Opacity="0.8"
+                            Source="ms-appx:///Assets/Coins6.png" />
                         <TextBlock
                             x:Name="ttValue"
                             Margin="2,0,18,0"
                             VerticalAlignment="Center"
-                            FontSize="{StaticResource FontSizeMedium}"
-                            FontWeight="Bold"
-                            Text="N/A" />
+                            FontSize="{StaticResource FontSizeNormal}"
+                            FontWeight="Normal"
+                            Opacity="1.0"
+                            Text="N/A"
+                            TextWrapping="Wrap" />
                     </StackPanel>
                 </ToolTip>
             </ToolTipService.ToolTip>

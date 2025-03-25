@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-
+using BalanceAct.Models;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -31,19 +31,19 @@ public sealed partial class PlotControl : UserControl
 {
     #region [Backing Members]
     //ToolTip? _tooltip;
-    int _msDelay = 1;
+    int _msDelay = 0;
     bool _loaded = false;
     bool _isDrawing = false;
     bool _sizeSet = false;
     bool _measureOccurred = false;
-    double _restingOpacity = 0.7;
+    double _restingOpacity = 0.65;
     double _canvasMargin = 60;
 
     Storyboard? _opacityInStoryboard;
     Storyboard? _opacityOutStoryboard;
     TimeSpan _opacityDuration = TimeSpan.FromMilliseconds(600);
 
-    List<double> _dataPoints = new();
+    List<ExpenseItem> _dataPoints = new();
     #endregion
 
     #region [Dependency Properties]
@@ -52,21 +52,21 @@ public sealed partial class PlotControl : UserControl
     /// </summary>
     public static readonly DependencyProperty PointSourceProperty = DependencyProperty.Register(
         nameof(PointSource),
-        typeof(List<double>),
+        typeof(List<ExpenseItem>),
         typeof(PlotControl),
         new PropertyMetadata(null, OnPointsPropertyChanged));
-    public List<double> PointSource
+    public List<ExpenseItem> PointSource
     {
-        get => (List<double>)GetValue(PointSourceProperty);
+        get => (List<ExpenseItem>)GetValue(PointSourceProperty);
         set => SetValue(PointSourceProperty, value);
     }
     static void OnPointsPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var control = (PlotControl)d;
-        if (e.NewValue is List<double> points)
+        if (e.NewValue is List<ExpenseItem> points)
             control.PointsChanged(points);
     }
-    void PointsChanged(List<double> points)
+    void PointsChanged(List<ExpenseItem> points)
     {
         if (!_loaded && points is not null)
         {
@@ -76,7 +76,10 @@ public sealed partial class PlotControl : UserControl
         else if (!_loaded || points is null)
             return;
 
-        DrawRectanglePlot(points, 0);
+        if (_msDelay > 0)
+            DrawRectanglePlotDelayed(points, 0);
+        else
+            DrawRectanglePlot(points, 0);
     }
 
     /// <summary>
@@ -118,6 +121,33 @@ public sealed partial class PlotControl : UserControl
     {
         get => (bool)GetValue(PointGroundProperty);
         set => SetValue(PointGroundProperty, value);
+    }
+
+    /// <summary>
+    ///   This is the property that determines if the points are drawn to the bottom instead of floating.
+    /// </summary>
+    public static readonly DependencyProperty PointDelayMSProperty = DependencyProperty.Register(
+        nameof(PointDelayMS),
+        typeof(int),
+        typeof(PlotControl),
+        new PropertyMetadata(1, OnPointsDelayPropertyChanged));
+    public int PointDelayMS
+    {
+        get => (int)GetValue(PointDelayMSProperty);
+        set => SetValue(PointDelayMSProperty, value);
+    }
+    static void OnPointsDelayPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (PlotControl)d;
+        if (e.NewValue is int delay)
+            control.DelayChanged(delay);
+    }
+    void DelayChanged(int delay)
+    {
+        if (delay < 0)
+            return;
+
+        _msDelay = delay;
     }
 
     /// <summary>
@@ -177,6 +207,33 @@ public sealed partial class PlotControl : UserControl
     }
 
     /// <summary>
+    ///   This is the property that determines the point size.
+    /// </summary>
+    public static readonly DependencyProperty PointCanvasMarginProperty = DependencyProperty.Register(
+        nameof(PointCanvasMargin),
+        typeof(double),
+        typeof(PlotControl),
+        new PropertyMetadata(60d, OnCanvasMarginPropertyChanged));
+    public double PointCanvasMargin
+    {
+        get => (double)GetValue(PointCanvasMarginProperty);
+        set => SetValue(PointCanvasMarginProperty, value);
+    }
+    static void OnCanvasMarginPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (PlotControl)d;
+        if (e.NewValue is double margin)
+            control.CanvasMarginChanged(margin);
+    }
+    void CanvasMarginChanged(double margin)
+    {
+        if (margin < 0)
+            return;
+
+        _canvasMargin = margin;
+    }
+
+    /// <summary>
     ///   This is the property that determines if the points are drawn to the bottom instead of floating.
     /// </summary>
     public static readonly DependencyProperty ShowTitleDividerProperty = DependencyProperty.Register(
@@ -202,7 +259,7 @@ public sealed partial class PlotControl : UserControl
         this.SizeChanged += PlotControlOnSizeChanged;
     }
 
-    public PlotControl(List<double> points) : this()
+    public PlotControl(List<ExpenseItem> points) : this()
     {
         _dataPoints = points;
     }
@@ -221,7 +278,7 @@ public sealed partial class PlotControl : UserControl
     /// If zero is given for the <paramref name="maxValue"/> the it will be calculated during 
     /// this method as the normalized graph offset.
     /// </remarks>
-    public void DrawRectanglePlotDelayed(List<double> dataPoints, double maxValue)
+    public void DrawRectanglePlotDelayed(List<ExpenseItem> dataPoints, double maxValue)
     {
         // Clear and previous canvas plots
         cvsPlot.Children.Clear();
@@ -236,6 +293,15 @@ public sealed partial class PlotControl : UserControl
             cvsPlot.Height = this.ActualHeight - (_canvasMargin + PointRadius);
         }
 
+        List<double> amounts = new();
+        for (int i = 0; i < dataPoints.Count; i++)
+        {
+            if (TryParseDollarAmount(dataPoints[i].Amount, out double amount))
+                amounts.Add(amount);
+            else
+                amounts.Add(0d); // keep indexing in sync
+        }
+
         // Define Canvas size (you can also get this from the actual Canvas dimensions)
         double canvasWidth = cvsPlot.Width;
         double canvasHeight = cvsPlot.Height;
@@ -246,7 +312,7 @@ public sealed partial class PlotControl : UserControl
 
         // If no max was defined, find the maximum value in the data to normalize the y-axis
         if (maxValue <= 0)
-            maxValue = dataPoints.Max();
+            maxValue = amounts.Max();
 
         #region [Brush Colors]
         Brush? pointFill = null;
@@ -281,7 +347,7 @@ public sealed partial class PlotControl : UserControl
 
                 // Calculate Y position based on value, maximum value and canvas height
                 // Invert y axis so that higher values are at the top.
-                double y = canvasHeight - (dataPoints[i] / (double)maxValue) * canvasHeight;
+                double y = canvasHeight - (amounts[i] / (double)maxValue) * canvasHeight;
                 if (y.IsInvalid())
                     y = 0;
 
@@ -294,7 +360,7 @@ public sealed partial class PlotControl : UserControl
                     if (PointGround)
                         rect.Height = canvasHeight - y;
                     else
-                        rect.Height = PointRadius * 5;
+                        rect.Height = PointRadius * 4;
                     rect.RadiusX = PointRadius / 3;
                     rect.RadiusY = PointRadius / 3;
                     rect.Fill = pointFill;
@@ -345,7 +411,7 @@ public sealed partial class PlotControl : UserControl
     /// If zero is given for the <paramref name="maxValue"/> the it will be calculated during 
     /// this method as the normalized graph offset.
     /// </remarks>
-    public void DrawRectanglePlot(List<double> dataPoints, double maxValue)
+    public void DrawRectanglePlot(List<ExpenseItem> dataPoints, double maxValue)
     {
         // Clear and previous canvas plots
         cvsPlot.Children.Clear();
@@ -360,6 +426,15 @@ public sealed partial class PlotControl : UserControl
             cvsPlot.Height = this.ActualHeight - (_canvasMargin + PointRadius);
         }
 
+        List<double> amounts = new();
+        for (int i = 0; i < dataPoints.Count; i++)
+        {
+            if (TryParseDollarAmount(dataPoints[i].Amount, out double amount))
+                amounts.Add(amount);
+            else
+                amounts.Add(0d); // keep indexing in sync
+        }
+
         // Define Canvas size (you can also get this from the actual Canvas dimensions)
         double canvasWidth = cvsPlot.Width;
         double canvasHeight = cvsPlot.Height;
@@ -370,7 +445,7 @@ public sealed partial class PlotControl : UserControl
 
         // If no max was defined, find the maximum value in the data to normalize the y-axis
         if (maxValue <= 0)
-            maxValue = dataPoints.Max();
+            maxValue = amounts.Max();
 
         #region [Brush Colors]
         Brush? pointFill = null;
@@ -403,55 +478,51 @@ public sealed partial class PlotControl : UserControl
 
             // Calculate Y position based on value, maximum value and canvas height
             // Invert y axis so that higher values are at the top.
-            double y = canvasHeight - (dataPoints[i] / (double)maxValue) * canvasHeight;
+            double y = canvasHeight - (amounts[i] / (double)maxValue) * canvasHeight;
             if (y.IsInvalid())
                 y = 0;
 
-            // Any access to a Microsoft.UI.Xaml.Controls element must be done on the dispatcher.
-            //cvsPlot.DispatcherQueue.TryEnqueue(() => {
+            // Create the Microsoft.UI.Xaml.Shapes
+            Rectangle rect = new();
+            rect.Width = PointRadius * 2;
+            if (PointGround)
+                rect.Height = canvasHeight - y;
+            else
+                rect.Height = PointRadius * 4;
+            rect.RadiusX = PointRadius / 3;
+            rect.RadiusY = PointRadius / 3;
+            rect.Fill = pointFill;
+            rect.Stroke = pointStroke;
+            rect.StrokeThickness = PointStrokeThickness;
+            rect.Opacity = _restingOpacity;
+            rect.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
 
-                // Create the Microsoft.UI.Xaml.Shapes
-                Rectangle rect = new();
-                rect.Width = PointRadius * 2;
-                if (PointGround)
-                    rect.Height = canvasHeight - y;
-                else
-                    rect.Height = PointRadius * 5;
-                rect.RadiusX = PointRadius / 3;
-                rect.RadiusY = PointRadius / 3;
-                rect.Fill = pointFill;
-                rect.Stroke = pointStroke;
-                rect.StrokeThickness = PointStrokeThickness;
-                rect.Opacity = _restingOpacity;
-                rect.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
+            // Position the rect on the canvas
+            Canvas.SetLeft(rect, x - PointRadius); // Center rect horizontally
 
-                // Position the rect on the canvas
-                Canvas.SetLeft(rect, x - PointRadius); // Center rect horizontally
+            // If the rectangle height is zero, adjust the height to the
+            // stroke thickness instead of zero so the shape will be visible.
+            var rectHeight = y - PointRadius;
+            if (rectHeight >= (canvasHeight - PointRadius))
+            {
+                Debug.WriteLine($"[DEBUG] Point[{i}] Y coord is {rectHeight}");
+                rect.Height = PointStrokeThickness;
+                Canvas.SetTop(rect, canvasHeight - PointRadius - (PointStrokeThickness + 1)); // Center rect vertically
+            }
+            else
+                Canvas.SetTop(rect, rectHeight);   // Center rect vertically
 
-                // If the rectangle height is zero, adjust the height to the
-                // stroke thickness instead of zero so the shape will be visible.
-                var rectHeight = y - PointRadius;
-                if (rectHeight >= (canvasHeight - PointRadius))
-                {
-                    Debug.WriteLine($"[DEBUG] Point[{i}] Y coord is {rectHeight}");
-                    rect.Height = PointStrokeThickness;
-                    Canvas.SetTop(rect, canvasHeight - PointRadius - (PointStrokeThickness + 1)); // Center rect vertically
-                }
-                else
-                    Canvas.SetTop(rect, rectHeight);   // Center rect vertically
+            // Attach tooltip data value
+            if (i < dataPoints.Count)
+                rect.Tag = dataPoints[i]; // Store the data value in the rect's Tag property
+            rect.PointerEntered += RectangleOnPointerEntered;
+            rect.PointerExited += RectangleOnPointerExited;
 
-                // Attach tooltip data value
-                if (i < dataPoints.Count)
-                    rect.Tag = dataPoints[i]; // Store the data value in the rect's Tag property
-                rect.PointerEntered += RectangleOnPointerEntered;
-                rect.PointerExited += RectangleOnPointerExited;
+            //rect.Shadow = Extensions.GetResource<ThemeShadow>("CommandBarFlyoutOverflowShadow");
+            //rect.Translation = new System.Numerics.Vector3(0, 0, 32);
 
-                //rect.Shadow = Extensions.GetResource<ThemeShadow>("CommandBarFlyoutOverflowShadow");
-                //rect.Translation = new System.Numerics.Vector3(0, 0, 32);
-
-                // Add the shape to the canvas
-                cvsPlot.Children.Add(rect);
-            //});
+            // Add the shape to the canvas
+            cvsPlot.Children.Add(rect);
         }
         _isDrawing = false;
         
@@ -568,7 +639,7 @@ public sealed partial class PlotControl : UserControl
         if (!_loaded)
         {
             _loaded = true;
-            cvsPlot.Margin = new Thickness(20);
+            cvsPlot.Margin = new Thickness(10);
             dividerBar.Visibility = ShowTitleDivider ? Visibility.Visible : Visibility.Collapsed;
 
             Debug.WriteLine($"[DEBUG] Measurement override occurred: {_measureOccurred}");
@@ -577,57 +648,68 @@ public sealed partial class PlotControl : UserControl
             if (_dataPoints.Count > 0)
             {
                 // Allow some time for the control to render before plotting.
-                Task.Run(async () => { await Task.Delay(350); }).ContinueWith(t =>
+                Task.Run(async () => { await Task.Delay(300); }).ContinueWith(t =>
                 {
-                    host.DispatcherQueue.TryEnqueue(() => DrawRectanglePlot(_dataPoints, 0));
+                    host.DispatcherQueue.TryEnqueue(() => 
+                    {
+                        if (_msDelay > 0)
+                            DrawRectanglePlotDelayed(_dataPoints, 0);
+                        else
+                            DrawRectanglePlot(_dataPoints, 0);
+                    });
                 });
             }
         }
     }
 
-    void PlotControlOnUnloaded(object sender, RoutedEventArgs e)
-    {
-        _loaded = false;
-    }
+    void PlotControlOnUnloaded(object sender, RoutedEventArgs e) => _loaded = false;
 
     /// <summary>
     /// Runs opacity animation and shows tooltip when pointer enters.
     /// </summary>
     void RectangleOnPointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (_isDrawing || !_loaded)
+        if (!_loaded)
             return;
 
         try
         {
-            Rectangle circle = (Rectangle)sender;
-            double dataValue = (double)circle.Tag; // TODO: Change to expense item for more data.
+            var rect = (Rectangle)sender;
+            if (rect is null)
+                return;
 
-            GeneralTransform transform = circle.TransformToVisual(this); // "cvsPlot", or "root" grid, or "this" if it's a Page/UserControl
-            Windows.Foundation.Point position = transform.TransformPoint(new Windows.Foundation.Point(circle.Width / 2, circle.Height / 2)); // Center of the circle
-            Debug.WriteLine($"[INFO] Position data is X={position.X:N1}, Y={position.Y:N1}");
+            GeneralTransform transform = rect.TransformToVisual(this); // "cvsPlot", or "root" grid, or "this" if it's a Page/UserControl
+            Windows.Foundation.Point position = transform.TransformPoint(new Windows.Foundation.Point(rect.Width / 2, rect.Height / 2)); // Center of the circle
+            //Debug.WriteLine($"[INFO] Position data is X={position.X:N0}, Y={position.Y:N0}");
+            
+            var item = (ExpenseItem)rect.Tag;
 
             #region [Didn't work properly]
-            //var tooltipExample = ToolTipService.GetToolTip(circle) as ToolTip;
-            //_tooltip.Content = $"{CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol}{dataValue}";
-            //_tooltip.PlacementTarget = circle;
+            //var tooltipExample = ToolTipService.GetToolTip(rect) as ToolTip;
+            //_tooltip.Content = $"{item.Amount}";
+            //_tooltip.PlacementTarget = rect;
             //_tooltip.PlacementRect = new Rect(position.X, position.Y, 100, 40);
             //_tooltip.Placement = PlacementMode.Mouse;
-            //_tooltip.HorizontalOffset = _circleRadius + 1;  // X offset from mouse
-            //_tooltip.VerticalOffset = _circleRadius + 1;    // Y offset from mouse
-            //ToolTipService.SetToolTip(circle, _tooltip);
+            //_tooltip.HorizontalOffset = _radius + 1;  // X offset from mouse
+            //_tooltip.VerticalOffset = _radius + 1;    // Y offset from mouse
+            //ToolTipService.SetToolTip(rect, _tooltip);
             //_tooltip.IsOpen = true;
             //_tooltip.IsEnabled = true;
             #endregion
 
-            ttValue.Text = $"{CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol}{dataValue:N2}";
-            ttPlot.PlacementTarget = circle;
+            if (!string.IsNullOrEmpty(item.Codes))
+                ttValue.Text = $"{item.Description}{Environment.NewLine}{item.Codes}{Environment.NewLine}{item.Date?.ToString("ddd, dd MMM yyyy")}{Environment.NewLine}{item.Amount}";
+            else
+                ttValue.Text = $"{item.Description}{Environment.NewLine}{item.Date?.ToString("ddd, dd MMM yyyy")}{Environment.NewLine}{item.Amount}";
+
+            ttPlot.PlacementTarget = rect;
             // Setting the placement rectangle is important when using code-behind
-            ttPlot.PlacementRect = new Windows.Foundation.Rect(position.X, position.Y, 100, 40);
+            ttPlot.PlacementRect = new Windows.Foundation.Rect(position.X, position.Y, 280, 70);
             ttPlot.Placement = PlacementMode.Mouse;   // this behaves abnormally when not set to mouse
             ttPlot.HorizontalOffset = PointRadius <= 10 ? PointRadius : PointRadius / 2; // X offset from mouse
             ttPlot.VerticalOffset = PointRadius <= 10 ? PointRadius : PointRadius / 2;   // Y offset from mouse
             ttPlot.Visibility = Visibility.Visible;
+            //Debug.WriteLine($"[INFO] TooltipWidth={ttPlot.ActualWidth:N0}  TooltipHeight={ttPlot.ActualHeight:N0}");
 
             #region [Animation]
             if (_opacityInStoryboard == null)
@@ -699,4 +781,19 @@ public sealed partial class PlotControl : UserControl
     }
     #endregion
 
+    bool TryParseDollarAmount(string amount, out double value)
+    {
+        if (string.IsNullOrEmpty(amount))
+        {
+            value = 0;
+            return false;
+        }
+
+        // Remove the dollar sign if present
+        string cleanedAmount = amount.Replace(CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol, "").Trim();
+
+        // Attempt to parse the cleaned amount
+        return double.TryParse(cleanedAmount, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out value);
+        //return double.TryParse(cleanedAmount, NumberStyles.Currency, CultureInfo.InvariantCulture, out value);
+    }
 }
