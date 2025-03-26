@@ -34,7 +34,7 @@ namespace BalanceAct.ViewModels;
 public class MainViewModel : ObservableRecipient
 {
     #region [Props]
-    bool _loaded = false;
+    static bool _loaded = false;
     readonly int _avgMonth = 30;
     System.Globalization.NumberFormatInfo _formatter;
     static DispatcherTimer? _timer;
@@ -476,11 +476,11 @@ public class MainViewModel : ObservableRecipient
                     SaveExpenseItemsJson();
                     LoadExpenseItemsJson();
 
-                    Status = "Expense item was added ✔️";
+                    Status = "Expense item was added 👍";
                 }
                 else
                 {
-                    Status = "This expense item already exists, try updating instead of adding, or change more details to make it unique ⚠️";
+                    Status = "This expense item already exists, try updating instead of adding, or change more details to make it unique ⚖️";
                 }
             }
             finally
@@ -539,7 +539,7 @@ public class MainViewModel : ObservableRecipient
                 }
                 else
                 {
-                    Status = "Expense item was updated ✔️";
+                    Status = "Expense item was updated 👍";
 
                     // If we've changed something then we should update our totals.
                     UpdateSummaryTotals();
@@ -1076,6 +1076,7 @@ public class MainViewModel : ObservableRecipient
         #endregion
 
         #region [Grouping by year/month with totals]
+        // NOTE: The MaxHeight="300" on the MainPage's TextBlock, so this will truncate when there are too many lines.
         List<double> monthAvgs = new();
         var groupedTotals = GroupByYearAndMonthWithTotals(ExpenseItems);
         foreach (var yearGroup in groupedTotals)
@@ -1087,8 +1088,9 @@ public class MainViewModel : ObservableRecipient
                 sb.AppendLine($"  {monthGroup.Key.PadRight(11, '.')}: {monthGroup.Value.ToString("C2", _formatter)}");
             }
         }
-        var medianMonth = CalculateMedianAdjustable(monthAvgs, monthAvgs.Count / 2);
         #endregion
+        
+        var medianMonth = CalculateMedianAdjustable(monthAvgs, monthAvgs.Count / 2);
 
         try
         {
@@ -1621,9 +1623,10 @@ public class MainViewModel : ObservableRecipient
                         groupCount++;
                         Points.Add(item);
                     }
-                    // A Flyout stays small in comparison to the app window, so we'll
-                    // adjust the plot points width based on the number of elements.
-                    // Typically 1/4 of the year will contain ~100 plot points.
+                    // A Flyout will remain small in comparison to the app window, so
+                    // we'll adjust the plot points width based on the number of elements.
+                    // A typical 1/4 year will contain ~100 plot points, based on user's
+                    // spending profile.
                     if (groupCount > 100)
                         PointSize = 3;
                     else if (groupCount > 75)

@@ -36,6 +36,9 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         this.Loading += MainPageLoading;
         ItemListView.RightTapped += ItemListView_RightTapped;
+        
+        Controls.PlotControl.ExpenseItemPlotTap += (ei) => SetSelectedItem(ei);
+
         foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
     }
 
@@ -140,7 +143,7 @@ public sealed partial class MainPage : Page
         {
             if (item is ExpenseItem di)
             {
-                // You could also set the selected DataItem from here.
+                // You could also set the selected ExpenseItem from here.
                 //ViewModel.SelectedItem = di;
             }
         }
@@ -236,21 +239,27 @@ public sealed partial class MainPage : Page
     {
         var selected = args.SelectedItem as ExpenseItem;
 
-        if (selected == null || ViewModel == null)
+        if (selected is null || ViewModel is null)
         {
-            ViewModel.Status = $"Selected item is invalid ⚠️";
+            Debug.WriteLine($"[WARNING] OnSuggestionChosen: Selected item is invalid.");
             return;
         }
-
         //_ = App.ShowDialogBox($"Selection", $"{selected}", "OK", "", null, null, ViewModel._dialogImgUri2);
-        ItemListView.SelectedItem = selected;
-        ItemListView.ScrollIntoView(selected);
-        var listViewItem = ItemListView.ContainerFromItem(selected) as ListViewItem;
+        SetSelectedItem(selected);
+    }
+
+    public void SetSelectedItem(ExpenseItem? item)
+    {
+        if (item is null)
+            return;
+
+        ItemListView.SelectedItem = item;
+        ItemListView.ScrollIntoView(item);
+        var listViewItem = ItemListView.ContainerFromItem(item) as ListViewItem;
         if (listViewItem != null)
-        {
-            // For this effect to work properly, set the FocusVisualKind in App.xaml.cs
+        {   // For this effect to work properly, set the FocusVisualKind in App.xaml.cs
             // e.g. "this.FocusVisualKind = FocusVisualKind.Reveal;"
-            listViewItem.Focus(FocusState.Keyboard); // don't use programmatic
+            listViewItem.Focus(FocusState.Keyboard); // don't use FocusState.Programmatic
         }
     }
 

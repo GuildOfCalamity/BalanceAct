@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using BalanceAct.Models;
+using BalanceAct.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -38,6 +41,7 @@ public sealed partial class PlotControl : UserControl
     bool _measureOccurred = false;
     double _restingOpacity = 0.65;
     double _canvasMargin = 60;
+    double _curtailMargin = 2.25;
 
     Storyboard? _opacityInStoryboard;
     Storyboard? _opacityOutStoryboard;
@@ -83,17 +87,17 @@ public sealed partial class PlotControl : UserControl
     }
 
     /// <summary>
-    ///   This is the property that triggers the plot graph for the <see cref="PlotControl"/>.
+    ///   This is the main title property of the <see cref="PlotControl"/>.
     /// </summary>
-    public static readonly DependencyProperty TitleProperty = DependencyProperty.Register(
-        nameof(Title),
+    public static readonly DependencyProperty PlotTitleProperty = DependencyProperty.Register(
+        nameof(PlotTitle),
         typeof(string),
         typeof(PlotControl),
         new PropertyMetadata(string.Empty, OnTitlePropertyChanged));
-    public string Title
+    public string PlotTitle
     {
-        get => (string)GetValue(TitleProperty);
-        set => SetValue(TitleProperty, value);
+        get => (string)GetValue(PlotTitleProperty);
+        set => SetValue(PlotTitleProperty, value);
     }
     static void OnTitlePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -107,6 +111,34 @@ public sealed partial class PlotControl : UserControl
             return;
 
         tbTitle.Text = title;
+    }
+
+    /// <summary>
+    ///   This is the secondary title property of the <see cref="PlotControl"/>.
+    /// </summary>
+    public static readonly DependencyProperty PlotSubTitleProperty = DependencyProperty.Register(
+        nameof(PlotSubTitle),
+        typeof(string),
+        typeof(PlotControl),
+        new PropertyMetadata(string.Empty, OnSubTitlePropertyChanged));
+    public string PlotSubTitle
+    {
+        get => (string)GetValue(PlotSubTitleProperty);
+        set => SetValue(PlotSubTitleProperty, value);
+    }
+    static void OnSubTitlePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (PlotControl)d;
+        if (e.NewValue is string title)
+            control.SubTitleChanged(title);
+    }
+    void SubTitleChanged(string title)
+    {
+        if (string.IsNullOrEmpty(title))
+            return;
+
+        tbSubTitle.Text = title;
+        tbSubTitle.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -265,6 +297,11 @@ public sealed partial class PlotControl : UserControl
     }
     #endregion
 
+    /// <summary>
+    /// This only exists for setting the selected ExpenseItem directly through MainPage's ListView.
+    /// </summary>
+    public static Action<ExpenseItem>? ExpenseItemPlotTap { get; set; }
+
     protected override Windows.Foundation.Size MeasureOverride(Windows.Foundation.Size availableSize)
     {
         _measureOccurred = true;
@@ -289,7 +326,7 @@ public sealed partial class PlotControl : UserControl
         if (!_sizeSet)
         {
             _sizeSet = true;
-            cvsPlot.Width = this.ActualWidth - _canvasMargin;
+            cvsPlot.Width = this.ActualWidth - (_canvasMargin / _curtailMargin);
             cvsPlot.Height = this.ActualHeight - (_canvasMargin + PointRadius);
         }
 
@@ -360,7 +397,7 @@ public sealed partial class PlotControl : UserControl
                     if (PointGround)
                         rect.Height = canvasHeight - y;
                     else
-                        rect.Height = PointRadius * 4;
+                        rect.Height = PointRadius * 6;
                     rect.RadiusX = PointRadius / 3;
                     rect.RadiusY = PointRadius / 3;
                     rect.Fill = pointFill;
@@ -389,6 +426,7 @@ public sealed partial class PlotControl : UserControl
                         rect.Tag = dataPoints[i]; // Store the data value in the rect's Tag property
                     rect.PointerEntered += RectangleOnPointerEntered;
                     rect.PointerExited += RectangleOnPointerExited;
+                    rect.Tapped += RectangleOnTapped;
 
                     //rect.Shadow = Extensions.GetResource<ThemeShadow>("CommandBarFlyoutOverflowShadow");
                     //rect.Translation = new System.Numerics.Vector3(0, 0, 32);
@@ -422,7 +460,7 @@ public sealed partial class PlotControl : UserControl
         if (!_sizeSet)
         {
             _sizeSet = true;
-            cvsPlot.Width = this.ActualWidth - _canvasMargin;
+            cvsPlot.Width = this.ActualWidth - (_canvasMargin / _curtailMargin);
             cvsPlot.Height = this.ActualHeight - (_canvasMargin + PointRadius);
         }
 
@@ -488,7 +526,7 @@ public sealed partial class PlotControl : UserControl
             if (PointGround)
                 rect.Height = canvasHeight - y;
             else
-                rect.Height = PointRadius * 4;
+                rect.Height = PointRadius * 6;
             rect.RadiusX = PointRadius / 3;
             rect.RadiusY = PointRadius / 3;
             rect.Fill = pointFill;
@@ -517,6 +555,7 @@ public sealed partial class PlotControl : UserControl
                 rect.Tag = dataPoints[i]; // Store the data value in the rect's Tag property
             rect.PointerEntered += RectangleOnPointerEntered;
             rect.PointerExited += RectangleOnPointerExited;
+            rect.Tapped += RectangleOnTapped;
 
             //rect.Shadow = Extensions.GetResource<ThemeShadow>("CommandBarFlyoutOverflowShadow");
             //rect.Translation = new System.Numerics.Vector3(0, 0, 32);
@@ -546,7 +585,7 @@ public sealed partial class PlotControl : UserControl
         if (!_sizeSet)
         {
             _sizeSet = true;
-            cvsPlot.Width = this.ActualWidth - _canvasMargin;
+            cvsPlot.Width = this.ActualWidth - (_canvasMargin / _curtailMargin);
             cvsPlot.Height = this.ActualHeight - (_canvasMargin + PointRadius);
         }
 
@@ -629,7 +668,7 @@ public sealed partial class PlotControl : UserControl
 
         if (cvsPlot.Width.IsInvalidOrZero() && cvsPlot.Height.IsInvalidOrZero())
         {
-            cvsPlot.Width = e.NewSize.Width - _canvasMargin;
+            cvsPlot.Width = e.NewSize.Width - (_canvasMargin / _curtailMargin);
             cvsPlot.Height = e.NewSize.Height - (_canvasMargin + PointRadius);
         }
     }
@@ -778,6 +817,29 @@ public sealed partial class PlotControl : UserControl
         Storyboard.SetTarget(_opacityOutStoryboard.Children[0], (Rectangle)sender); // Set the new target
         _opacityOutStoryboard.Begin();
         #endregion
+    }
+
+    /// <summary>
+    /// Triggers event to auto-select the item in the <see cref="ListView"/> 
+    /// control on the <see cref="MainPage"/>.
+    /// </summary>
+    void RectangleOnTapped(object sender, TappedRoutedEventArgs e)
+    {
+        var rect = (Rectangle)sender;
+        if (rect is null)
+            return;
+
+        var item = (ExpenseItem)rect.Tag;
+        if (item is null)
+            return;
+
+        // We need direct access to the ListView control for this effect to work.
+        ExpenseItemPlotTap?.Invoke(item);
+
+        // You could also create a static reference to the MainPage during the ctor and then call the public method.
+        //if (MainPage.StaticRef is not null)
+        //    MainPage.StaticRef.SetSelectedItem(item);
+
     }
     #endregion
 

@@ -21,7 +21,7 @@
             Margin="10"
             HorizontalAlignment="Stretch"
             Orientation="Vertical"
-            Spacing="8">
+            Spacing="5">
 
             <local:CompositionShadow
                 HorizontalAlignment="Center"
@@ -38,6 +38,16 @@
                     Text="Title Here"
                     TextWrapping="Wrap" />
             </local:CompositionShadow>
+
+            <TextBlock
+                x:Name="tbSubTitle"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="{StaticResource FontSizeSmall}"
+                Foreground="{StaticResource StatusBrush}"
+                Text="SubTitle Here"
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
 
             <!--  [divider bar]  -->
             <Grid
@@ -92,13 +102,13 @@
                         Orientation="Horizontal"
                         Spacing="6">
                         <Image
-                            Width="44"
-                            Height="44"
-                            Opacity="0.8"
-                            Source="ms-appx:///Assets/Coins6.png" />
+                            Width="54"
+                            Height="54"
+                            Opacity="0.79"
+                            Source="ms-appx:///Assets/Coins9.png" />
                         <TextBlock
                             x:Name="ttValue"
-                            Margin="2,0,18,0"
+                            Margin="2,0,8,0"
                             VerticalAlignment="Center"
                             FontSize="{StaticResource FontSizeNormal}"
                             FontWeight="Normal"

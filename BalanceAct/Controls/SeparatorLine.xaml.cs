@@ -21,7 +21,7 @@ public sealed partial class SeparatorLine : UserControl
     static Windows.UI.Color _color1 = Windows.UI.Color.FromArgb(200, 100, 100, 100);
     static Windows.UI.Color _color2 = Windows.UI.Color.FromArgb(200, 20, 20, 20);
 
-    #region [Properties]
+    #region [Dependency Properties]
     public static readonly DependencyProperty Line1BrushProperty = DependencyProperty.Register(
         nameof(Line1Brush),
         typeof(Brush),
@@ -54,8 +54,8 @@ public sealed partial class SeparatorLine : UserControl
         this.Loaded += OnLoaded;
 
         // This is just for effect, it serves no practical purpose.
-        this.PointerEntered += OnPointerEntered;
-        this.PointerExited += OnPointerExited;
+        //this.PointerEntered += OnPointerEntered;
+        //this.PointerExited += OnPointerExited;
     }
 
     #region [Events]

@@ -1196,10 +1196,11 @@
                             </Style>
                         </Flyout.FlyoutPresenterStyle>
                         <ctrl:PlotControl
-                            Title="Current year spending plot"
+                            PlotSubTitle="Hover over any item to see more details"
+                            PlotTitle="Current year spending plot"
                             PointBorderBrush="{ThemeResource GradientPointBorderBrush}"
                             PointBrush="{ThemeResource GradientPointBrush}"
-                            PointCanvasMargin="64"
+                            PointCanvasMargin="86"
                             PointDelayMS="2"
                             PointGround="True"
                             PointRadius="{x:Bind ViewModel.PointSize, Mode=OneWay, FallbackValue=4}"
@@ -1344,7 +1345,10 @@
                                             CornerRadius="5"
                                             Orientation="Vertical"
                                             Spacing="4">
-                                            <TextBlock FontSize="{ThemeResource FontSizeNormal}" Text="The CSV columns must be in this order:" />
+                                            <TextBlock
+                                                FontSize="{ThemeResource FontSizeNormal}"
+                                                Text="The CSV columns should be in this order:"
+                                                TextWrapping="Wrap" />
                                             <TextBlock
                                                 FontFamily="{ThemeResource SecondaryFont}"
                                                 FontSize="{ThemeResource FontSizeSmall}"
@@ -1352,7 +1356,13 @@
                                             <TextBlock
                                                 FontSize="{ThemeResource FontSizeSmall}"
                                                 FontStyle="Italic"
-                                                Text="Any additional columns after MEMO will be ignored." />
+                                                Text="Any additional columns after MEMO will be ignored."
+                                                TextWrapping="Wrap" />
+                                            <TextBlock
+                                                FontSize="{ThemeResource FontSizeSmall}"
+                                                Foreground="{StaticResource CodesBrush}"
+                                                Text="If your columns are not in the suggested order I'll try my best to figure it out."
+                                                TextWrapping="Wrap" />
                                         </StackPanel>
                                     </ToolTip>
                                 </ToolTipService.ToolTip>

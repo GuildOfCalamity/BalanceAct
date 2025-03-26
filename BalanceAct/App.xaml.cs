@@ -125,7 +125,7 @@ public partial class App : Application
 
         // We could choose to pass the Window's MainRoot into the MainViewModel for invoking ContentDialogs.
         services.AddTransient<MainViewModel>();
-
+        
         return services.BuildServiceProvider();
     }
 
