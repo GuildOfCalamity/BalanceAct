@@ -1613,34 +1613,40 @@ public class MainViewModel : ObservableRecipient
         if (Points.Count == 0)
         {
             int groupCount = 0;
-            var groupedYears = GroupByYearInt(ExpenseItems);
-            foreach (var group in groupedYears)
+
+            //var orderList = ExpenseItems
+            //    .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+            //    .OrderBy(e => e.Date)
+            //    .Select(e => new { e.Id, e.Category, e.Amount, e.Date, e.Codes })
+            //    .ToList();
+
+            var orderedList = ExpenseItems
+                .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+                .OrderBy(e => e.Date)
+                .ToList();
+
+            foreach (var item in orderedList)
             {
-                if (group.Key is not null && group.Key == DateTime.Now.Year)
-                {
-                    foreach (var item in group.Value)
-                    {
-                        groupCount++;
-                        Points.Add(item);
-                    }
-                    // A Flyout will remain small in comparison to the app window, so
-                    // we'll adjust the plot points width based on the number of elements.
-                    // A typical 1/4 year will contain ~100 plot points, based on user's
-                    // spending profile.
-                    if (groupCount > 100)
-                        PointSize = 3;
-                    else if (groupCount > 75)
-                        PointSize = 4;
-                    else if (groupCount > 50)
-                        PointSize = 5;
-                    else if (groupCount > 25)
-                        PointSize = 6;
-                    else
-                        PointSize = 8;
-                }
+                groupCount++;
+                Points.Add(item);
             }
-            // oldest spending on the left
-            Points.Reverse();
+
+            #region [Point Size]
+            // Adjust the plot point size based on the number of items.
+            switch (Points.Count)
+            {
+                case int count when count > 100: PointSize = 3;
+                    break;
+                case int count when count > 75: PointSize = 4;
+                    break;
+                case int count when count > 50: PointSize = 5;
+                    break;
+                case int count when count > 25: PointSize = 6;
+                    break;
+                default: PointSize = 8;
+                    break;
+            }
+            #endregion
         }
     }
 

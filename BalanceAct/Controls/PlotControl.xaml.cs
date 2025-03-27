@@ -22,12 +22,12 @@ namespace BalanceAct.Controls;
 /// <summary>
 /// <para>
 ///   The goal of this graphing control was to keep it as simple as possible 
-///   for the user, the only requirement is a list of integer values.
+///   for the user, the only requirement is a list of <see cref="ExpenseItem"/>s.
 /// </para>
 /// <para>
 ///   This originally started off using an <see cref="Ellipse"/> shape, but
 ///   I've changed it to a <see cref="Rectangle"/> shape to allow for full 
-///   length rendering of the data points.
+///   vertical length rendering of the data points.
 /// </para>
 /// </summary>
 public sealed partial class PlotControl : UserControl
@@ -79,6 +79,16 @@ public sealed partial class PlotControl : UserControl
         }
         else if (!_loaded || points is null)
             return;
+
+        if (points.Count == 0)
+        {
+            host.DispatcherQueue.TryEnqueue(() =>
+            {
+                tbTitle.Text = "There are no points to graph";
+                if (tbSubTitle.Visibility == Visibility.Visible)
+                    tbSubTitle.Text = "Make sure the control source is set and it contains elements";
+            });
+        }
 
         if (_msDelay > 0)
             DrawRectanglePlotDelayed(points, 0);
@@ -345,7 +355,7 @@ public sealed partial class PlotControl : UserControl
 
         // Check for invalid Canvas size
         if (canvasWidth.IsInvalidOrZero() || canvasHeight.IsInvalidOrZero())
-            throw new Exception("Invalid canvas size for plot control.");
+            throw new Exception("Invalid canvas size for plot control. Canvas width/height has no value.");
 
         // If no max was defined, find the maximum value in the data to normalize the y-axis
         if (maxValue <= 0)
@@ -479,7 +489,7 @@ public sealed partial class PlotControl : UserControl
 
         // Check for invalid Canvas size
         if (canvasWidth.IsInvalidOrZero() || canvasHeight.IsInvalidOrZero())
-            throw new Exception("Invalid canvas size for plot control.");
+            throw new Exception("Invalid canvas size for plot control. Canvas width/height has no value.");
 
         // If no max was defined, find the maximum value in the data to normalize the y-axis
         if (maxValue <= 0)
@@ -596,7 +606,7 @@ public sealed partial class PlotControl : UserControl
         // Check for invalid Canvas size
         if (canvasWidth.IsInvalidOrZero() || canvasHeight.IsInvalidOrZero())
         {
-            Debug.WriteLine("[WARNING] Invalid canvas size.");
+            Debug.WriteLine("[WARNING] Invalid canvas size. Canvas width/height has no value.");
             return;
         }
 
@@ -696,6 +706,15 @@ public sealed partial class PlotControl : UserControl
                         else
                             DrawRectanglePlot(_dataPoints, 0);
                     });
+                });
+            }
+            else // empty data warning
+            {
+                host.DispatcherQueue.TryEnqueue(() =>
+                {
+                    tbTitle.Text = "There are no points to graph";
+                    if (tbSubTitle.Visibility == Visibility.Visible)
+                        tbSubTitle.Text = "Make sure the control source is set and it contains elements";
                 });
             }
         }
