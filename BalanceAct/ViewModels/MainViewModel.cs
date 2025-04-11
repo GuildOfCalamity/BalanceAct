@@ -5,24 +5,21 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.Support;
 using BalanceAct.ViewModels;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.Storage;
 using Windows.System;
 
@@ -1310,6 +1307,36 @@ public class MainViewModel : ObservableRecipient
             .ToDictionary(g => g.Key, g => g.ToList()); // Convert to Dictionary
     }
 
+    public IEnumerable<IGrouping<string?, ExpenseItem>>? GroupByCategory()
+    {
+        return ExpenseItems.GroupBy(ei => ei.Category);
+    }
+
+    /// <inheritdoc cref="System.Linq.Enumerable.GroupBy{TSource, TKey, TElement}(IEnumerable{TSource}, Func{TSource, TKey}, Func{TSource, TElement})"/>
+    public IEnumerable<IGrouping<dynamic, ExpenseItem>> GroupByMultiple(Func<ExpenseItem, dynamic> keySelector)
+    {
+        return ExpenseItems.GroupBy(keySelector);
+    }
+
+    /// <summary>
+    /// For testing our <see cref="GroupByMultiple(Func{ExpenseItem, dynamic})"/> function.
+    /// </summary>
+    public void TestMultiGrouping()
+    {
+        var groups = GroupByMultiple(ei => new { ei.Date, ei.Amount });
+        if (groups is not null)
+        {
+            foreach (IGrouping<dynamic, ExpenseItem> group in groups)
+            {
+                Debug.WriteLine($"•• Grouped by {group.Key.Date} and {group.Key.Amount} ••");
+                foreach (ExpenseItem ei in group)
+                {
+                    Debug.WriteLine($"\t  Date: {ei.Date}   Amount: {ei.Amount}   Description: {ei.Description} ");
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// monthsPassed = (now.Year - beginningOfYear.Year) * 12 + now.Month - beginningOfYear.Month
     /// </summary>
@@ -1602,6 +1629,52 @@ public class MainViewModel : ObservableRecipient
         element.KeyboardAccelerators.Add(accelerator);
     }
 
+    public void TestTaskExtensions(CancellationTokenSource CTS)
+    {
+        
+        using (CancellationTokenSource Cancellation = CancellationTokenSource.CreateLinkedTokenSource(CTS.Token))
+        {
+            try
+            {
+                Debug.WriteLine($"⚡ Running Task<int> with AsCancellable() ");
+                var rez = Task.Run(() => SomeAsyncMethod1()).AsCancellable(Cancellation.Token).Result;
+                Debug.WriteLine($" ✏️ Result = {rez} ");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Success");
+            }
+        }
+
+        using (CancellationTokenSource Cancellation = CancellationTokenSource.CreateLinkedTokenSource(CTS.Token))
+        {
+            try
+            {
+                Debug.WriteLine($"⚡ Running Task with AsCancellable() ");
+                Task.Run(() => SomeAsyncMethod2()).AsCancellable(Cancellation.Token).ContinueWith((t) =>
+                {
+                    Debug.WriteLine($" ✏️ The task {t.Status} ");
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Success");
+            }
+        }
+
+        #region [Example Methods]
+        async Task<int> SomeAsyncMethod1()
+        {
+            await Task.Delay(2000);
+            return Random.Shared.Next(1, 100);
+        }
+
+        async Task SomeAsyncMethod2()
+        {
+            await Task.Delay(2000);
+        }
+        #endregion
+    }
     #endregion
 
     #region [Bound Events]

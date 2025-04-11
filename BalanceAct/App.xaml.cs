@@ -271,6 +271,12 @@ public partial class App : Application
         #region [Restore or center MainWindow]
         if (LocalConfig is not null)
         {
+            // Using Windows.Devices.Enumeration.DeviceInformation.FindAllAsync() instead of P/Invoke.
+            //Task.Run(async () => {
+            //    var cdm = await CountDisplayMonitors();
+            //    Debug.WriteLine($"[DEBUG] CountDisplayMonitors: {cdm}");
+            //}).Wait();
+
             if (LocalConfig.firstRun)
             {
                 AppWin?.Resize(new Windows.Graphics.SizeInt32(m_width, m_height));
@@ -414,9 +420,37 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// To my knowledge there is no way to get this natively via the WinUI3 SDK, so I'm adding a P/Invoke.
+    /// Asynchronously counts the number of display monitors using <see cref="Windows.Devices.Display.DisplayMonitor.GetDeviceSelector"/>.
     /// </summary>
-    /// <returns>the amount of displays the system recognizes</returns>
+    /// <returns>the amount of display monitors the system recognizes</returns>
+    public static async Task<int> CountDisplayMonitors()
+    {
+        int monitorCount = 0;
+        try
+        {
+            var dispResults = await Windows.Devices.Enumeration.DeviceInformation.FindAllAsync(Windows.Devices.Display.DisplayMonitor.GetDeviceSelector());
+            foreach (var device in dispResults)
+            {
+                monitorCount++;
+                foreach (var p in device.Properties)
+                {
+                    Debug.WriteLine($"[INFO] Display.Key: '{p.Key}'   Display.Value: '{p.Value}'");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[WARNING] CountDisplayMonitors: {ex.Message}");
+            // Assume there's one monitor if we can't get the count.
+            if (monitorCount == 0) { monitorCount = 1; }
+        }
+        return monitorCount;
+    }
+
+    /// <summary>
+    /// Uses the Win32 P/Invoke <see cref="EnumDisplayMonitors"/> to enumerate/count the display monitors.
+    /// </summary>
+    /// <returns>the amount of display monitors the system recognizes</returns>
     public static int GetMonitorCount()
     {
         int count = 0;
@@ -725,6 +759,7 @@ public partial class App : Application
     }
     #endregion
 
+    #region [Miscellaneous]
     public static void CloseAllDialogs()
     {
         if (App.MainRoot?.XamlRoot == null) { return; }
@@ -773,4 +808,5 @@ public partial class App : Application
         catch (Exception) { }
         return $"{sb}";
     }
+    #endregion
 }
