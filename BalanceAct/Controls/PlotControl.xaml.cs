@@ -769,6 +769,15 @@ public sealed partial class PlotControl : UserControl
             ttPlot.Visibility = Visibility.Visible;
             //Debug.WriteLine($"[INFO] TooltipWidth={ttPlot.ActualWidth:N0}  TooltipHeight={ttPlot.ActualHeight:N0}");
 
+            #region [Fix for updating the Flyout content tooltip does not appear]
+            /*
+                Flyouts are disconnected popups (separate visual trees).
+                ToolTips rely on PointerEntered → PointerMoved → PointerHover → ToolTip lifecycle.
+                Replacing content resets internal hit-test tree, but mouse isn't re-entering physically.
+            */
+            ToolTipService.SetToolTip(host, ttPlot);
+            #endregion
+
             #region [Animation]
             if (_opacityInStoryboard == null)
             {
