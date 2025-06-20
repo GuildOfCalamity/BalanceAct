@@ -1330,6 +1330,7 @@
                                 </AutoSuggestBox.Header>
                                 <interact:Interaction.Behaviors>
                                     <behave:AutoFocusBehavior />
+                                    <behave:TypingPauseBehavior TypingPaused="OnImportTypingPaused" />
                                 </interact:Interaction.Behaviors>
                             </AutoSuggestBox>
 

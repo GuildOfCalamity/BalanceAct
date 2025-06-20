@@ -583,22 +583,27 @@ public class MainViewModel : ObservableRecipient
                     default: break; // none
                 }
 
+                if (obj is not null && obj is string importPath)
+                {
+                    ImportPathCSV = importPath;
+                }
+
                 if (ImportPathCSV is null || string.IsNullOrEmpty(ImportPathCSV))
                 {
-                    ImportPathCSV = Functions.DefaultDownloadPath(); // assist the user
-                    Status = $"You must provide a valid file path ⚠️";
+                    //ImportPathCSV = Functions.DefaultDownloadPath(); // assist the user
+                    Status = $"You must provide a valid file path before importing ⚠️";
                     return;
                 }
 
                 int added = 0;
+                
                 string baseFolder = "";
-
                 if (App.IsPackaged)
                     baseFolder = ApplicationData.Current.LocalFolder.Path;
                 else
                     baseFolder = Directory.GetCurrentDirectory();
-
-                if (!File.Exists(Path.Combine(baseFolder, ImportPathCSV)))
+                
+                if (!File.Exists(ImportPathCSV))
                 {
                     Status = $"The file does not exist, check your input and try again ⚠️";
                     return;
@@ -615,11 +620,11 @@ public class MainViewModel : ObservableRecipient
                 #endregion
 
                 // Support for Open Financial Exchange (OFX/QFX)
-                if (Path.GetExtension(ImportPathCSV) == ".qfx" || Path.GetExtension(ImportPathCSV) == ".ofx")
+                if (Path.GetExtension(ImportPathCSV).Equals(".qfx", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(ImportPathCSV).Equals(".ofx", StringComparison.OrdinalIgnoreCase))
                 {
                     try
                     {
-                        var qfxData = QfxParser.ParseFile(Path.Combine(baseFolder, ImportPathCSV));
+                        var qfxData = QfxParser.ParseFile(ImportPathCSV);
                         if (qfxData == null || qfxData.OfxDocument == null)
                         {
                             Status = $"Unable to parse the OFX, check the contents and try again ⚠️";
@@ -797,9 +802,9 @@ public class MainViewModel : ObservableRecipient
                         return;
                     }
                 }
-                else // assume CSV format
+                else if (Path.GetExtension(ImportPathCSV).Equals(".csv", StringComparison.OrdinalIgnoreCase)) // Comma Separated Values
                 {
-                    var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
+                    var lines = Extensions.ReadFileLines(ImportPathCSV);
 
                     #region [Inspect column names]
                     var inspection = lines.FirstOrDefault()?.Split(',', StringSplitOptions.TrimEntries);
@@ -996,6 +1001,11 @@ public class MainViewModel : ObservableRecipient
                     }
                     #endregion
                 }
+                else
+                {
+                    Status = $"Unsupported file type, only CSV and QFX/OFX files are supported ⚠️";
+                    return;
+                }
 
                 // for spinners
                 switch (Delay)
@@ -1017,7 +1027,7 @@ public class MainViewModel : ObservableRecipient
                 }
                 else
                 {
-                    _ = App.ShowDialogBox($"Notice", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.{Environment.NewLine}Other possibilities include duplicated transactions that already exist.", "OK", "", null, null, _dialogImgUri);
+                    _ = App.ShowDialogBox($"Notice", $"Import was unsuccessful ☹{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.{Environment.NewLine}Other possibilities include duplicated transactions that already exist.", "OK", "", null, null, _dialogImgUri);
                 }
             }
             finally

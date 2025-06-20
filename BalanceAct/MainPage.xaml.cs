@@ -37,10 +37,8 @@ public sealed partial class MainPage : Page
         InitializeComponent();
         this.Loading += MainPageLoading;
         ItemListView.RightTapped += ItemListView_RightTapped;
-        
         Controls.PlotControl.ExpenseItemPlotTap += (ei) => SetSelectedItem(ei);
-
-        foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
+        //foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
     }
 
     void MainPageLoading(FrameworkElement sender, object args)
@@ -78,8 +76,21 @@ public sealed partial class MainPage : Page
             //};
         }
 
-        // Set up the AutoSuggestBox to auto‑complete file names.
-        SetupFileAutoSuggest(asbFilePath, Functions.DefaultDownloadPath());
+        #region [Code-behind event for import AutoSuggestBox]
+        //SetupFileAutoSuggest(asbFilePath, Functions.DefaultDownloadPath());
+        asbFilePath.QuerySubmitted += (sender, args) =>
+        {
+            // If the user selects a suggestion, args.ChosenSuggestion will be non-null.
+            // Otherwise, you can capture the text from autoSuggestBox.Text.
+            string selected = args.ChosenSuggestion as string ?? asbFilePath.Text;
+
+            // For example, display or process the selected file name.
+            Debug.WriteLine($"[INFO] User selected: {selected}");
+            var final = Path.Combine(Functions.DefaultDownloadPath(), selected);
+            Debug.WriteLine($"[INFO] Path imported: {final}");
+            ViewModel?.ImportItemCommand.Execute(final);
+        };
+        #endregion
     }
 
     void ItemListView_RightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
@@ -320,6 +331,58 @@ public sealed partial class MainPage : Page
     }
     #endregion
 
+    void OnImportTypingPaused(object sender, EventArgs e) => DisplayImportSuggestions(sender as AutoSuggestBox);
+
+    /// <summary>
+    /// <see cref="AutoSuggestBox"/> behavior event when the user pauses whilst typing.
+    /// </summary>
+    /// <remarks>
+    /// Our search parses the downloads folder for the relevant file name(s).
+    /// </remarks>
+    void DisplayImportSuggestions(AutoSuggestBox? sender)
+    {
+        if (sender == null || ViewModel == null)
+            return;
+
+        ViewModel.IsBusy = true;
+
+        string input = sender.Text?.Trim() ?? string.Empty;
+        string directoryPath = Functions.DefaultDownloadPath();
+        string filePrefix = input;
+
+        // If the input is an absolute path, extract directory and file portion.
+        if (Path.IsPathRooted(input))
+        {
+            string potentialDir = Path.GetDirectoryName(input) ?? string.Empty;
+            string potentialFilePrefix = Path.GetFileName(input) ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(potentialDir) && Directory.Exists(potentialDir))
+            {
+                directoryPath = potentialDir;
+                filePrefix = potentialFilePrefix;
+            }
+            else
+            {
+                // If the directory part of the input isn't valid, fallback to
+                // the default directory and use entire input as the filter.
+                directoryPath = Functions.DefaultDownloadPath();
+                filePrefix = input;
+            }
+        }
+
+        try
+        {
+            // Use a wildcard pattern to filter file names starting with filePrefix.
+            var fileSuggestions = Directory.GetFiles(directoryPath, filePrefix + "*").Select(Path.GetFileName).ToList();
+            sender.ItemsSource = fileSuggestions;
+        }
+        catch (Exception)
+        {
+            // In case of an exception (for example, permission issues), clear the list.
+            sender.ItemsSource = null;
+        }
+        ViewModel.IsBusy = false;
+    }
 
     /// <summary>
     /// Sets up an AutoSuggestBox to display file names (from the specified directory)
@@ -391,7 +454,6 @@ public sealed partial class MainPage : Page
             ViewModel?.ImportItemCommand.Execute((AutoSuggestBox)sender);
         };
     }
-
 }
 
 /// <summary>
