@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Xml.Linq;
 using BalanceAct.Models;
 using BalanceAct.Services;
 using BalanceAct.Support;
@@ -35,6 +36,7 @@ public class MainViewModel : ObservableRecipient
     readonly int _avgMonth = 30;
     System.Globalization.NumberFormatInfo _formatter;
     static DispatcherTimer? _timer;
+    static StringComparer _strComp = StringComparer.OrdinalIgnoreCase;
     readonly Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
     readonly Uri _dialogImgUri2 = new Uri($"ms-appx:///Assets/Info.png");
     public event EventHandler<bool>? ItemsLoadedEvent;
@@ -281,6 +283,18 @@ public class MainViewModel : ObservableRecipient
     {
         get => _importPathCSV;
         set => SetProperty(ref _importPathCSV, value);
+    }
+
+    string _listSeparator = "";
+    public string ListSeparator 
+    { 
+        get
+        {
+            if (string.IsNullOrEmpty(_listSeparator))
+                _listSeparator = Thread.CurrentThread.CurrentCulture.TextInfo.ListSeparator;
+
+            return _listSeparator;
+        }
     }
 
     #region [Stats]
@@ -590,11 +604,9 @@ public class MainViewModel : ObservableRecipient
                     return;
                 }
 
-                var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
-
                 #region [Perform backup before the import]
                 var bkup = dataService?.Backup(baseFolder, App.DatabaseExpense, ExpenseItems.ToList());
-                if (bkup != null && !bkup.Value) 
+                if (bkup != null && !bkup.Value)
                 {
                     Status = $"Backup attempt failed ⚠️";
                     _ = App.ShowDialogBox($"Backup", $"Unable to backup the current data set!", "OK", "", null, null, _dialogImgUri);
@@ -602,200 +614,388 @@ public class MainViewModel : ObservableRecipient
                 }
                 #endregion
 
-                #region [Inspect column names]
-                var inspection = lines.FirstOrDefault()?.Split(',', StringSplitOptions.TrimEntries);
-                if (inspection == null || inspection.Length == 0)
+                // Support for Open Financial Exchange (OFX/QFX)
+                if (Path.GetExtension(ImportPathCSV) == ".qfx" || Path.GetExtension(ImportPathCSV) == ".ofx")
                 {
-                    Status = $"No header row detected ⚠️";
-                    _ = App.ShowDialogBox($"Backup", $"No header row was detected.{Environment.NewLine}Check the file contents and try again.{Environment.NewLine}{Environment.NewLine}\"{ImportPathCSV}\"", "OK", "", null, null, _dialogImgUri);
-                    return;
-                }
-
-                // Configure defaults
-                int colMemo = -1;
-                int colDate = 0;
-                int colDesc = 1;
-                int colCat = 2;
-                int colAmnt = 3;
-
-                for (int i = 0; i < inspection.Length; i++)
-                {
-                    var col = inspection[i];
-
-                    if (string.IsNullOrEmpty(col))
-                        continue;
-
-                    if (col.Contains("date", StringComparison.OrdinalIgnoreCase))
-                        colDate = i;
-                    if (col.Contains("description", StringComparison.OrdinalIgnoreCase))
-                        colDesc = i;
-                    if (col.Contains("category", StringComparison.OrdinalIgnoreCase))
-                        colCat = i;
-                    if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) && !col.Contains("credit", StringComparison.OrdinalIgnoreCase))
-                        colAmnt = i;
-                    if (col.Contains("memo", StringComparison.OrdinalIgnoreCase) || col.Contains("additional", StringComparison.OrdinalIgnoreCase))
-                        colMemo = i;
-                    //if (col.Contains("check number", StringComparison.OrdinalIgnoreCase) || col.Contains("check #", StringComparison.OrdinalIgnoreCase))
-                    //    colMemo = i;
-                }
-                Logger?.WriteLine($"Interpreted column layout ⇒ Date:{colDate}, Description:{colDesc}, Category:{colCat}, Amount:{colAmnt}, Memo:{colMemo}", LogLevel.Debug, "ImportItem");
-                #endregion
-
-                #region [Analyze each line from the file]
-                foreach (var line in lines.Skip(1)) // ignore the header
-                {
-                    var filtered = line.Replace("\"", "");
-                    var tokens = filtered.Split(',', StringSplitOptions.TrimEntries);
-
-                    // Do we have enough columns to work with?
-                    if (tokens.Length == 0 || tokens.Length < 4)
+                    try
                     {
-                        Logger?.WriteLine($"Not enough columns for this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
-                        continue;
+                        var qfxData = QfxParser.ParseFile(Path.Combine(baseFolder, ImportPathCSV));
+                        if (qfxData == null || qfxData.OfxDocument == null)
+                        {
+                            Status = $"Unable to parse the OFX, check the contents and try again ⚠️";
+                            _ = App.ShowDialogBox($"Import", $"Failed to parse \"{ImportPathCSV}\"", "OK", "", null, null, _dialogImgUri);
+                            return;
+                        }
+                        var xml = qfxData.OfxDocument.ToString(SaveOptions.DisableFormatting);
+                        System.Xml.Serialization.XmlSerializer serializer = new System.Xml.Serialization.XmlSerializer(typeof(OFX));
+                        using (StringReader reader = new StringReader(xml))
+                        {
+                            var tranList = (OFX?)serializer?.Deserialize(reader);
+                            foreach (var t in tranList.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.BANKTRANLIST.STMTTRN)
+                            {
+                                /*
+                                <STMTTRN>
+                                    <TRNTYPE>DEBIT</TRNTYPE>
+                                    <DTPOSTED>20250617120000[0:GMT]</DTPOSTED>
+                                    <TRNAMT>-42.54</TRNAMT>
+                                    <FITID>2025061700000000000000000000000</FITID>
+                                    <NAME>STORE 6074</NAME>
+                                </STMTTRN>
+                                */
+                                var impDT = QfxParser.ParseOfxDate(t.DTPOSTED);
+                                if (impDT != null)
+                                {
+                                    if (_strComp.Equals(t.TRNTYPE, "DEBIT"))
+                                    {
+                                        //Debug.WriteLine($"Money removed: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {impDT} ⇨ {t.FITID}");
+                                        if (t.TRNAMT < 0)
+                                        {
+                                            Debug.WriteLine($"[INFO] Processing ⇒ \"{t.NAME}\"");
+
+                                            var impDesc = t.NAME;
+                                            var impCat = Categories[Categories.Count-1]; // Undefined
+                                            var impAmnt = $"{Math.Abs(t.TRNAMT)}";
+                                            var impMemo = string.Empty;
+
+                                            #region [Try to match predefined categories]
+                                            foreach (var preCat in Categories)
+                                            {
+                                                if (preCat.Contains(impCat, StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    impCat = preCat;
+                                                    break;
+                                                }
+                                            }
+                                            // If the category isn't matched then it will contain the native value from the file.
+                                            #endregion
+
+                                            #region [Try to extrapolate memo]
+                                            // Certain banks use different delimiters, so you may have to adjust as needed.
+                                            if (string.IsNullOrEmpty(impMemo))
+                                            {
+                                                // 1st common delimiter
+                                                if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("*"))
+                                                {
+                                                    try
+                                                    {
+                                                        impMemo = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                        impDesc = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[0];
+                                                    }
+                                                    catch (Exception)
+                                                    {
+                                                        Status = $"Failed to extrapolate memo: \"{impDesc}\" ⚠️";
+                                                    }
+                                                }
+                                                // 2nd common delimiter
+                                                else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("#"))
+                                                {
+                                                    try
+                                                    {
+                                                        impMemo = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                        impDesc = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[0];
+                                                    }
+                                                    catch (Exception)
+                                                    {
+                                                        Status = $"Failed to extrapolate memo: \"{impDesc}\" ⚠️";
+                                                    }
+                                                }
+                                                // 3rd common delimiter
+                                                else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("~"))
+                                                {
+                                                    try
+                                                    {
+                                                        impMemo = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                        impDesc = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[0];
+                                                    }
+                                                    catch (Exception)
+                                                    {
+                                                        Status = $"Failed to extrapolate memo: \"{impDesc}\" ⚠️";
+                                                    }
+                                                }
+                                                // 4th common delimiter
+                                                else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("%"))
+                                                {
+                                                    try
+                                                    {
+                                                        impMemo = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                        impDesc = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[0];
+                                                    }
+                                                    catch (Exception)
+                                                    {
+                                                        Status = $"Failed to auto-apply memo: \"{impDesc}\" ⚠️";
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    impMemo = $"{t.FITID}";
+                                                }
+                                            }
+                                            #endregion
+
+                                            bool duplicate = false;
+                                            if (App.LocalConfig!.aggressiveDupe)
+                                            {   // Aggressive duplicate check involves amount and date (with tolerance).
+                                                duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                            }
+                                            else
+                                            {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
+                                                duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
+                                            }
+
+                                            // Add the imported item.
+                                            if (!duplicate)
+                                            {
+                                                added++;
+                                                var highest = GetHighestId();
+                                                ExpenseItems.Add(new ExpenseItem
+                                                {
+                                                    Recurring = SelectedRecurring,
+                                                    Id = highest + 1,
+                                                    Category = $"{impCat}",
+                                                    Description = $"{impDesc}",
+                                                    // TODO: honor local culture ⇒ impAmnt.ToString("C2", _formatter)
+                                                    Amount = impAmnt.StartsWith("$") ? $"{impAmnt}" : $"${impAmnt}",
+                                                    Codes = string.IsNullOrEmpty(impMemo) ? "" : $"{impMemo}",
+                                                    Date = (impDT == DateTime.MinValue) ? DateTime.Now : impDT,
+                                                    Color = Microsoft.UI.Colors.WhiteSmoke
+                                                });
+                                            }
+                                            else
+                                            {
+                                                Debug.WriteLine($"[WARNING] Expense item already exists '{t.NAME}'");
+                                                Logger?.WriteLine($"Expense item already exists ⇒ {t.NAME}", LogLevel.Warning, "ImportItem");
+                                                Status = $"This expense item already exists, skipping import ⚠️";
+                                            }
+                                        }
+                                    }
+                                    else if (_strComp.Equals(t.TRNTYPE, "CREDIT"))
+                                    {
+                                        Debug.WriteLine($"[INFO] Money added: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {impDT} ⇨ {t.FITID}");
+                                        Status = $"Transfer was skipped, only interested in withdrawals ⚠️";
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        Debug.WriteLine($"[WARNING] Undefined money action '{t.TRNTYPE}'");
+                                        Status = $"Undefined money action '{t.TRNTYPE}' ⚠️";
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.WriteLine($"[WARNING] Invalid OFX date detected '{t.DTPOSTED}'");
+                                    Logger?.WriteLine($"Invalid OFX date detected ⇒ {t.DTPOSTED}", LogLevel.Warning, "ImportItem");
+                                }
+                            }
+                            Debug.WriteLine($"Available balance: ${tranList.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.AVAILBAL.BALAMT}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Status = $"Unable to parse the QFX/OFX, check the contents and try again ⚠️";
+                        _ = App.ShowDialogBox($"Import", $"Failed to parse \"{ImportPathCSV}\"{Environment.NewLine}{ex.Message}", "OK", "", null, null, _dialogImgUri);
+                        return;
+                    }
+                }
+                else // assume CSV format
+                {
+                    var lines = Extensions.ReadFileLines(Path.Combine(baseFolder, ImportPathCSV));
+
+                    #region [Inspect column names]
+                    var inspection = lines.FirstOrDefault()?.Split(',', StringSplitOptions.TrimEntries);
+                    if (inspection == null || inspection.Length == 0)
+                    {
+                        Status = $"No header row detected ⚠️";
+                        _ = App.ShowDialogBox($"Backup", $"No header row was detected.{Environment.NewLine}Check the file contents and try again.{Environment.NewLine}{Environment.NewLine}\"{ImportPathCSV}\"", "OK", "", null, null, _dialogImgUri);
+                        return;
                     }
 
-                    if (double.TryParse(tokens[colAmnt], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
+                    // Configure defaults
+                    int colMemo = -1;
+                    int colDate = 0;
+                    int colDesc = 1;
+                    int colCat = 2;
+                    int colAmnt = 3;
+
+                    for (int i = 0; i < inspection.Length; i++)
                     {
-                        if (val < 0)
+                        var col = inspection[i];
+
+                        if (string.IsNullOrEmpty(col))
+                            continue;
+
+                        if (col.Contains("date", StringComparison.OrdinalIgnoreCase))
+                            colDate = i;
+                        if (col.Contains("description", StringComparison.OrdinalIgnoreCase))
+                            colDesc = i;
+                        if (col.Contains("category", StringComparison.OrdinalIgnoreCase))
+                            colCat = i;
+                        if (col.Contains("amount", StringComparison.OrdinalIgnoreCase) && !col.Contains("credit", StringComparison.OrdinalIgnoreCase))
+                            colAmnt = i;
+                        if (col.Contains("memo", StringComparison.OrdinalIgnoreCase) || col.Contains("additional", StringComparison.OrdinalIgnoreCase))
+                            colMemo = i;
+                        //if (col.Contains("check number", StringComparison.OrdinalIgnoreCase) || col.Contains("check #", StringComparison.OrdinalIgnoreCase))
+                        //    colMemo = i;
+                    }
+                    Logger?.WriteLine($"Interpreted column layout ⇒ Date:{colDate}, Description:{colDesc}, Category:{colCat}, Amount:{colAmnt}, Memo:{colMemo}", LogLevel.Debug, "ImportItem");
+                    #endregion
+
+                    #region [Analyze each line from the file]
+                    foreach (var line in lines.Skip(1)) // ignore the header
+                    {
+                        var filtered = line.Replace("\"", "");
+                        var tokens = filtered.Split(',', StringSplitOptions.TrimEntries);
+
+                        // Do we have enough columns to work with?
+                        if (tokens.Length == 0 || tokens.Length < 4)
                         {
-                            Debug.WriteLine($"[INFO] Processing ⇒ \"{filtered}\"");
+                            Logger?.WriteLine($"Not enough columns for this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
+                            continue;
+                        }
 
-                            if (DateTime.TryParse($"{tokens[colDate]}", out DateTime impDT))
+                        if (double.TryParse(tokens[colAmnt], System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, System.Globalization.CultureInfo.CurrentCulture, out double val))
+                        {
+                            if (val < 0)
                             {
-                                var impDesc = tokens[colDesc];
-                                var impCat = tokens[colCat];
-                                var impAmnt = $"{Math.Abs(val)}";
-                                var impMemo = (colMemo != -1) ? tokens[colMemo] : "";
+                                Debug.WriteLine($"[INFO] Processing ⇒ \"{filtered}\"");
 
-                                if (!string.IsNullOrEmpty(impMemo) && impMemo.Contains("Transfer To", StringComparison.OrdinalIgnoreCase))
+                                if (DateTime.TryParse($"{tokens[colDate]}", out DateTime impDT))
                                 {
-                                    Status = $"Transfer was skipped, only interested in withdrawals ⚠️";
-                                    continue;
-                                }
+                                    var impDesc = tokens[colDesc];
+                                    var impCat = tokens[colCat];
+                                    var impAmnt = $"{Math.Abs(val)}";
+                                    var impMemo = (colMemo != -1) ? tokens[colMemo] : "";
 
-                                #region [Try to match predefined categories]
-                                foreach (var preCat in Categories)
-                                {
-                                    if (preCat.Contains(impCat, StringComparison.OrdinalIgnoreCase))
+                                    if (!string.IsNullOrEmpty(impMemo) && impMemo.Contains("Transfer To", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        impCat = preCat;
-                                        break;
+                                        Status = $"Transfer was skipped, only interested in withdrawals ⚠️";
+                                        continue;
                                     }
-                                }
-                                // If the category isn't matched then it will contain the native value from the file.
-                                #endregion
 
-                                #region [Try to extrapolate memo]
-                                // Certain banks use different delimiters, so you may have to adjust as needed.
-                                if (string.IsNullOrEmpty(impMemo))
-                                {
-                                    // 1st common delimiter
-                                    if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("*"))
+                                    #region [Try to match predefined categories]
+                                    foreach (var preCat in Categories)
                                     {
-                                        try
+                                        if (preCat.Contains(impCat, StringComparison.OrdinalIgnoreCase))
                                         {
-                                            impMemo = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[1];
-                                            impDesc = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[0];
-                                        }
-                                        catch (Exception)
-                                        {
-                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
+                                            impCat = preCat;
+                                            break;
                                         }
                                     }
-                                    // 2nd common delimiter
-                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("#"))
-                                    {
-                                        try
-                                        {
-                                            impMemo = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[1];
-                                            impDesc = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[0];
-                                        }
-                                        catch (Exception)
-                                        {
-                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
-                                        }
-                                    }
-                                    // 3rd common delimiter
-                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("~"))
-                                    {
-                                        try
-                                        {
-                                            impMemo = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[1];
-                                            impDesc = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[0];
-                                        }
-                                        catch (Exception)
-                                        {
-                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
-                                        }
-                                    }
-                                    // 4th common delimiter
-                                    else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("%"))
-                                    {
-                                        try
-                                        {
-                                            impMemo = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[1];
-                                            impDesc = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[0];
-                                        }
-                                        catch (Exception)
-                                        {
-                                            Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
-                                        }
-                                    }
-                                }
-                                #endregion
+                                    // If the category isn't matched then it will contain the native value from the file.
+                                    #endregion
 
-                                bool duplicate = false;
-                                if (App.LocalConfig!.aggressiveDupe)
-                                {   // Aggressive duplicate check involves amount and date (with tolerance).
-                                    duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                    #region [Try to extrapolate memo]
+                                    // Certain banks use different delimiters, so you may have to adjust as needed.
+                                    if (string.IsNullOrEmpty(impMemo))
+                                    {
+                                        // 1st common delimiter
+                                        if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("*"))
+                                        {
+                                            try
+                                            {
+                                                impMemo = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                impDesc = impDesc.Split('*', StringSplitOptions.RemoveEmptyEntries)[0];
+                                            }
+                                            catch (Exception)
+                                            {
+                                                Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
+                                            }
+                                        }
+                                        // 2nd common delimiter
+                                        else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("#"))
+                                        {
+                                            try
+                                            {
+                                                impMemo = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                impDesc = impDesc.Split('#', StringSplitOptions.RemoveEmptyEntries)[0];
+                                            }
+                                            catch (Exception)
+                                            {
+                                                Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
+                                            }
+                                        }
+                                        // 3rd common delimiter
+                                        else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("~"))
+                                        {
+                                            try
+                                            {
+                                                impMemo = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                impDesc = impDesc.Split('~', StringSplitOptions.RemoveEmptyEntries)[0];
+                                            }
+                                            catch (Exception)
+                                            {
+                                                Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
+                                            }
+                                        }
+                                        // 4th common delimiter
+                                        else if (!string.IsNullOrEmpty(impDesc) && impDesc.Contains("%"))
+                                        {
+                                            try
+                                            {
+                                                impMemo = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[1];
+                                                impDesc = impDesc.Split('%', StringSplitOptions.RemoveEmptyEntries)[0];
+                                            }
+                                            catch (Exception)
+                                            {
+                                                Status = $"Failed to auto-apply memo: \"{tokens[1]}\" ⚠️";
+                                            }
+                                        }
+                                    }
+                                    #endregion
+
+                                    bool duplicate = false;
+                                    if (App.LocalConfig!.aggressiveDupe)
+                                    {   // Aggressive duplicate check involves amount and date (with tolerance).
+                                        duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
+                                    }
+                                    else
+                                    {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
+                                        duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
+                                    }
+
+                                    // Add the imported item.
+                                    if (!duplicate)
+                                    {
+                                        added++;
+                                        var highest = GetHighestId();
+                                        ExpenseItems.Add(new ExpenseItem
+                                        {
+                                            Recurring = SelectedRecurring,
+                                            Id = highest + 1,
+                                            Category = $"{impCat}",
+                                            Description = $"{impDesc}",
+                                            // TODO: honor local culture ⇒ impAmnt.ToString("C2", _formatter)
+                                            Amount = impAmnt.StartsWith("$") ? $"{impAmnt}" : $"${impAmnt}",
+                                            Codes = string.IsNullOrEmpty(impMemo) ? "" : $"{impMemo}",
+                                            Date = (impDT == DateTime.MinValue) ? DateTime.Now : impDT,
+                                            Color = Microsoft.UI.Colors.WhiteSmoke
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Logger?.WriteLine($"Expense item already exists ⇒ {filtered}", LogLevel.Warning, "ImportItem");
+                                        Status = $"This expense item already exists, skipping import ⚠️";
+                                    }
                                 }
                                 else
-                                {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
-                                    duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
-                                }
-
-                                // Add the imported item.
-                                if (!duplicate)
                                 {
-                                    added++;
-                                    var highest = GetHighestId();
-                                    ExpenseItems.Add(new ExpenseItem
-                                    {
-                                        Recurring = SelectedRecurring,
-                                        Id = highest + 1,
-                                        Category = $"{impCat}",
-                                        Description = $"{impDesc}",
-                                        // TODO: honor local culture ⇒ impAmnt.ToString("C2", _formatter)
-                                        Amount = impAmnt.StartsWith("$") ? $"{impAmnt}" : $"${impAmnt}",
-                                        Codes = string.IsNullOrEmpty(impMemo) ? "" : $"{impMemo}",
-                                        Date = (impDT == DateTime.MinValue) ? DateTime.Now : impDT,
-                                        Color = Microsoft.UI.Colors.WhiteSmoke
-                                    });
-                                }
-                                else
-                                {
-                                    Logger?.WriteLine($"Expense item already exists ⇒ {filtered}", LogLevel.Warning, "ImportItem");
-                                    Status = $"This expense item already exists, skipping import ⚠️";
+                                    Status = $"This date is not valid ⇒ {tokens[0]} ⚠️";
+                                    _ = App.ShowDialogBox($"Import", $"Unable to use this date:{Environment.NewLine}{Environment.NewLine}\"{tokens[0]}\"", "OK", "", null, null, _dialogImgUri);
                                 }
                             }
                             else
                             {
-                                Status = $"This date is not valid ⇒ {tokens[0]} ⚠️";
-                                _ = App.ShowDialogBox($"Import", $"Unable to use this date:{Environment.NewLine}{Environment.NewLine}\"{tokens[0]}\"", "OK", "", null, null, _dialogImgUri);
+                                Status = $"Deposit was skipped, only interested in withdrawals ⚠️";
                             }
                         }
                         else
                         {
-                            Status = $"Deposit was skipped, only interested in withdrawals ⚠️";
+                            Status = $"Unable to use this line ⇒ {filtered} ⚠️";
+                            Logger?.WriteLine($"Unable to use this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
                         }
                     }
-                    else
-                    {
-                        Status = $"Unable to use this line ⇒ {filtered} ⚠️";
-                        Logger?.WriteLine($"Unable to use this line ⇒ {filtered}", LogLevel.Warning, "ImportItem");
-                    }
+                    #endregion
                 }
-                #endregion
 
                 // for spinners
                 switch (Delay)
@@ -817,7 +1017,7 @@ public class MainViewModel : ObservableRecipient
                 }
                 else
                 {
-                    _ = App.ShowDialogBox($"Warning", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.", "OK", "", null, null, _dialogImgUri);
+                    _ = App.ShowDialogBox($"Notice", $"Import was unsuccessful.{Environment.NewLine}No expenses were added to the database.{Environment.NewLine}Please confirm the import layout matches the suggested layout.{Environment.NewLine}Other possibilities include duplicated transactions that already exist.", "OK", "", null, null, _dialogImgUri);
                 }
             }
             finally
@@ -1734,6 +1934,23 @@ public class MainViewModel : ObservableRecipient
             {
                 ImportItemCommand.Execute((TextBox)sender);
                 e.Handled = true;
+            }
+            else
+            {
+                try
+                {
+                    string filter = ((TextBox)sender).Text ?? string.Empty;
+                    if (Directory.Exists(filter))
+                    {
+                        var fileSuggestions = Directory.GetFiles(filter)
+                            .Select(Path.GetFileName)
+                            .Where(fileName => fileName.StartsWith(filter, StringComparison.CurrentCultureIgnoreCase))
+                            .ToList();
+
+                        Debug.WriteLine($"[DEBUG] {fileSuggestions.FirstOrDefault()}");
+                    }
+                }
+                catch (Exception) { }
             }
         }
     }

@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.Contracts;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -17,7 +17,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-
+using System.Xml;
+using System.Xml.Linq;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -25,7 +26,6 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
-
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -1977,6 +1977,39 @@ public static class Extensions
     /// </summary>
     public static int OrderOfMagnitude(this uint amount) => (int)Math.Floor(Math.Log(amount, 1000));
 
+    /// <summary>
+    /// Formats an XDocument into a human-friendly string with indentation.
+    /// </summary>
+    /// <param name="document">The XDocument to be beautified.</param>
+    /// <returns>A formatted XML string.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if document is null.</exception>
+    public static string Beautify(this XDocument document, string indentChars = "   ")
+    {
+        if (document == null)
+            throw new ArgumentNullException(nameof(document));
+
+        XmlWriterSettings settings = new XmlWriterSettings
+        {
+            Indent = true,
+            IndentChars = indentChars,
+            NewLineOnAttributes = false,
+            OmitXmlDeclaration = false,
+            DoNotEscapeUriAttributes = true,
+            NamespaceHandling = NamespaceHandling.OmitDuplicates,
+            //NewLineHandling = NewLineHandling.Entitize,
+        };
+
+        using (StringWriter stringWriter = new StringWriter())
+        {
+            using (XmlWriter xmlWriter = XmlWriter.Create(stringWriter, settings))
+            {
+                document.WriteTo(xmlWriter);
+                xmlWriter.Flush();
+            }
+            return stringWriter.ToString();
+        }
+    }
+
     #region [Easing Functions]
 
     // Quadratic Easing (t²): EaseInQuadratic → Starts slow, speeds up.  EaseOutQuadratic → Starts fast, slows down.  EaseInOutQuadratic → Symmetric acceleration-deceleration.
@@ -2034,6 +2067,368 @@ public static class Extensions
     public static double EaseInBack(double t) => 2.70158 * t * t * t - 1.70158 * t * t;
     public static double EaseOutBack(double t) => 1.0 + 2.70158 * Math.Pow(t - 1.0, 3.0) + 1.70158 * Math.Pow(t - 1.0, 2.0);
     public static double EaseInOutBack(double t) => t < 0.5 ? (Math.Pow(2.0 * t, 2.0) * ((2.59491 + 1.0) * 2.0 * t - 2.59491)) / 2.0 : (Math.Pow(2.0 * t - 2.0, 2.0) * ((2.59491 + 1.0) * (t * 2.0 - 2.0) + 2.59491) + 2.0) / 2.0;
+
+    #endregion
+
+    #region [Task Helpers]
+
+    /// <summary>
+    /// Chainable task helper.
+    /// var result = Task.Run(() => SomeAsyncMethodWithReturnValue()).AsCancellable(Cancellation.Token).Result;
+    /// </summary>
+    public static async Task<T> AsCancellable<T>(this Task<T> Instance, CancellationToken token)
+    {
+        if (!token.CanBeCanceled)
+            return await Instance;
+
+        TaskCompletionSource<T> TCS = new TaskCompletionSource<T>();
+
+        using (CancellationTokenRegistration CancelRegistration = token.Register(() => TCS.TrySetCanceled(token), false))
+        {
+            _ = Instance.ContinueWith((PreviousTask) =>
+            {
+                CancelRegistration.Dispose();
+
+                if (Instance.IsCanceled)
+                    TCS.TrySetCanceled();
+                else if (Instance.IsFaulted)
+                    TCS.TrySetException(PreviousTask.Exception ?? new AggregateException("aggregate exception was empty"));
+                else
+                    TCS.TrySetResult(PreviousTask.Result);
+
+            }, TaskContinuationOptions.ExecuteSynchronously);
+
+            return await TCS.Task;
+        }
+    }
+
+    /// <summary>
+    /// Chainable task helper.
+    /// Task.Run(() => SomeAsyncMethodWithNoReturnValue()).AsCancellable(Cancellation.Token);
+    /// </summary>
+    public static Task AsCancellable(this Task Instance, CancellationToken token)
+    {
+        TaskCompletionSource TCS = new TaskCompletionSource();
+
+        if (!token.CanBeCanceled)
+            return TCS.Task;
+
+        using (CancellationTokenRegistration CancelRegistration = token.Register(() => TCS.TrySetCanceled(token), false))
+        {
+            _ = Instance.ContinueWith((PreviousTask) =>
+            {
+                CancelRegistration.Dispose();
+
+                if (Instance.IsCanceled)
+                    TCS.TrySetCanceled();
+                else if (Instance.IsFaulted)
+                    TCS.TrySetException(PreviousTask.Exception ?? new AggregateException("aggregate exception was empty"));
+                else
+                    TCS.TrySetResult();
+
+            }, TaskContinuationOptions.ExecuteSynchronously);
+
+            return TCS.Task;
+        }
+    }
+
+    public static async Task WithTimeoutAsync(this Task task, TimeSpan timeout)
+    {
+        if (task == await Task.WhenAny(task, Task.Delay(timeout))) { await task; }
+    }
+
+    public static async Task<T?> WithTimeoutAsync<T>(this Task<T> task, TimeSpan timeout, T? defaultValue = default)
+    {
+        if (task == await Task.WhenAny(task, Task.Delay(timeout)))
+            return await task;
+
+        return defaultValue;
+    }
+
+    public static async Task<TOut> AndThen<TIn, TOut>(this Task<TIn> inputTask, Func<TIn, Task<TOut>> mapping)
+    {
+        var input = await inputTask;
+        return (await mapping(input));
+    }
+
+    public static async Task<TOut?> AndThen<TIn, TOut>(this Task<TIn> inputTask, Func<TIn, Task<TOut>> mapping, Func<Exception, TOut>? errorHandler = null)
+    {
+        try
+        {
+            var input = await inputTask;
+            return (await mapping(input));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] AndThen: {ex.Message}");
+            if (errorHandler != null)
+                return errorHandler(ex);
+
+            throw; // Re-throw if no handler is provided.
+        }
+    }
+
+    /// <summary>
+    /// Runs the specified asynchronous method with return type.
+    /// NOTE: Will not catch exceptions generated by the task.
+    /// </summary>
+    /// <param name="asyncMethod">The asynchronous method to execute.</param>
+    public static T RunSynchronously<T>(this Func<Task<T>> asyncMethod)
+    {
+        if (asyncMethod == null)
+            throw new ArgumentNullException($"{nameof(asyncMethod)} cannot be null");
+
+        var prevCtx = SynchronizationContext.Current;
+        try
+        {   // Invoke the function and alert the context when it completes.
+            var t = asyncMethod();
+            if (t == null)
+                throw new InvalidOperationException("No task provided.");
+
+            return t.GetAwaiter().GetResult();
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
+    }
+
+    /// <summary>
+    /// Runs the specified asynchronous method without return type.
+    /// NOTE: Will not catch exceptions generated by the task.
+    /// </summary>
+    /// <param name="asyncMethod">The asynchronous method to execute.</param>
+    public static void RunSynchronously(this Func<Task> asyncMethod)
+    {
+        if (asyncMethod == null)
+            throw new ArgumentNullException($"{nameof(asyncMethod)}");
+
+        var prevCtx = SynchronizationContext.Current;
+        try
+        {   // Invoke the function and alert the context when it completes
+            var t = asyncMethod();
+            if (t == null)
+                throw new InvalidOperationException("No task provided.");
+
+            t.GetAwaiter().GetResult();
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(prevCtx); }
+    }
+
+    /// <summary>
+    /// Chainable task helper.
+    /// var result = await SomeLongAsyncFunction().WithTimeout(TimeSpan.FromSeconds(2));
+    /// </summary>
+    /// <typeparam name="TResult">the type of task result</typeparam>
+    /// <returns><see cref="Task"/>TResult</returns>
+    public async static Task<TResult> WithTimeout<TResult>(this Task<TResult> task, TimeSpan timeout)
+    {
+        Task winner = await (Task.WhenAny(task, Task.Delay(timeout)));
+
+        if (winner != task)
+            throw new TimeoutException();
+
+        return await task;   // Unwrap result/re-throw
+    }
+
+    /// <summary>
+    /// Task extension to add a timeout.
+    /// </summary>
+    /// <returns>The task with timeout.</returns>
+    /// <param name="task">Task.</param>
+    /// <param name="timeoutInMilliseconds">Timeout duration in Milliseconds.</param>
+    /// <typeparam name="T">The 1st type parameter.</typeparam>
+    public async static Task<T> WithTimeout<T>(this Task<T> task, int timeoutInMilliseconds)
+    {
+        var retTask = await Task.WhenAny(task, Task.Delay(timeoutInMilliseconds))
+            .ConfigureAwait(false);
+
+#pragma warning disable CS8603 // Possible null reference return.
+        return retTask is Task<T> ? task.Result : default;
+#pragma warning restore CS8603 // Possible null reference return.
+    }
+
+    /// <summary>
+    /// Chainable task helper.
+    /// var result = await SomeLongAsyncFunction().WithCancellation(cts.Token);
+    /// </summary>
+    /// <typeparam name="TResult">the type of task result</typeparam>
+    /// <returns><see cref="Task"/>TResult</returns>
+    public static Task<TResult> WithCancellation<TResult>(this Task<TResult> task, CancellationToken cancelToken)
+    {
+        var tcs = new TaskCompletionSource<TResult>();
+        var reg = cancelToken.Register(() => tcs.TrySetCanceled());
+        task.ContinueWith(ant =>
+        {
+            reg.Dispose();
+            if (ant.IsCanceled)
+                tcs.TrySetCanceled();
+            else if (ant.IsFaulted)
+                tcs.TrySetException(ant.Exception?.InnerException ?? new Exception("Antecedent faulted."));
+            else
+                tcs.TrySetResult(ant.Result);
+        });
+        return tcs.Task;  // Return the TaskCompletionSource result
+    }
+
+    public static Task<T> WithAllExceptions<T>(this Task<T> task)
+    {
+        TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
+
+        task.ContinueWith(ignored =>
+        {
+            switch (task.Status)
+            {
+                case TaskStatus.Canceled:
+                    Debug.WriteLine($"[TaskStatus.Canceled]");
+                    tcs.SetCanceled();
+                    break;
+                case TaskStatus.RanToCompletion:
+                    tcs.SetResult(task.Result);
+                    //Debug.WriteLine($"[TaskStatus.RanToCompletion({task.Result})]");
+                    break;
+                case TaskStatus.Faulted:
+                    // SetException will automatically wrap the original AggregateException
+                    // in another one. The new wrapper will be removed in TaskAwaiter, leaving
+                    // the original intact.
+                    Debug.WriteLine($"[TaskStatus.Faulted: {task.Exception?.Message}]");
+                    tcs.SetException(task.Exception ?? new Exception("Task faulted."));
+                    break;
+                default:
+                    Debug.WriteLine($"[TaskStatus: Continuation called illegally.]");
+                    tcs.SetException(new InvalidOperationException("Continuation called illegally."));
+                    break;
+            }
+        });
+
+        return tcs.Task;
+    }
+
+#pragma warning disable RECS0165 // Asynchronous methods should return a Task instead of void
+    /// <summary>
+    /// Attempts to await on the task and catches exception
+    /// </summary>
+    /// <param name="task">Task to execute</param>
+    /// <param name="onException">What to do when method has an exception</param>
+    /// <param name="continueOnCapturedContext">If the context should be captured.</param>
+    public static async void SafeFireAndForget(this Task task, Action<Exception>? onException = null, bool continueOnCapturedContext = false)
+#pragma warning restore RECS0165 // Asynchronous methods should return a Task instead of void
+    {
+        try
+        {
+            await task.ConfigureAwait(continueOnCapturedContext);
+        }
+        catch (Exception ex) when (onException != null)
+        {
+            onException.Invoke(ex);
+        }
+        catch (Exception ex) when (onException == null)
+        {
+            Debug.WriteLine($"SafeFireAndForget: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Task.Factory.StartNew (() => { throw null; }).IgnoreExceptions();
+    /// </summary>
+    public static void IgnoreExceptions(this Task task)
+    {
+        task.ContinueWith(t =>
+        {
+            var ignore = t.Exception;
+            var inners = ignore?.Flatten()?.InnerExceptions;
+            if (inners != null)
+            {
+                foreach (Exception ex in inners)
+                    Debug.WriteLine($"[{ex.GetType()}]: {ex.Message}");
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
+    }
+
+    public static bool IgnoreExceptions(Action action, Type? exceptionToIgnore = null, [CallerMemberName] string? caller = null)
+    {
+        try
+        {
+            action();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (exceptionToIgnore is null || exceptionToIgnore.IsAssignableFrom(ex.GetType()))
+            {
+                Console.WriteLine($"{caller ?? "N/A"}: {ex.Message}");
+                return false;
+            }
+            else
+                throw;
+        }
+    }
+
+
+    /// <summary>
+    /// Gets the result of a <see cref="Task"/> if available, or <see langword="null"/> otherwise.
+    /// </summary>
+    /// <param name="task">The input <see cref="Task"/> instance to get the result for.</param>
+    /// <returns>The result of <paramref name="task"/> if completed successfully, or <see langword="default"/> otherwise.</returns>
+    /// <remarks>
+    /// This method does not block if <paramref name="task"/> has not completed yet. Furthermore, it is not generic
+    /// and uses reflection to access the <see cref="Task{TResult}.Result"/> property and boxes the result if it's
+    /// a value type, which adds overhead. It should only be used when using generics is not possible.
+    /// </remarks>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static object? GetResultOrDefault(this Task task)
+    {
+        // Check if the instance is a completed Task
+        if (
+#if NETSTANDARD2_1
+            task.IsCompletedSuccessfully
+#else
+            task.Status == TaskStatus.RanToCompletion
+#endif
+        )
+        {
+            // We need an explicit check to ensure the input task is not the cached
+            // Task.CompletedTask instance, because that can internally be stored as
+            // a Task<T> for some given T (e.g. on dotNET 5 it's VoidTaskResult), which
+            // would cause the following code to return that result instead of null.
+            if (task != Task.CompletedTask)
+            {
+                // Try to get the Task<T>.Result property. This method would've
+                // been called anyway after the type checks, but using that to
+                // validate the input type saves some additional reflection calls.
+                // Furthermore, doing this also makes the method flexible enough to
+                // cases whether the input Task<T> is actually an instance of some
+                // runtime-specific type that inherits from Task<T>.
+                PropertyInfo? propertyInfo =
+#if NETSTANDARD1_4
+                    task.GetType().GetRuntimeProperty(nameof(Task<object>.Result));
+#else
+                    task.GetType().GetProperty(nameof(Task<object>.Result));
+#endif
+
+                // Return the result, if possible
+                return propertyInfo?.GetValue(task);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the result of a <see cref="Task{TResult}"/> if available, or <see langword="default"/> otherwise.
+    /// </summary>
+    /// <typeparam name="T">The type of <see cref="Task{TResult}"/> to get the result for.</typeparam>
+    /// <param name="task">The input <see cref="Task{TResult}"/> instance to get the result for.</param>
+    /// <returns>The result of <paramref name="task"/> if completed successfully, or <see langword="default"/> otherwise.</returns>
+    /// <remarks>This method does not block if <paramref name="task"/> has not completed yet.</remarks>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T? GetResultOrDefault<T>(this Task<T?> task)
+    {
+#if NETSTANDARD2_1
+        return task.IsCompletedSuccessfully ? task.Result : default;
+#else
+        return task.Status == TaskStatus.RanToCompletion ? task.Result : default;
+#endif
+    }
 
     #endregion
 
@@ -2341,6 +2736,119 @@ public static class Extensions
     public static Windows.UI.Color LighterBy(this Windows.UI.Color color, float amount)
     {
         return color.Lerp(Colors.White, amount);
+    }
+
+    /// <summary>
+    /// Reverses a given <see cref="Microsoft.UI.Xaml.Media.SolidColorBrush"/> to a contrasting black or white brush.
+    /// </summary>
+    public static Microsoft.UI.Xaml.Media.SolidColorBrush GetContrastingBlackOrWhiteBrush(Microsoft.UI.Xaml.Media.SolidColorBrush input)
+    {
+        if (input == null)
+            throw new ArgumentNullException(nameof(input), "Input brush cannot be null.");
+
+        // Use standard luminance formula for perceptual brightness
+        double luminance = (0.299 * input.Color.R + 0.587 * input.Color.G + 0.114 * input.Color.B) / 255;
+
+        // Flip: dark → light, light → dark
+        return luminance > 0.5 ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Black) : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+    }
+
+    /// <summary>
+    /// Attempts to create a contrasting <see cref="Microsoft.UI.Xaml.Media.SolidColorBrush"/> based on the input color.
+    /// </summary>
+    public static SolidColorBrush CreateContrastingBrush(this SolidColorBrush input, double contrastFactor = 0.4)
+    {
+        if (input == null)
+            throw new ArgumentNullException(nameof(input), "Input brush cannot be null.");
+
+        // Convert the color to HSL for use in contrast calculation
+        RgbToHsl(input.Color, out double h, out double s, out double l);
+
+        // Adjust contrast by pushing lightness away from mid-point (0.5)
+        if (l >= 0.5)
+            l = Math.Max(0.0, l - contrastFactor);
+        else
+            l = Math.Min(1.0, l + contrastFactor);
+
+        var contrastedColor = HslToRgb(h, s, l);
+
+        return new SolidColorBrush(contrastedColor);
+    }
+
+    /// <summary>
+    /// Converts RGB (red, green, blue) to HSL (hue, saturation, and lightness).
+    /// HSL is also known as HSB (hue, saturation, and brightness) or HSV (hue, saturation, and value).
+    /// </summary>
+    /// <remarks>
+    /// HSL and HSV are the two most common cylindrical-coordinate representations of points in an RGB color model.
+    /// Neither additive nor subtractive color models define color relationships the same way the human eye does.
+    /// https://en.wikipedia.org/wiki/HSL_and_HSV
+    /// </remarks>
+    public static void RgbToHsl(Windows.UI.Color color, out double h, out double s, out double l)
+    {
+        double r = color.R / 255.0;
+        double g = color.G / 255.0;
+        double b = color.B / 255.0;
+
+        double max = Math.Max(r, Math.Max(g, b));
+        double min = Math.Min(r, Math.Min(g, b));
+
+        h = s = l = (max + min) / 2.0;
+
+        if (max == min)
+            h = s = 0; // achromatic
+        else
+        {
+            double d = max - min;
+            s = l > 0.5 ? d / (2.0 - max - min) : d / (max + min);
+            
+            if (max == r) 
+                h = (g - b) / d + (g < b ? 6 : 0);
+            else if (max == g) 
+                h = (b - r) / d + 2;
+            else if (max == b) 
+                h = (r - g) / d + 4;
+
+            h /= 6;
+        }
+    }
+
+    /// <summary>
+    /// Converts HSL (hue, saturation, and lightness) to RGB (red, green, blue).
+    /// HSL is also known as HSB (hue, saturation, and brightness) or HSV (hue, saturation, and value).
+    /// </summary>
+    /// <remarks>
+    /// HSL and HSV are the two most common cylindrical-coordinate representations of points in an RGB color model.
+    /// Neither additive nor subtractive color models define color relationships the same way the human eye does.
+    /// https://en.wikipedia.org/wiki/HSL_and_HSV
+    /// </remarks>
+    public static Windows.UI.Color HslToRgb(double h, double s, double l)
+    {
+        double r, g, b;
+
+        if (s == 0)
+            r = g = b = l; // achromatic
+        else
+        {
+            Func<double, double, double, double> hue2rgb = (p, q, t) =>
+            {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1.0 / 6) return p + (q - p) * 6 * t;
+                if (t < 1.0 / 2) return q;
+                if (t < 2.0 / 3) return p + (q - p) * (2.0 / 3 - t) * 6;
+                return p;
+            };
+
+            double q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            double p = 2 * l - q;
+
+            r = hue2rgb(p, q, h + 1.0 / 3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1.0 / 3);
+        }
+
+        return Windows.UI.Color.FromArgb(255, (byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
     }
 
     /// <summary>
@@ -3094,6 +3602,33 @@ public static class Extensions
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Walks through all <see cref="Microsoft.UI.Xaml.Controls.MenuFlyoutItem"/> controls within a <see cref="Microsoft.UI.Xaml.Controls.MenuFlyout"/>.
+    /// </summary>
+    /// <param name="menuFlyout">The <see cref="Microsoft.UI.Xaml.Controls.MenuFlyout"/> to traverse</param>
+    /// <returns>An IEnumerable of <see cref="Microsoft.UI.Xaml.Controls.MenuFlyoutItem"/> controls found within the <see cref="Microsoft.UI.Xaml.Controls.MenuFlyout"/></returns>
+    public static IEnumerable<MenuFlyoutItem> GetFlyoutItems(this MenuFlyout? menuFlyout)
+    {
+        if (menuFlyout == null)
+            yield break;
+
+        foreach (var item in menuFlyout.Items)
+        {
+            if (item is MenuFlyoutItem menuItem)
+            {
+                yield return menuItem;
+            }
+            else if (item is MenuFlyoutSubItem subItem)
+            {
+                // Recursively traverse sub-items (not tested)
+                foreach (var subMenuItem in GetFlyoutItems(subItem.Items.OfType<MenuFlyoutItem>()?.FirstOrDefault()?.Parent as MenuFlyout))
+                {
+                    yield return subMenuItem;
+                }
+            }
+        }
     }
 
     /// <summary>

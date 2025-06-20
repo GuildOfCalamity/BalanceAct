@@ -1,111 +1,111 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<OutputType>WinExe</OutputType>
-	<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-	<RootNamespace>BalanceAct</RootNamespace>
-	<ApplicationManifest>app.manifest</ApplicationManifest>
-	<Platforms>x86;x64;ARM64</Platforms>
-	<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-	<PublishProfile>win-$(Platform).pubxml</PublishProfile>
-	<UseWinUI>true</UseWinUI>
-	<EnableMsixTooling>true</EnableMsixTooling>
-	<Nullable>enable</Nullable>
-	<ApplicationIcon>Assets\StoreLogo.ico</ApplicationIcon>
-	<!-- 
-		[for SDK v1.5 specifically]
-		https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/stable-channel#other-new-features-from-across-the-winappsdk
-		<PublishSingleFile>true</PublishSingleFile>
-		<SelfContained>true</SelfContained>
-		https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/stable-channel#known-issues
-		<ShouldComputeInputPris>true</ShouldComputeInputPris>
-	-->
-	  <LangVersion>latest</LangVersion>
-	  <EnableMsixTooling>true</EnableMsixTooling>
-	  <Version>1.0.0.2</Version>
-	  <FileVersion>1.0.0.2</FileVersion>
-	  <AssemblyVersion>1.0.0.2</AssemblyVersion>
-	  <PackageId>BalanceAct2024</PackageId>
-	  <Authors>The Guild</Authors>
-	<!-- 
-	  WindowsPackageType defines whether your app is packaged (MSIX) or unpackaged (None) 
-	-->
-	  <WindowsPackageType>None</WindowsPackageType>
-	  <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-	<!-- 
-	  Get rid of all the unnecessary pathing that MS adds and 
-	  makes the output match the traditional .NET Framework builds.
-	-->
-	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-	<!-- 
-		 https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#generatedocumentationfile
-	-->
-	<!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
-	<!-- 
-		 https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#optimizeimplicitlytriggeredbuild 
-	-->
-	  <OptimizeImplicitlyTriggeredBuild>true</OptimizeImplicitlyTriggeredBuild>
-	<!-- 
-		 If true, this will create a subfolder named "refs" which contains all of the possible framework dependencies. The default value is false.
-		 https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#preservecompilationcontext
-	-->
-	  <PreserveCompilationContext>false</PreserveCompilationContext>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>BalanceAct</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>Assets\StoreLogo.ico</ApplicationIcon>
+    <!-- 
+        [for SDK v1.5 specifically]
+        https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/stable-channel#other-new-features-from-across-the-winappsdk
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/stable-channel#known-issues
+        <ShouldComputeInputPris>true</ShouldComputeInputPris>
+    -->
+      <LangVersion>latest</LangVersion>
+      <EnableMsixTooling>true</EnableMsixTooling>
+      <Version>1.0.0.3</Version>
+      <FileVersion>1.0.0.3</FileVersion>
+      <AssemblyVersion>1.0.0.3</AssemblyVersion>
+      <PackageId>BalanceAct2024</PackageId>
+      <Authors>The Guild</Authors>
+    <!-- 
+      WindowsPackageType defines whether your app is packaged (MSIX) or unpackaged (None) 
+    -->
+      <WindowsPackageType>None</WindowsPackageType>
+      <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- 
+      Get rid of all the unnecessary pathing that MS adds and 
+      makes the output match the traditional .NET Framework builds.
+    -->
+      <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+      <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!-- 
+         https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#generatedocumentationfile
+    -->
+    <!-- <GenerateDocumentationFile>true</GenerateDocumentationFile> -->
+    <!-- 
+         https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#optimizeimplicitlytriggeredbuild 
+    -->
+      <OptimizeImplicitlyTriggeredBuild>true</OptimizeImplicitlyTriggeredBuild>
+    <!-- 
+         If true, this will create a subfolder named "refs" which contains all of the possible framework dependencies. The default value is false.
+         https://learn.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props#preservecompilationcontext
+    -->
+      <PreserveCompilationContext>false</PreserveCompilationContext>
   </PropertyGroup>
 
   <!-- 
-	 Define "IS_UNPACKAGED" constant if the app is an unpackaged app. 
+     Define "IS_UNPACKAGED" constant if the app is an unpackaged app. 
   -->
   <PropertyGroup Condition="'$(WindowsPackageType)' == 'None'">
-	<DefineConstants>IS_UNPACKAGED</DefineConstants>
+    <DefineConstants>IS_UNPACKAGED</DefineConstants>
   </PropertyGroup>
-	
+    
   <ItemGroup>
-	<None Remove="Assets\Balance.png" />
-	<None Remove="Assets\Fonts\Aptos.ttf" />
-	<None Remove="Assets\Fonts\OdinRounded.ttf" />
-	<None Remove="Assets\Fonts\TaurusMonoOutline.ttf" />
-	<None Remove="Assets\Measurement.png" />
-	<None Remove="Assets\Spinner.png" />
-	<None Remove="Assets\StoreLogo.ico" />
-	<None Remove="Assets\Warning.png" />
-	<None Remove="Controls\AnimatedCirclesControl.xaml" />
-	<None Remove="Controls\CompositionShadow.xaml" />
-	<None Remove="Controls\PlotControl.xaml" />
-	<None Remove="Controls\SeparatorLine.xaml" />
-	<None Remove="MainPage.xaml" />
-	<None Remove="Styles\FontSizes.xaml" />
+    <None Remove="Assets\Balance.png" />
+    <None Remove="Assets\Fonts\Aptos.ttf" />
+    <None Remove="Assets\Fonts\OdinRounded.ttf" />
+    <None Remove="Assets\Fonts\TaurusMonoOutline.ttf" />
+    <None Remove="Assets\Measurement.png" />
+    <None Remove="Assets\Spinner.png" />
+    <None Remove="Assets\StoreLogo.ico" />
+    <None Remove="Assets\Warning.png" />
+    <None Remove="Controls\AnimatedCirclesControl.xaml" />
+    <None Remove="Controls\CompositionShadow.xaml" />
+    <None Remove="Controls\PlotControl.xaml" />
+    <None Remove="Controls\SeparatorLine.xaml" />
+    <None Remove="MainPage.xaml" />
+    <None Remove="Styles\FontSizes.xaml" />
   </ItemGroup>
 
   <ItemGroup>
-	<Content Include="Assets\SplashScreen.scale-200.png" />
-	<Content Include="Assets\LockScreenLogo.scale-200.png" />
-	<Content Include="Assets\Square150x150Logo.scale-200.png" />
-	<Content Include="Assets\Square44x44Logo.scale-200.png" />
-	<Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-	<Content Include="Assets\StoreLogo.png" />
-	<Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Assets\SplashScreen.scale-200.png" />
+    <Content Include="Assets\LockScreenLogo.scale-200.png" />
+    <Content Include="Assets\Square150x150Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-	<PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
-	<PackageReference Include="CommunityToolkit.WinUI.UI.Behaviors" Version="7.1.2" />
-	<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-	<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250228001" />
-	<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-	<PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
-	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-	<Manifest Include="$(ApplicationManifest)" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
+    <PackageReference Include="CommunityToolkit.WinUI.UI.Behaviors" Version="7.1.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250228001" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
   <!-- 
-	Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
-	Tools extension to be activated for this project even if the Windows App SDK Nuget
-	package has not yet been restored.
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-	<ProjectCapability Include="Msix" />
+    <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="Assets\Bag0.png">
@@ -243,37 +243,37 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-	<Page Update="Controls\CompositionShadow.xaml">
-	  <Generator>MSBuild:Compile</Generator>
-	</Page>
+    <Page Update="Controls\CompositionShadow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
-	<Page Update="Controls\SeparatorLine.xaml">
-	  <Generator>MSBuild:Compile</Generator>
-	</Page>
+    <Page Update="Controls\SeparatorLine.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
-	<Page Update="MainPage.xaml">
-	  <Generator>MSBuild:Compile</Generator>
-	</Page>
+    <Page Update="MainPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
-	<Page Update="Styles\FontSizes.xaml">
-	  <Generator>MSBuild:Compile</Generator>
-	</Page>
+    <Page Update="Styles\FontSizes.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <!-- 
-	Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
-	Explorer "Package and Publish" context menu entry to be enabled for this project even if 
-	the Windows App SDK Nuget package has not yet been restored.
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+    the Windows App SDK Nuget package has not yet been restored.
   -->
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-	<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
 
   <!-- 
-	  This target will remove the language folders inside the build output except the specified one. 
+      This target will remove the language folders inside the build output except the specified one. 
   -->
   <Target Name="RemoveFoldersWithMuiFiles" Condition="'$(WindowsPackageType)' == 'None'" AfterTargets="Build">
         <ItemGroup>

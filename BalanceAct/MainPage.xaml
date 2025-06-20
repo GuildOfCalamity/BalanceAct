@@ -1286,7 +1286,7 @@
                                 Grid.ColumnSpan="3"
                                 VerticalAlignment="Top" />
 
-                            <TextBox
+                            <!--<TextBox
                                 x:Name="tbFilePath"
                                 Grid.Row="2"
                                 Grid.Column="0"
@@ -1308,7 +1308,31 @@
                                 <interact:Interaction.Behaviors>
                                     <behave:AutoFocusBehavior />
                                 </interact:Interaction.Behaviors>
-                            </TextBox>
+                            </TextBox>-->
+
+                            <AutoSuggestBox
+                                x:Name="asbFilePath"
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Width="300"
+                                MinWidth="320"
+                                MaxWidth="320"
+                                FontFamily="{ThemeResource SecondaryFont}"
+                                PlaceholderText="{x:Bind local:Functions.DefaultDownloadPath(), Mode=OneWay}">
+                                <AutoSuggestBox.Header>
+                                    <TextBlock
+                                        Margin="2,0,0,-5"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource GradientHeaderBrush}"
+                                        Text="Enter file path and click import" />
+                                </AutoSuggestBox.Header>
+                                <interact:Interaction.Behaviors>
+                                    <behave:AutoFocusBehavior />
+                                </interact:Interaction.Behaviors>
+                            </AutoSuggestBox>
+
 
                             <StackPanel
                                 Grid.Row="3"

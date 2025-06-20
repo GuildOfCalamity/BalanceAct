@@ -40,6 +40,10 @@
 
 ![Home-made drop shadow](./ScreenShot4.png)
 
+## 📝 v1.0.0.3 - June 2025
+* Added OFX (Open Financial Exchange) file support.
+* Added auto-suggest during file import.
+
 ## 📝 v1.0.0.2 - March 2025
 * General enhancement pass with clean up.
 * Updated core frameworks.

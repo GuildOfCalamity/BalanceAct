@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -76,6 +77,9 @@ public sealed partial class MainPage : Page
             //    Support.BloomHelper.RemoveBloom((UIElement)s, Support.BloomHelper.FindParentPanel((UIElement)s), null);
             //};
         }
+
+        // Set up the AutoSuggestBox to auto‑complete file names.
+        SetupFileAutoSuggest(asbFilePath, Functions.DefaultDownloadPath());
     }
 
     void ItemListView_RightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
@@ -315,6 +319,78 @@ public sealed partial class MainPage : Page
         }
     }
     #endregion
+
+
+    /// <summary>
+    /// Sets up an AutoSuggestBox to display file names (from the specified directory)
+    /// that start with the text entered by the user.
+    /// </summary>
+    /// <param name="autoSuggestBox">The AutoSuggestBox control to configure.</param>
+    /// <param name="defaultDirectory">The base folder from which to retrieve file names.</param>
+    void SetupFileAutoSuggest(AutoSuggestBox autoSuggestBox, string defaultDirectory)
+    {
+        if (!Directory.Exists(defaultDirectory))
+        {
+            Debug.WriteLine($"[WARNING] The folder '{defaultDirectory}' does not exist, skipping control setup.");
+            return;
+        }
+
+        autoSuggestBox.TextChanged += (sender, args) =>
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                string input = autoSuggestBox.Text?.Trim() ?? string.Empty;
+                string directoryPath = defaultDirectory;
+                string filePrefix = input;
+
+                // If the input is an absolute path, extract directory and file portion.
+                if (Path.IsPathRooted(input))
+                {
+                    string potentialDir = Path.GetDirectoryName(input) ?? string.Empty;
+                    string potentialFilePrefix = Path.GetFileName(input) ?? string.Empty;
+
+                    if (!string.IsNullOrEmpty(potentialDir) && Directory.Exists(potentialDir))
+                    {
+                        directoryPath = potentialDir;
+                        filePrefix = potentialFilePrefix;
+                    }
+                    else
+                    {
+                        // If the directory part of the input isn't valid, fallback to
+                        // the default directory and use entire input as the filter.
+                        directoryPath = defaultDirectory;
+                        filePrefix = input;
+                    }
+                }
+
+                try
+                {
+                    // Use a wildcard pattern to filter file names starting with filePrefix.
+                    var fileSuggestions = Directory.GetFiles(directoryPath, filePrefix + "*").Select(Path.GetFileName).ToList();
+                    autoSuggestBox.ItemsSource = fileSuggestions;
+                }
+                catch (Exception)
+                {
+                    // In case of an exception (for example, permission issues), clear the list.
+                    autoSuggestBox.ItemsSource = null;
+                }
+            }
+        };
+
+
+        // Optionally, you can handle the QuerySubmitted event to act when the user makes a selection:
+        autoSuggestBox.QuerySubmitted += (sender, args) =>
+        {
+            // If the user selects a suggestion, args.ChosenSuggestion will be non-null.
+            // Otherwise, you can capture the text from autoSuggestBox.Text.
+            string selected = args.ChosenSuggestion as string ?? autoSuggestBox.Text;
+
+            // For example, display or process the selected file name.
+            System.Diagnostics.Debug.WriteLine($"[INFO] User selected: {selected}");
+
+            ViewModel?.ImportItemCommand.Execute((AutoSuggestBox)sender);
+        };
+    }
 
 }
 
