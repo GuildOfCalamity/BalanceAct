@@ -33,6 +33,89 @@ namespace BalanceAct;
 
 public static class Extensions
 {
+    #region [Similarity/Duplicate Helpers]
+    /// <summary>
+    /// Computes a similarity measure between two strings using a combination of:
+    /// 1. A normalization step that splits the strings into words, lower-cases
+    ///    and sorts them so that word swaps are discounted.
+    /// 2. A classic (restricted) Damerau–Levenshtein algorithm on the normalized strings.
+    /// Thus, the phrases "we went to the house" and "house to the we went" yield a distance of 0.
+    /// </summary>
+    /// <param name="s1">The first string to compare.</param>
+    /// <param name="s2">The second string to compare.</param>
+    /// <returns>An integer distance (0 means identical after normalization).</returns>
+    public static int GetSimilarity(string s1, string s2)
+    {
+        if (string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2))
+        {
+            //throw new ArgumentNullException(nameof(s1));
+            Debug.WriteLine($"[WARNING] s1 or s2 is null or empty, returning zero.");
+            return 0;
+        }
+
+        // Normalize by tokenizing (split on whitespace), trimming, lower-casing, then sorting.
+        string Normalize(string s)
+        {
+            var tokens = s.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)
+                          .Select(word => word.Trim().ToLowerInvariant())
+                          .OrderBy(word => word, StringComparer.Ordinal);
+            return string.Join(" ", tokens);
+        }
+
+        string norm1 = Normalize(s1);
+        string norm2 = Normalize(s2);
+
+        // Compute the standard Damerau-Levenshtein distance on the normalized strings.
+        return ClassicDamerauLevenshtein(norm1, norm2);
+    }
+
+    /// <summary>
+    /// Implements the restricted Damerau–Levenshtein distance algorithm on two strings.
+    /// (Also known as the Optimal String Alignment distance.)
+    /// This version allows character insertions, deletions, substitutions, and adjacent transpositions.
+    /// </summary>
+    /// <param name="first">The first string.</param>
+    /// <param name="second">The second string.</param>
+    /// <returns>The edit distance between s and t.</returns>
+    public static int ClassicDamerauLevenshtein(string first, string second)
+    {
+        int n = first.Length;
+        int m = second.Length;
+
+        // Create a matrix of size (n+1) x (m+1)
+        int[,] d = new int[n + 1, m + 1];
+
+        for (int i = 0; i <= n; i++)
+            d[i, 0] = i;
+
+        for (int j = 0; j <= m; j++)
+            d[0, j] = j;
+
+        for (int i = 1; i <= n; i++)
+        {
+            for (int j = 1; j <= m; j++)
+            {
+                int cost = (first[i - 1] == second[j - 1]) ? 0 : 1;
+
+                // Compute deletion, insertion, and substitution.
+                d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1,       // deletion
+                                            d[i, j - 1] + 1),      // insertion
+                                            d[i - 1, j - 1] + cost // substitution
+                );
+
+                // If possible, check for an adjacent transposition.
+                if (i > 1 && j > 1 &&
+                    first[i - 1] == second[j - 2] &&
+                    first[i - 2] == second[j - 1])
+                {
+                    d[i, j] = Math.Min(d[i, j], d[i - 2, j - 2] + cost);
+                }
+            }
+        }
+
+        return d[n, m];
+    }
+
     /// <summary>
     ///   Determines how similar <paramref name="s1"/> is to <paramref name="s2"/> by computing the Jaccard Similarity.
     /// </summary>
@@ -120,6 +203,7 @@ public static class Extensions
         Debug.WriteLine($"[INFO] Damerau-Levenshtein score: {dp[len1, len2]}");
         return dp[len1, len2];
     }
+    #endregion
 
     /// <summary>
     /// Determine if the application has been launched as an administrator.
@@ -171,7 +255,7 @@ public static class Extensions
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"GetWindowsVersionUsingAnalyticsInfo: {ex.Message}", $"{nameof(Extensions)}");
+            Debug.WriteLine($"[ERROR] GetWindowsVersionUsingAnalyticsInfo: {ex.Message}", $"{nameof(Extensions)}");
             return new Version(); // 0.0
         }
     }
@@ -189,6 +273,72 @@ public static class Extensions
         return ctrlKey is Windows.UI.Core.CoreVirtualKeyStates.Down or (Windows.UI.Core.CoreVirtualKeyStates.Down | Windows.UI.Core.CoreVirtualKeyStates.Locked);
     }
     #endregion
+
+    /// <summary>
+    /// Scans all public instance string properties of the provided object and returns a list of names for those properties that are null or empty.
+    /// </summary>
+    /// <param name="obj">The class object to scan.</param>
+    /// <param name="valueToApplyIfEmpty">The value to apply if the property is empty. If no value is supplied this step will be skipped.</param>
+    /// <returns>A list of property names whose string values are null or empty.</returns>
+    public static List<string> GetEmptyStringProperties(object obj, string valueToApplyIfEmpty = "")
+    {
+        List<string> emptyProperties = new List<string>();
+
+        if (obj == null)
+            return emptyProperties;
+
+        // Get all public instance properties from the object's type.
+        PropertyInfo[] properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        foreach (PropertyInfo property in properties)
+        {
+            // We only care about properties of type string that have a getter.
+            if (property.PropertyType == typeof(string) && property.CanRead)
+            {
+                string? value = property.GetValue(obj) as string;
+                if (string.IsNullOrEmpty(value))
+                {
+                    if (!string.IsNullOrEmpty(valueToApplyIfEmpty))
+                        property.SetValue(obj, valueToApplyIfEmpty);
+
+                    emptyProperties.Add(property.Name);
+                }
+            }
+        }
+
+        return emptyProperties;
+    }
+
+    /// <summary>
+    /// Outputs all standard <see cref="System.Globalization.CultureInfo"/> properties to the debug console.
+    /// </summary>
+    public static void DumpCurrentCultureInfo()
+    {
+        //System.Globalization.CultureInfo ci = Thread.CurrentThread.CurrentCulture;
+        System.Globalization.CultureInfo ci = System.Globalization.CultureInfo.CurrentCulture;
+        Debug.WriteLine($"CultureInfo.Name................: {ci.Name}");
+        Debug.WriteLine($"CultureInfo.DisplayName.........: {ci.DisplayName}");
+        Debug.WriteLine($"CultureInfo.EnglishName.........: {ci.EnglishName}");
+        Debug.WriteLine($"CultureInfo.NativeName..........: {ci.NativeName}");
+        Debug.WriteLine($"CultureInfo.CultureID...........: {ci.LCID}");
+        Debug.WriteLine($"CultureInfo.TwoLetter...........: {ci.TwoLetterISOLanguageName}");
+        Debug.WriteLine($"CultureInfo.ThreeLetter.........: {ci.ThreeLetterISOLanguageName}");
+        Debug.WriteLine($"CultureInfo.ThreeLetterWin......: {ci.ThreeLetterWindowsLanguageName}");
+        Debug.WriteLine($"CultureInfo.NumberFormat........: {ci.NumberFormat.CurrencySymbol} {ci.NumberFormat.NumberDecimalSeparator} {ci.NumberFormat.NumberGroupSeparator}");
+        Debug.WriteLine($"CultureInfo.ShortDateTimeFormat.: {ci.DateTimeFormat.ShortDatePattern}");
+        Debug.WriteLine($"CultureInfo.LongDateTimeFormat..: {ci.DateTimeFormat.LongDatePattern}");
+
+        System.Globalization.TextInfo ti = ci.TextInfo;
+        Debug.WriteLine($"TextInfo.CultureName............: {ti.CultureName}");    // ⇨ en-US
+        Debug.WriteLine($"TextInfo.ANSICodePage...........: {ti.ANSICodePage}");   // ⇨ 1252
+        Debug.WriteLine($"TextInfo.EBCIDCodePage..........: {ti.EBCDICCodePage}"); // ⇨ 37
+        Debug.WriteLine($"TextInfo.OEMCodePage............: {ti.OEMCodePage}");    // ⇨ 437
+        Debug.WriteLine($"TextInfo.ListSeparator..........: {ti.ListSeparator}");  // ⇨ ,
+
+        // Get info on all the installed cultures.
+        //System.Globalization.CultureInfo[] ciArr = System.Globalization.CultureInfo.GetCultures(CultureTypes.AllCultures);
+        //foreach (var c in ciArr)
+        //    Debug.WriteLine($"{c.Name} ({c.EnglishName})");
+    }
 
     /// <summary>
     /// Copies one <see cref="List{T}"/> to another <see cref="List{T}"/> by value (deep copy).
@@ -786,6 +936,7 @@ public static class Extensions
     public static string ToReadableTime(this TimeSpan value)
     {
         double delta = value.TotalSeconds;
+        if (delta < 1) { return "less than one second"; }
         if (delta < 60) { return value.Seconds == 1 ? "one second" : value.Seconds + " seconds"; }
         if (delta < 120) { return "a minute"; }
         if (delta < 3000) { return value.Minutes + " minutes"; } // 50 * 60
@@ -818,6 +969,7 @@ public static class Extensions
         if (delta < 0) // in the future
         {
             delta = Math.Abs(delta);
+            if (delta < 1) { return "in less than one second"; }
             if (delta < 60) { return Math.Abs(ts.Seconds) == 1 ? "in one second" : "in " + Math.Abs(ts.Seconds) + " seconds"; }
             if (delta < 120) { return "in a minute"; }
             if (delta < 3000) { return "in " + Math.Abs(ts.Minutes) + " minutes"; } // 50 * 60
@@ -835,6 +987,7 @@ public static class Extensions
         }
         else // in the past
         {
+            if (delta < 1) { return "less than one second ago"; }
             if (delta < 60) { return ts.Seconds == 1 ? "one second ago" : ts.Seconds + " seconds ago"; }
             if (delta < 120) { return "a minute ago"; }
             if (delta < 3000) { return ts.Minutes + " minutes ago"; } // 50 * 60

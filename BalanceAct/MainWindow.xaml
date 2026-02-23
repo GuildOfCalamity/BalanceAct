@@ -45,7 +45,12 @@
                 VerticalAlignment="Center"
                 Opacity="0.08"
                 Source="ms-appx:///Assets/Balance2.png" />
-            <local:MainPage />
+            <local:MainPage Visibility="Visible" />
+            <!--<local:ChartPage Visibility="Visible" />-->
+            <!--<ContentControl
+                MinWidth="600"
+                MinHeight="400"
+                Content="{Binding CurrentContent, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />-->
         </Grid>
     </Grid>
 

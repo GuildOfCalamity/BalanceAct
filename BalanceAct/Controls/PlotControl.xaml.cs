@@ -343,7 +343,7 @@ public sealed partial class PlotControl : UserControl
         List<double> amounts = new();
         for (int i = 0; i < dataPoints.Count; i++)
         {
-            if (TryParseDollarAmount(dataPoints[i].Amount, out double amount))
+            if (TryParseDollarAmount(dataPoints[i]?.Amount, out double amount))
                 amounts.Add(amount);
             else
                 amounts.Add(0d); // keep indexing in sync
@@ -871,7 +871,7 @@ public sealed partial class PlotControl : UserControl
     }
     #endregion
 
-    bool TryParseDollarAmount(string amount, out double value)
+    bool TryParseDollarAmount(string? amount, out double value)
     {
         if (string.IsNullOrEmpty(amount))
         {

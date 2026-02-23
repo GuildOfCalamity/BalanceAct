@@ -41,9 +41,11 @@ public sealed partial class MainPage : Page
         //foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
     }
 
+    #region [Events]
     void MainPageLoading(FrameworkElement sender, object args)
     {
         Logger?.WriteLine($"The MainPage is loading.", LogLevel.Debug);
+        Logger?.RunPurgeCycle();
         chosenDate.MinDate = new DateTimeOffset(DateTime.Now.AddYears(-10));
         chosenDate.MaxDate = new DateTimeOffset(DateTime.Now.AddYears(1));
         url.Text = "More WinUI3 examples at my github https://github.com/GuildOfCalamity?tab=repositories";
@@ -107,9 +109,9 @@ public sealed partial class MainPage : Page
     void ItemListView_Loaded(object sender, RoutedEventArgs e)
     {
         return;
+        #pragma warning disable CS0162 // Unreachable code detected
         #region [For testing, can be removed]
         var dlv = (ListView)sender;
-
         // Selecting the last item.
         var items = dlv.ItemsSource as IEnumerable<ExpenseItem>;
         var item = items?.LastOrDefault();
@@ -119,7 +121,6 @@ public sealed partial class MainPage : Page
             dlv.ScrollIntoView(item);
             ((ListViewItem)dlv.ContainerFromItem(item))?.Focus(FocusState.Keyboard);
         }
-
         // Scroll through all items.
         Task.Run(async () =>
         {
@@ -140,6 +141,7 @@ public sealed partial class MainPage : Page
 
         });
         #endregion
+        #pragma warning restore 
     }
 
     void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -193,21 +195,7 @@ public sealed partial class MainPage : Page
             //ViewModel?.RemoveItemCommand.Execute(ei);
         }
     }
-
-    /// <summary>
-    /// Thread-safe helper for <see cref="Microsoft.UI.Xaml.Controls.InfoBar"/>.
-    /// </summary>
-    /// <param name="message">text to show</param>
-    /// <param name="severity"><see cref="Microsoft.UI.Xaml.Controls.InfoBarSeverity"/></param>
-    public void ShowMessage(string message, InfoBarSeverity severity)
-    {
-        infoBar.DispatcherQueue?.TryEnqueue(() =>
-        {
-            infoBar.IsOpen = true;
-            infoBar.Severity = severity;
-            infoBar.Message = $"{message}";
-        });
-    }
+    #endregion
 
     #region [AutoSuggestBox]
     void OnTypingPaused(object sender, EventArgs e) => DisplaySuggestions(sender as AutoSuggestBox);
@@ -259,10 +247,24 @@ public sealed partial class MainPage : Page
             Debug.WriteLine($"[WARNING] OnSuggestionChosen: Selected item is invalid.");
             return;
         }
-        //_ = App.ShowDialogBox($"Selection", $"{selected}", "OK", "", null, null, ViewModel._dialogImgUri2);
+
+        // Deal with chart if user has it open.
+        if (ViewModel.ChartVisible == Visibility.Visible)
+        {
+            ViewModel.ChartVisible = Visibility.Collapsed;
+            ViewModel.ListVisible = Visibility.Visible;
+            ViewModel.ChartText = "Show Chart";
+        }
+
         SetSelectedItem(selected);
+        
+        //_ = App.ShowDialogBox($"Selection", $"{selected}", "OK", "", null, null, ViewModel._dialogImgUri2);
     }
 
+    /// <summary>
+    /// Focuses the <see cref="ExpenseItem"/> in the <see cref="ListView"/> and scrolls to it."/>
+    /// </summary>
+    /// <param name="item"><see cref="ExpenseItem"/></param>
     public void SetSelectedItem(ExpenseItem? item)
     {
         if (item is null)
@@ -329,8 +331,10 @@ public sealed partial class MainPage : Page
             ViewModel.IsBusy = false;
         }
     }
-    #endregion
 
+    /// <summary>
+    /// <see cref="AutoSuggestBox"/> event for the suggestions when the user pauses typing.
+    /// </summary>
     void OnImportTypingPaused(object sender, EventArgs e) => DisplayImportSuggestions(sender as AutoSuggestBox);
 
     /// <summary>
@@ -453,6 +457,37 @@ public sealed partial class MainPage : Page
 
             ViewModel?.ImportItemCommand.Execute((AutoSuggestBox)sender);
         };
+    }
+    #endregion
+
+    /// <summary>
+    /// Thread-safe helper for <see cref="Microsoft.UI.Xaml.Controls.InfoBar"/>.
+    /// </summary>
+    /// <param name="message">text to show</param>
+    /// <param name="severity"><see cref="Microsoft.UI.Xaml.Controls.InfoBarSeverity"/></param>
+    public void ShowMessage(string message, InfoBarSeverity severity)
+    {
+        infoBar.DispatcherQueue?.TryEnqueue(() =>
+        {
+            infoBar.IsOpen = true;
+            infoBar.Severity = severity;
+            infoBar.Message = $"{message}";
+        });
+    }
+
+    /// <summary>
+    /// For testing only; remove upon release.
+    /// </summary>
+    void PopulateSimulatedGraphData()
+    {
+        this.Visibility = Visibility.Collapsed;
+        List<ChartPoint> points = new List<ChartPoint>();
+        for (int i = 0; i < 50; i++)
+        {
+            points.Add(new ChartPoint(DateTime.Now.AddDays(i), (double)i * (Random.Shared.NextDouble() + 1.0), "$", $"Point #{i+1}"));
+        }
+        var Series = new List<ChartSeries> { new ChartSeries { Points = points } };
+        chartGrid.Visibility = Visibility.Visible;
     }
 }
 

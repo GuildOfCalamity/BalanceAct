@@ -430,6 +430,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="56" />
                     <RowDefinition Height="56" />
+                    <RowDefinition Height="56" />
                 </Grid.RowDefinitions>
 
                 <ctrl:ButtonEx
@@ -462,6 +463,24 @@
                     IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
                     <ctrl:ButtonEx.KeyboardAccelerators>
                         <KeyboardAccelerator Key="U" Modifiers="Control" />
+                    </ctrl:ButtonEx.KeyboardAccelerators>
+                    <interact:Interaction.Behaviors>
+                        <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
+                    </interact:Interaction.Behaviors>
+                </ctrl:ButtonEx>
+
+                <ctrl:ButtonEx
+                    x:Name="btnGraph"
+                    Grid.Row="2"
+                    MinWidth="200"
+                    MinHeight="48"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Command="{x:Bind ViewModel.CreateChartCommand}"
+                    Content="{x:Bind ViewModel.ChartText, Mode=OneWay}"
+                    IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BooleanInverter}, Mode=OneWay}">
+                    <ctrl:ButtonEx.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="G" Modifiers="Control" />
                     </ctrl:ButtonEx.KeyboardAccelerators>
                     <interact:Interaction.Behaviors>
                         <behave:ColorGradientBehavior From="{StaticResource ColorFrom}" To="{StaticResource ColorTo}" />
@@ -614,7 +633,8 @@
             ScrollViewer.VerticalScrollMode="Enabled"
             SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
             SelectionChanged="ItemListView_SelectionChanged"
-            SelectionMode="Single">
+            SelectionMode="Single"
+            Visibility="{x:Bind ViewModel.ListVisible, Mode=OneWay}">
             <!--  ListView Header  -->
             <ListView.Header>
                 <Border
@@ -767,7 +787,8 @@
             HorizontalAlignment="Stretch"
             BorderBrush="{ThemeResource GradientBorderBrush}"
             BorderThickness="2"
-            CornerRadius="5">
+            CornerRadius="5"
+            Visibility="{x:Bind ViewModel.ListVisible, Mode=OneWay}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*" />
                 <ColumnDefinition Width="3*" />
@@ -1201,12 +1222,13 @@
                             PointBorderBrush="{ThemeResource GradientPointBorderBrush}"
                             PointBrush="{ThemeResource GradientPointBrush}"
                             PointCanvasMargin="86"
-                            PointDelayMS="2"
+                            PointDelayMS="0"
                             PointGround="True"
-                            PointRadius="{x:Bind ViewModel.PointSize, Mode=OneWay, FallbackValue=4}"
+                            PointRadius="{x:Bind ViewModel.PointSize, Mode=OneWay, FallbackValue=2}"
                             PointSource="{x:Bind ViewModel.Points, Mode=OneWay}"
                             PointStrokeThickness="1"
                             ShowTitleDivider="False" />
+                        <!--<ctrl:CartesianChart x:Name="chart" Series="{x:Bind ViewModel.Series, Mode=OneWay}" />-->
                     </Flyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
@@ -1372,7 +1394,7 @@
                                             Spacing="4">
                                             <TextBlock
                                                 FontSize="{ThemeResource FontSizeNormal}"
-                                                Text="The CSV columns should be in this order:"
+                                                Text="The columns should be in this order:"
                                                 TextWrapping="Wrap" />
                                             <TextBlock
                                                 FontFamily="{ThemeResource SecondaryFont}"
@@ -1437,6 +1459,22 @@
                 Severity="Informational"
                 SlideUp="True" />
         </StackPanel>
+        <!--#endregion-->
+
+
+        <!--#region [CartesianChart Content]-->
+        <Grid
+            x:Name="chartGrid"
+            Grid.RowSpan="3"
+            Grid.Column="1"
+            Grid.ColumnSpan="2"
+            Visibility="{x:Bind ViewModel.ChartVisible, Mode=OneWay}">
+            <ctrl:CartesianChart
+                x:Name="chart"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Series="{x:Bind ViewModel.Series, Mode=OneWay}" />
+        </Grid>
         <!--#endregion-->
 
     </Grid>

@@ -30,7 +30,7 @@ namespace BalanceAct.Controls;
 [ContentProperty(Name = nameof(CastingElement))]
 public sealed partial class CompositionShadow : UserControl
 {
-    FrameworkElement _castingElement;
+    FrameworkElement? _castingElement;
     readonly DropShadow _dropShadow;
     readonly SpriteVisual _shadowVisual;
 
@@ -114,7 +114,7 @@ public sealed partial class CompositionShadow : UserControl
     /// The FrameworkElement that this <see cref="CompositionShadow"/> uses to create 
     /// the mask for the underlying <see cref="Windows.UI.Composition.DropShadow"/>.
     /// </summary>
-    public FrameworkElement CastingElement
+    public FrameworkElement? CastingElement
     {
         get { return _castingElement; }
         set
@@ -123,7 +123,7 @@ public sealed partial class CompositionShadow : UserControl
                 _castingElement.SizeChanged -= CompositionShadow_SizeChanged;
 
             _castingElement = value;
-            _castingElement.SizeChanged += CompositionShadow_SizeChanged;
+            _castingElement?.SizeChanged += CompositionShadow_SizeChanged;
 
             ConfigureShadowVisualForCastingElement();
         }
@@ -294,7 +294,7 @@ public sealed partial class CompositionShadow : UserControl
     {
         if (_castingElement != null)
         {
-            CompositionBrush mask = null;
+            CompositionBrush? mask = null;
             if (_castingElement is Image)
             {
                 mask = ((Image)_castingElement).GetAlphaMask();

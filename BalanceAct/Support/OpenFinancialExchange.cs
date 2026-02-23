@@ -18,8 +18,8 @@ namespace BalanceAct.Support
     /// </summary>
     public class QfxData
     {
-        public Dictionary<string, string> Header { get; set; }
-        public XDocument OfxDocument { get; set; }
+        public Dictionary<string, string>? Header { get; set; }
+        public XDocument? OfxDocument { get; set; }
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ namespace BalanceAct.Support
             {
                 // Expecting header lines in the format "Key:Value".
                 var parts = line.Split(new char[] { ':' }, 2);
-                if (parts.Length == 2)
+                if (parts?.Length == 2)
                 {
                     headerDict[parts[0].Trim()] = parts[1].Trim();
                 }
@@ -203,22 +203,23 @@ namespace BalanceAct.Support
 
                 Debug.WriteLine("QFX Header Properties:");
                 Debug.WriteLine(new string('=', 80));
-                foreach (var kv in qfxData.Header)
+                foreach (var kv in qfxData?.Header)
                 {
                     Debug.WriteLine($"  {kv.Key}: {kv.Value}");
                 }
                 Debug.WriteLine(new string('=', 80));
-                Debug.WriteLine("QFX Document Root: " + qfxData.OfxDocument.Root.Name);
-                Debug.WriteLine($"QFX Document Content:\r\n{qfxData.OfxDocument.Beautify()}");
+                Debug.WriteLine("QFX Document Root: " + qfxData?.OfxDocument?.Root?.Name);
+                Debug.WriteLine($"QFX Document Content:\r\n{qfxData?.OfxDocument?.Beautify()}");
                 /** 
                  **   Further processing of the OFX XML done here 
                  **/
-                var xml = qfxData.OfxDocument.ToString(SaveOptions.DisableFormatting);
-                System.Xml.Serialization.XmlSerializer serializer = new System.Xml.Serialization.XmlSerializer(typeof(OFX));
-                using (StringReader reader = new StringReader(xml))
+                var xml = qfxData?.OfxDocument?.ToString(SaveOptions.DisableFormatting);
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(OFX));
+                if (string.IsNullOrEmpty(xml)) { return; }
+                using (StringReader? reader = new StringReader(xml))
                 {
-                    var tranList = (OFX)serializer.Deserialize(reader);
-                    foreach (var t in tranList.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.BANKTRANLIST.STMTTRN)
+                    var tranList = (OFX?)serializer?.Deserialize(reader);
+                    foreach (var t in tranList?.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.BANKTRANLIST.STMTTRN)
                     {
                         /*
                         <STMTTRN>
@@ -234,24 +235,24 @@ namespace BalanceAct.Support
 
                         if (strComp.Equals(t.TRNTYPE, "DEBIT"))
                         {
-                            Debug.WriteLine($"Money removed: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {dt} ⇨ {t.FITID}");
+                            Debug.WriteLine($"Money removed: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {dt} ⇨ {t?.FITID}");
                         }
                         else if (strComp.Equals(t.TRNTYPE, "CREDIT"))
                         {
-                            Debug.WriteLine($"Money added: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {dt} ⇨ {t.FITID}");
+                            Debug.WriteLine($"Money added: {t.TRNTYPE} ⇨ ${t.TRNAMT} ⇨ {t.NAME} ⇨ {dt} ⇨ {t?.FITID}");
                         }
                         else
                         {
-                            Debug.WriteLine($"Undefined transaction type '{t.TRNTYPE}'");
+                            Debug.WriteLine($"Undefined transaction type '{t?.TRNTYPE}'");
                         }
                     }
-                    Debug.WriteLine($"Available balance: ${tranList.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.AVAILBAL.BALAMT}");
+                    Debug.WriteLine($"Available balance: ${tranList?.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.AVAILBAL.BALAMT}");
                 }
 
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error parsing QFX file: " + ex.Message);
+                Debug.WriteLine("Error parsing QFX file: " + ex?.Message);
             }
         }
 

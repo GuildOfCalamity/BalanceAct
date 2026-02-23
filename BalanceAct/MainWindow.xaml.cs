@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using BalanceAct.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
@@ -120,7 +122,8 @@ public sealed partial class MainWindow : Window
         gb.EndPoint = endPoint;
 
         // Create a sprite visual and assign the gradient brush.
-        var spriteVisual = Compositor.CreateSpriteVisual();
+        var spriteVisual = compositor.CreateSpriteVisual();
+        if (spriteVisual == null) { return; }
         spriteVisual.Brush = gb;
 
         // Set the size of the sprite visual to cover the entire window.

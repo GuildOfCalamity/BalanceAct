@@ -479,7 +479,7 @@ public sealed partial class ActiveImage : Control
 
         if (this.Visibility == Visibility.Visible)
         {
-            _image.Opacity = 0;
+            _image?.Opacity = 0;
             _fadeInStoryboard?.Begin();
         }
         else if (this.Visibility == Visibility.Collapsed)

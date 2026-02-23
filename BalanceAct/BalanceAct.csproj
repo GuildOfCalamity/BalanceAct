@@ -25,16 +25,18 @@
       <Version>1.0.0.3</Version>
       <FileVersion>1.0.0.3</FileVersion>
       <AssemblyVersion>1.0.0.3</AssemblyVersion>
-      <PackageId>BalanceAct2024</PackageId>
+      <PackageId>BalanceAct2025</PackageId>
       <Authors>The Guild</Authors>
-    <!-- 
+      <Description>A simple check book balancing application for banking needs.</Description>
+      <PackageDescription>A simple check book balancing application for banking needs.</PackageDescription>
+
+      <!-- 
       WindowsPackageType defines whether your app is packaged (MSIX) or unpackaged (None) 
     -->
       <WindowsPackageType>None</WindowsPackageType>
       <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- 
-      Get rid of all the unnecessary pathing that MS adds and 
-      makes the output match the traditional .NET Framework builds.
+      Get rid of unnecessary pathing so output matches traditional .NET Framework builds.
     -->
       <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
       <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
@@ -70,6 +72,7 @@
     <None Remove="Assets\StoreLogo.ico" />
     <None Remove="Assets\Warning.png" />
     <None Remove="Controls\AnimatedCirclesControl.xaml" />
+    <None Remove="Controls\CartesianChart.xaml" />
     <None Remove="Controls\CompositionShadow.xaml" />
     <None Remove="Controls\PlotControl.xaml" />
     <None Remove="Controls\SeparatorLine.xaml" />
@@ -231,6 +234,11 @@
     <Content Update="Assets\Measurement9.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\CartesianChart.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\PlotControl.xaml">

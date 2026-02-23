@@ -5,7 +5,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.ConstrainedExecution;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,10 +32,10 @@ namespace BalanceAct.ViewModels;
 /// </summary>
 public class MainViewModel : ObservableRecipient
 {
-    #region [Props]
+    #region [Properties]
     static bool _loaded = false;
     readonly int _avgMonth = 30;
-    System.Globalization.NumberFormatInfo _formatter;
+    NumberFormatInfo _formatter;
     static DispatcherTimer? _timer;
     static StringComparer _strComp = StringComparer.OrdinalIgnoreCase;
     readonly Uri _dialogImgUri = new Uri($"ms-appx:///Assets/Warning.png");
@@ -368,12 +369,62 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _points, value);
     }
 
-    double _pointSize = 4;
+    List<ChartSeries> _series = new();
+    public List<ChartSeries> Series
+    {
+        get => _series;
+        set => SetProperty(ref _series, value);
+    }
+
+    double _pointSize = 3;
     public double PointSize
     {
         get => _pointSize;
         set => SetProperty(ref _pointSize, value);
     }
+
+    UIElement _currentContent;
+    public UIElement CurrentContent // Model Content
+    {
+        get => _currentContent;
+        set => SetProperty(ref _currentContent, value);
+    }
+
+    Page _mainPageContent;
+    public Page MainPageContent // Main Content
+    {
+        get => _mainPageContent;
+        set => SetProperty(ref _mainPageContent, value);
+    }
+
+    Page _chartPageContent;
+    public Page ChartPageContent // Chart Content
+    {
+        get => _chartPageContent;
+        set => SetProperty(ref _chartPageContent, value);
+    }
+
+    Visibility _chartVisible = Visibility.Visible;
+    public Visibility ChartVisible
+    {
+        get => _chartVisible;
+        set => SetProperty(ref _chartVisible, value);
+    }
+
+    Visibility _listVisible = Visibility.Visible;
+    public Visibility ListVisible
+    {
+        get => _listVisible;
+        set => SetProperty(ref _listVisible, value);
+    }
+
+    string _chartText = "Show Chart";
+    public string ChartText
+    {
+        get => _chartText;
+        set => SetProperty(ref _chartText, value);
+    }
+
     #endregion
 
     #endregion
@@ -381,6 +432,7 @@ public class MainViewModel : ObservableRecipient
     #region [Relay Commands]
     public ICommand AddItemCommand { get; }
     public ICommand UpdateItemCommand { get; }
+    public ICommand CreateChartCommand { get; }
     public ICommand ImportItemCommand { get; }
     public ICommand RemoveItemCommand { get; }
     public ICommand SplitItemCommand { get; }
@@ -395,6 +447,8 @@ public class MainViewModel : ObservableRecipient
     FileLogger? Logger = (FileLogger?)App.Current.Services.GetService<ILogger>();
     DataService? dataService = (DataService?)App.Current.Services.GetService<IDataService>();
     #endregion
+
+    //public List<ChartSeries> GraphSeries = new();
 
     /// <summary>
     /// Default constructor
@@ -455,6 +509,7 @@ public class MainViewModel : ObservableRecipient
                     {
                         if (AreDatesSimilar(item.Date, SelectedDate.Value.Date) && 
                             AreAmountsSimilar(item.Amount, SelectedAmount) &&
+                            Extensions.GetSimilarity(item.Description ?? "", SelectedDescription) < App.LocalConfig!.similarityScore &&
                             item.Category == SelectedCategory)
                         {
                             duplicate = true;
@@ -619,6 +674,9 @@ public class MainViewModel : ObservableRecipient
                 }
                 #endregion
 
+                if (App.LocalConfig!.similarityScore < 0)
+                    App.LocalConfig!.similarityScore = 5;
+
                 // Support for Open Financial Exchange (OFX/QFX)
                 if (Path.GetExtension(ImportPathCSV).Equals(".qfx", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(ImportPathCSV).Equals(".ofx", StringComparison.OrdinalIgnoreCase))
                 {
@@ -636,6 +694,12 @@ public class MainViewModel : ObservableRecipient
                         using (StringReader reader = new StringReader(xml))
                         {
                             var tranList = (OFX?)serializer?.Deserialize(reader);
+                            if (tranList == null)
+                            {
+                                Status = $"Could not deserialize the OFX data, check the file format and try again ⚠️";
+                                _ = App.ShowDialogBox($"Import", $"Could not deserialize the OFX data, check the file format and try again.", "OK", "", null, null, _dialogImgUri);
+                                return;
+                            }
                             foreach (var t in tranList.CREDITCARDMSGSRSV1.CCSTMTTRNRS.CCSTMTRS.BANKTRANLIST.STMTTRN)
                             {
                                 /*
@@ -738,15 +802,13 @@ public class MainViewModel : ObservableRecipient
                                             #endregion
 
                                             bool duplicate = false;
-                                            if (App.LocalConfig!.aggressiveDupe)
-                                            {   // Aggressive duplicate check involves amount and date (with tolerance).
-                                                duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
-                                            }
-                                            else
-                                            {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
-                                                duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
-                                            }
-
+  
+                                            // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
+                                            // Strings that are slightly different (e.g. "Store 1234" vs "Store 12345") will be considered similar.
+                                            // "Checking account update" vs "Checking accounts updated" results in a score of 2.
+                                            // Any result less than 5 is considered a duplicate.
+                                            duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetSimilarity(ei.Description ?? "", impDesc) < App.LocalConfig!.similarityScore));
+                                            
                                             // Add the imported item.
                                             if (!duplicate)
                                             {
@@ -949,14 +1011,12 @@ public class MainViewModel : ObservableRecipient
                                     #endregion
 
                                     bool duplicate = false;
-                                    if (App.LocalConfig!.aggressiveDupe)
-                                    {   // Aggressive duplicate check involves amount and date (with tolerance).
-                                        duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt));
-                                    }
-                                    else
-                                    {   // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
-                                        duplicate = ExpenseItems.Any(ei => impDT.WithinAmountOfDays(ei.Date, 1.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetJaccardSimilarity(ei.Description, impDesc) > 0.50d));
-                                    }
+
+                                    // Standard duplicate check involves date (with tolerance), amount and description (using Jaccard similarity).
+                                    // Strings that are slightly different (e.g. "Store 1234" vs "Store 12345") will be considered similar.
+                                    // "Checking account update" vs "Checking accounts updated" results in a score of 2.
+                                    // Any result less than 5 is considered a duplicate.
+                                    duplicate = ExpenseItems.Any(ei => ((DateTime)impDT).WithinAmountOfDays(ei.Date, 2.0d) && AreAmountsSimilar(ei.Amount, impAmnt) && (Extensions.GetSimilarity(ei.Description ?? "", impDesc) < App.LocalConfig!.similarityScore));
 
                                     // Add the imported item.
                                     if (!duplicate)
@@ -1165,6 +1225,71 @@ public class MainViewModel : ObservableRecipient
             }
         });
         #endregion
+
+        #region [Graph Command]
+        CreateChartCommand = new RelayCommand<object>((obj) =>
+        {
+            if (Series.Count == 0)
+            {
+                int groupCount = 0;
+
+                //var orderList = ExpenseItems
+                //    .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+                //    .OrderBy(e => e.Date)
+                //    .Select(e => new { e.Id, e.Category, e.Amount, e.Date, e.Codes })
+                //    .ToList();
+
+                List<ExpenseItem>? orderedList = null;
+                if (App.LocalConfig!.chartMonths > 0)
+                {
+                    orderedList = ExpenseItems
+                        .Where(e => e.Date.HasValue && IsWithinLastNumberOfMonths(e.Date, App.LocalConfig!.chartMonths))
+                        .OrderBy(e => e.Date)
+                        .ToList();
+                }
+                else // current year only
+                {
+                    orderedList = ExpenseItems
+                        .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+                        .OrderBy(e => e.Date)
+                        .ToList();
+                }
+
+                List<ChartPoint> points = new List<ChartPoint>();
+                foreach (var item in orderedList)
+                {
+                    groupCount++;
+                    if (TryParseDollarAmount(item.Amount, out decimal amnt))
+                    {
+                        points.Add(new ChartPoint((DateTime)item.Date, (double)amnt, "$", item.Description ?? ""));
+                    }
+                }
+                Series = new List<ChartSeries> { new ChartSeries { Points = points } };
+                
+                //ShowChart(Series);
+                
+                //MainPageVisible = Visibility.Collapsed;
+                //ChartPageVisible = Visibility.Visible;
+
+                //ChartPage.UpdateLayout();
+            }
+
+            if (ChartVisible == Visibility.Visible)
+            {
+                ListVisible = Visibility.Visible;
+                ChartVisible = Visibility.Collapsed;
+                ChartText = "Show Chart";
+            }
+            else
+            {
+                ListVisible = Visibility.Collapsed;
+                ChartVisible = Visibility.Visible;
+                ChartText = "Hide Chart";
+            }
+        });
+        #endregion
+
+        //CurrentContent = MainPageContent;
     }
 
     #region [Statistical Methods]
@@ -1172,7 +1297,8 @@ public class MainViewModel : ObservableRecipient
     {
         if (ExpenseItems.Count == 0) { return; }
 
-        Points.Clear(); // signal to remake the graph
+        Points.Clear(); // signal to remake the bar graph
+        Series.Clear(); // signal to remake the cartesian chart
 
         var tmp = GetDateRangeTo(DateTime.Now, DateTime.Now.AddDays(7));
 
@@ -1657,6 +1783,17 @@ public class MainViewModel : ObservableRecipient
     #endregion
 
     #region [Helper Methods]
+    static bool IsWithinLastNumberOfMonths(DateTime? value, int months = 6)
+    {
+        if (value == null)
+            return false;
+
+        var now = DateTime.UtcNow;
+        var sixMonthsAgo = now.AddMonths(months * -1);
+
+        return value.Value >= sixMonthsAgo && value.Value <= now;
+    }
+
     /// <summary>
     /// Returns a range of <see cref="DateTime"/> objects matching the criteria provided.
     /// <example><code>
@@ -1703,7 +1840,7 @@ public class MainViewModel : ObservableRecipient
             return false;
 
         if (TryParseDollarAmount(amount1, out decimal value1) && TryParseDollarAmount(amount2, out decimal value2))
-            return value1 == value2;
+            return AreWithinPenny(value1, value2);
 
         // If either parsing fails, consider the amounts not equal.
         return false;
@@ -1753,6 +1890,15 @@ public class MainViewModel : ObservableRecipient
             return value;
         }
         return value;
+    }
+
+    /// <summary>
+    /// Returns true if the absolute difference between two decimal amounts
+    /// is less than or equal to one penny (0.01).
+    /// </summary>
+    public static bool AreWithinPenny(decimal amount1, decimal amount2)
+    {
+        return Math.Abs(amount1 - amount2) <= 0.01m;
     }
 
     public int GetHighestId()
@@ -1885,6 +2031,21 @@ public class MainViewModel : ObservableRecipient
         }
         #endregion
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public async Task<int> NewTestAsync()
+    {
+        var data = new List<int>(10000);
+        for (int i = 0; i < 10000; i++)
+        {
+            data.Add(await GetFakAsync());
+        }
+        return data[9999];
+    }
+    public async Task<int> GetFakAsync()
+    {
+        return await Task.FromResult(Random.Shared.Next());
+    }
     #endregion
 
     #region [Bound Events]
@@ -1893,6 +2054,28 @@ public class MainViewModel : ObservableRecipient
     /// </summary>
     public void GraphFlyoutOpened(object sender, object e)
     {
+        //if (Series.Count == 0)
+        //{
+        //    int groupCount = 0;
+        //    var orderedList = ExpenseItems
+        //        .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+        //        .OrderBy(e => e.Date)
+        //        .ToList();
+        //
+        //    List<ChartPoint> points = new List<ChartPoint>();
+        //    foreach (var item in orderedList)
+        //    {
+        //        groupCount++;
+        //        if (TryParseDollarAmount(item.Amount, out decimal amnt))
+        //        {
+        //            points.Add(new ChartPoint((DateTime)item.Date, (double)amnt, "$", item.Description ?? ""));
+        //        }
+        //    }
+        //    Series = new List<ChartSeries> { new ChartSeries { Points = points } };
+        //}
+        
+
+        #region [Bar Graph for Flyout]
         if (Points.Count == 0)
         {
             int groupCount = 0;
@@ -1918,6 +2101,8 @@ public class MainViewModel : ObservableRecipient
             // Adjust the plot point size based on the number of items.
             switch (Points.Count)
             {
+                case int count when count > 200: PointSize = 2;
+                    break;
                 case int count when count > 100: PointSize = 3;
                     break;
                 case int count when count > 75: PointSize = 4;
@@ -1931,6 +2116,7 @@ public class MainViewModel : ObservableRecipient
             }
             #endregion
         }
+        #endregion
     }
 
     /// <summary>
@@ -2021,8 +2207,70 @@ public class MainViewModel : ObservableRecipient
 
         _loaded = true;
         UpdateSummaryTotals();
-
+        ChartVisible = Visibility.Collapsed;
         Loading = false;
+    }
+
+    /// <summary>
+    /// Make sure we save on exit.
+    /// </summary>
+    public void ChartPageLoaded(object sender, RoutedEventArgs e)
+    {
+        Debug.WriteLine($"[INFO] The ChartPage is loading.");
+
+        #region [Load data]
+        if (ExpenseItems.Count == 0)
+            LoadExpenseItemsJson();
+
+        if (ExpenseItems.Count > 0)
+            Status = $"Loaded {ExpenseItems.Count} expense items ✔️";
+        else
+            Status = $"No data available ⚠️";
+        #endregion
+
+        //var orderList = ExpenseItems
+        //    .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+        //    .OrderBy(e => e.Date)
+        //    .Select(e => new { e.Id, e.Category, e.Amount, e.Date, e.Codes })
+        //    .ToList();
+
+        var orderedList = ExpenseItems
+            .Where(e => e.Date.HasValue && e.Date.Value.Year == DateTime.Now.Year)
+            .OrderBy(e => e.Date)
+            .ToList();
+
+        List<ChartPoint> points = new List<ChartPoint>();
+        foreach (var item in orderedList)
+        {
+            if (TryParseDollarAmount(item.Amount, out decimal amnt))
+            {
+                points.Add(new ChartPoint((DateTime)item.Date, (double)amnt, "$", item.Description ?? ""));
+            }
+        }
+        Series = new List<ChartSeries> { new ChartSeries { Points = points } };
+    }
+
+    public void ChartPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        Debug.WriteLine($"[INFO] The ChartPage is unloading.");
+    }
+    #endregion
+
+    #region [Page Swapping]
+    public void ShowChart(List<ChartSeries> series)
+    {
+        //CurrentContent = new ChartPage
+        //{
+        //    DataContext = new ChartPage(series)
+        //};
+    }
+
+    public void ShowHome()
+    {
+        CurrentContent = new MainPage
+        {
+            DataContext = this
+        };
     }
     #endregion
 

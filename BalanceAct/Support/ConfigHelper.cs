@@ -35,8 +35,8 @@ public class Config
     public bool logging = true;
 
     [JsonInclude]
-    [JsonPropertyName("aggressiveDupe")]
-    public bool aggressiveDupe = true;
+    [JsonPropertyName("similarityScore")]
+    public int similarityScore = 5;
 
     [JsonInclude]
     [JsonPropertyName("metrics")]
@@ -57,6 +57,10 @@ public class Config
     [JsonInclude]
     [JsonPropertyName("windowH")]
     public int windowH = 250;
+
+    [JsonInclude]
+    [JsonPropertyName("chartMonths")]
+    public int chartMonths = 3;
 
     public override string ToString() => JsonSerializer.Serialize<Config>(this, new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
 }
