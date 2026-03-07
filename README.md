@@ -32,9 +32,13 @@
 
 ![Debug Mode](./ScreenShot3.png)
 
-> Home-made graph control
+> Home-made bar graph control
 
 ![Home-made graph control](./ScreenShot5.png)
+
+> Home-made cartesian graph control
+
+![Home-made graph control](./ScreenShot6.png)
 
 > Home-made drop shadow effects (code-behind version & XAML version)
 
@@ -43,6 +47,7 @@
 ## 📝 v1.0.0.3 - June 2025
 * Added OFX (Open Financial Exchange) file support.
 * Added auto-suggest during file import.
+* Added Damerau/Levenshtein algorithm during duplicate checks.
 
 ## 📝 v1.0.0.2 - March 2025
 * General enhancement pass with clean up.
