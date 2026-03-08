@@ -39,6 +39,31 @@ public sealed partial class MainPage : Page
         ItemListView.RightTapped += ItemListView_RightTapped;
         Controls.PlotControl.ExpenseItemPlotTap += (ei) => SetSelectedItem(ei);
         //foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
+
+        chart.PointClicked += (_, args) =>
+        {
+            var p = args.Point;
+            Debug.WriteLine($"[INFO]  Clicked on '{p.Info}'  Created: {p.Time}  Value: {p.Uom}{p.Value} ");
+            
+            if (ViewModel == null)
+                return;
+
+            foreach (var ei in ViewModel.ExpenseItems)
+            {
+                if (ei.Amount.Contains($"{p.Uom}{p.Value}") && ei.Date == p.Time && ei.Description.Contains(p.Info))
+                {
+                    // Deal with chart if user has it open.
+                    if (ViewModel.ChartVisible == Visibility.Visible)
+                    {
+                        ViewModel.ChartVisible = Visibility.Collapsed;
+                        ViewModel.ListVisible = Visibility.Visible;
+                        ViewModel.ChartText = "Show Chart";
+                    }
+                    SetSelectedItem(ei);
+                    break;
+                }
+            }
+        };
     }
 
     #region [Events]

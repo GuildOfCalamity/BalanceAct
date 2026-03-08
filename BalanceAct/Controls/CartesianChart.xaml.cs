@@ -36,6 +36,8 @@ public sealed partial class CartesianChart : UserControl
     private Storyboard? _tooltipFadeInStoryboard;
     private Storyboard? _tooltipFadeOutStoryboard;
     private DoubleAnimation? _fadeOutTooltipAnimation;
+    
+    public event EventHandler<ChartPointClickedEventArgs>? PointClicked;
 
     public List<ChartSeries> Series
     {
@@ -67,6 +69,7 @@ public sealed partial class CartesianChart : UserControl
         Loaded += (_, _) => Redraw();
         SizeChanged += (_, _) => Redraw();
         Unloaded += (_, _) => Unload();
+        this.PointerPressed += CartesianChart_PointerPressed;
 
         if (_constantTooltip)
             PointerMoved += OnPointerMovedConstant;
@@ -74,6 +77,41 @@ public sealed partial class CartesianChart : UserControl
             PointerMoved += OnPointerMoved;
 
         PointerExited += OnPointerExited;
+    }
+
+    void CartesianChart_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (Series == null || Series.Count == 0)
+            return;
+
+        var pos = e.GetCurrentPoint(PART_Canvas).Position;
+        var series = Series[0];
+        if (series.Points == null || series.Points.Count == 0)
+            return;
+
+        // Find the closest point using 2D distance (recommended)
+        var closest = series.Points
+            .OrderBy(p =>
+            {
+                double dx = PlotX_Scoped(p.Time) - pos.X;
+                double dy = PlotY_Scoped(p.Value) - pos.Y;
+                return dx * dx + dy * dy; // squared distance
+            })
+            .First();
+
+        double x = PlotX_Scoped(closest.Time);
+        double y = PlotY_Scoped(closest.Value);
+
+        double dx2 = (x - pos.X) * (x - pos.X);
+        double dy2 = (y - pos.Y) * (y - pos.Y);
+        double distance = Math.Sqrt(dx2 + dy2);
+
+        if (distance <= HitThreshold)
+        {
+            // Raise your custom event
+            PointClicked?.Invoke(this, new ChartPointClickedEventArgs(closest));
+        }
+
     }
 
     void Redraw()
@@ -593,3 +631,14 @@ public sealed partial class CartesianChart : UserControl
     }
     void Unload() => Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
 }
+
+#region [Mouse Click Event]
+public class ChartPointClickedEventArgs : EventArgs
+{
+    public ChartPoint Point { get; }
+    public ChartPointClickedEventArgs(ChartPoint point)
+    {
+        Point = point;
+    }
+}
+#endregion
