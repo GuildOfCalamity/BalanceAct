@@ -383,22 +383,22 @@ public class MainViewModel : ObservableRecipient
         set => SetProperty(ref _pointSize, value);
     }
 
-    UIElement _currentContent;
-    public UIElement CurrentContent // Model Content
+    UIElement? _currentContent;
+    public UIElement? CurrentContent // Model Content
     {
         get => _currentContent;
         set => SetProperty(ref _currentContent, value);
     }
 
-    Page _mainPageContent;
-    public Page MainPageContent // Main Content
+    Page? _mainPageContent;
+    public Page? MainPageContent // Main Content
     {
         get => _mainPageContent;
         set => SetProperty(ref _mainPageContent, value);
     }
 
-    Page _chartPageContent;
-    public Page ChartPageContent // Chart Content
+    Page? _chartPageContent;
+    public Page? ChartPageContent // Chart Content
     {
         get => _chartPageContent;
         set => SetProperty(ref _chartPageContent, value);
@@ -1243,7 +1243,7 @@ public class MainViewModel : ObservableRecipient
                 if (App.LocalConfig!.chartMonths > 0)
                 {
                     orderedList = ExpenseItems
-                        .Where(e => e.Date.HasValue && IsWithinLastNumberOfMonths(e.Date, App.LocalConfig!.chartMonths))
+                        .Where(e => e.Date.HasValue && IsWithinLastNumberOfMonths(DateTime.Now.AddDays(7), e.Date, App.LocalConfig!.chartMonths))
                         .OrderBy(e => e.Date)
                         .ToList();
                 }
@@ -1794,6 +1794,18 @@ public class MainViewModel : ObservableRecipient
         return value.Value >= sixMonthsAgo && value.Value <= now;
     }
 
+    static bool IsWithinLastNumberOfMonths(DateTime? start, DateTime? value, int months = 6)
+    {
+        if (value == null)
+            return false;
+
+        var now = start ?? DateTime.UtcNow;
+        var sixMonthsAgo = now.AddMonths(months * -1);
+
+        return value.Value >= sixMonthsAgo && value.Value <= now;
+    }
+
+
     /// <summary>
     /// Returns a range of <see cref="DateTime"/> objects matching the criteria provided.
     /// <example><code>
@@ -2256,7 +2268,7 @@ public class MainViewModel : ObservableRecipient
     }
     #endregion
 
-    #region [Page Swapping]
+    #region [Page Swapping Test (not used)]
     public void ShowChart(List<ChartSeries> series)
     {
         //CurrentContent = new ChartPage

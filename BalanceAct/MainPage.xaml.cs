@@ -33,24 +33,22 @@ public sealed partial class MainPage : Page
 
     public MainPage()
     {
-        Debug.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{System.Reflection.MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
+        Debug.WriteLine($"{MethodBase.GetCurrentMethod()?.DeclaringType?.Name}__{MethodBase.GetCurrentMethod()?.Name} [{DateTime.Now.ToString("hh:mm:ss.fff tt")}]");
         InitializeComponent();
         this.Loading += MainPageLoading;
         ItemListView.RightTapped += ItemListView_RightTapped;
-        Controls.PlotControl.ExpenseItemPlotTap += (ei) => SetSelectedItem(ei);
         //foreach (var ele in Extensions.GetHierarchyFromUIElement(this.GetType())) { Debug.WriteLine($"[DEBUG] {ele?.Name}"); }
 
+        #region [Chart Click Events]
+        Controls.PlotControl.ExpenseItemPlotTap += (ei) => SetSelectedItem(ei);
         chart.PointClicked += (_, args) =>
         {
-            var p = args.Point;
-            Debug.WriteLine($"[INFO]  Clicked on '{p.Info}'  Created: {p.Time}  Value: {p.Uom}{p.Value} ");
-            
-            if (ViewModel == null)
+            var cp = args.Point;
+            if (ViewModel == null || cp == null)
                 return;
-
             foreach (var ei in ViewModel.ExpenseItems)
             {
-                if (ei.Amount.Contains($"{p.Uom}{p.Value}") && ei.Date == p.Time && ei.Description.Contains(p.Info))
+                if (ei.Amount.Contains($"{cp.Uom}{cp.Value}") && ei.Date == cp.Time && ei.Description.Contains(cp.Info))
                 {
                     // Deal with chart if user has it open.
                     if (ViewModel.ChartVisible == Visibility.Visible)
@@ -59,11 +57,13 @@ public sealed partial class MainPage : Page
                         ViewModel.ListVisible = Visibility.Visible;
                         ViewModel.ChartText = "Show Chart";
                     }
+                    // Select the ExpenseItem in the ListView and scroll to it.
                     SetSelectedItem(ei);
                     break;
                 }
             }
         };
+        #endregion
     }
 
     #region [Events]
@@ -513,6 +513,11 @@ public sealed partial class MainPage : Page
         }
         var Series = new List<ChartSeries> { new ChartSeries { Points = points } };
         chartGrid.Visibility = Visibility.Visible;
+    }
+
+    void imgGraph_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        ViewModel?.CreateChartCommand.Execute(null);
     }
 }
 
